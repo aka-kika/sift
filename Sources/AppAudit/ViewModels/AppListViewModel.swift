@@ -78,7 +78,30 @@ final class AppListViewModel {
     func showAvailableUpdates() {
         searchText = ""
         sortOrder = .updates
-        selectedAppID = filteredApps.first?.id
+        reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
+    }
+
+    func setSearchText(_ text: String) {
+        searchText = text
+        reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
+    }
+
+    func setSortOrder(_ order: SortOrder) {
+        sortOrder = order
+        reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
+    }
+
+    func reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: Bool = false) {
+        let visibleApps = filteredApps
+
+        if let selectedAppID,
+           visibleApps.contains(where: { $0.id == selectedAppID }) {
+            return
+        }
+
+        if selectedAppID != nil || selectFirstIfNeeded {
+            selectedAppID = visibleApps.first?.id
+        }
     }
 
     func refreshUpdateStatuses() async {
@@ -101,6 +124,7 @@ final class AppListViewModel {
         }
 
         await refreshUpdates(for: appsToRefresh, token: token)
+        reconcileSelectionWithCurrentFilter()
     }
 
     private let scanner = AppScanner()
@@ -318,6 +342,8 @@ final class AppListViewModel {
         if let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) {
             apps[idx].updateState = nextState
         }
+
+        reconcileSelectionWithCurrentFilter()
     }
 
     private func ensureCachedRecord(bundleID: String, appName: String) -> AppRecord? {
@@ -406,6 +432,7 @@ final class AppListViewModel {
         for idx in apps.indices where apps[idx].updateState == .checking {
             apps[idx].updateState = .unavailable
         }
+        reconcileSelectionWithCurrentFilter()
     }
 
     private func refreshAppLinks(for scannedApps: [AppInfo], token: UUID) async {

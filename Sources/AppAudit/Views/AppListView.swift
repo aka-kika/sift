@@ -25,7 +25,7 @@ struct AppListView: View {
         .searchable(
             text: Binding(
                 get: { viewModel.searchText },
-                set: { viewModel.searchText = $0 }
+                set: { viewModel.setSearchText($0) }
             ),
             prompt: "Search apps"
         )
@@ -33,7 +33,7 @@ struct AppListView: View {
             ToolbarItem(placement: .automatic) {
                 Picker("Sort", selection: Binding(
                     get: { viewModel.sortOrder },
-                    set: { viewModel.sortOrder = $0 }
+                    set: { viewModel.setSortOrder($0) }
                 )) {
                     ForEach(AppListViewModel.SortOrder.allCases, id: \.self) { order in
                         Text(order.rawValue).tag(order)
