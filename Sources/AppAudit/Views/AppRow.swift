@@ -68,6 +68,20 @@ struct AppRow: View {
 
             Spacer(minLength: 4)
 
+            if viewModel.sortOrder == .updates,
+               case .updateAvailable(let latestVersion, let source, _) = app.updateState {
+                Button {
+                    performUpdateAction(source: source)
+                } label: {
+                    Image(systemName: updateActionIcon(source: source))
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.orange)
+                .help(updateActionTitle(latestVersion: latestVersion, source: source))
+            }
+
             ScoreBadgeView(state: app.aiState, isMyApp: app.isMyApp)
         }
         .padding(.vertical, 2)
