@@ -481,7 +481,7 @@ struct AppDetailView: View {
                     ensuredRecord.appURL = trimmed.isEmpty ? nil : trimmed
                     saveRecord()
                     if !trimmed.isEmpty, trimmed != previousURL {
-                        viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID)
+                        viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
                     }
                 }
                 editingURL = false

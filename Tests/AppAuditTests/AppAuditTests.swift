@@ -150,7 +150,7 @@ struct AnalysisLockTests {
 
         context.insert(record)
 
-        #expect(!cache.isStale(record, currentModel: "apple-intelligence:foundation-models"))
+        #expect(!cache.isStale(record, currentModel: "apple-intelligence:foundation-models", currentAppURL: "https://example.com/locked"))
     }
 
     @Test("Save does not overwrite locked analysis")
@@ -187,6 +187,56 @@ struct AnalysisLockTests {
         #expect(record.explanation == "Original")
         #expect(record.relevanceScore == 5)
         #expect(record.ollamaModel == "ollama:old")
+    }
+
+    @Test("Changing app link makes cached analysis stale")
+    @MainActor
+    func changingAppLinkMakesCachedAnalysisStale() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = container.mainContext
+        let cache = CacheService(context: context)
+        let record = AppRecord(
+            bundleID: "com.example.linked",
+            appName: "Linked",
+            explanation: "Old",
+            relevanceScore: 3,
+            relevanceReason: "Old reason",
+            bestUse: "Old use",
+            ollamaModel: "ollama:llama3.2"
+        )
+        record.analysisAppURL = nil
+        context.insert(record)
+
+        #expect(cache.isStale(record, currentModel: "ollama:llama3.2", currentAppURL: "https://example.com/linked"))
+    }
+
+    @Test("Save records app link used for analysis")
+    @MainActor
+    func saveRecordsAppLinkUsedForAnalysis() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = container.mainContext
+        let cache = CacheService(context: context)
+
+        cache.save(
+            bundleID: "com.example.linked",
+            appName: "Linked",
+            explanation: "New",
+            score: 4,
+            reason: "New reason",
+            bestUse: "New use",
+            ollamaModel: "ollama:llama3.2",
+            analysisAppURL: "  https://example.com/linked  "
+        )
+
+        let record = cache.load(bundleID: "com.example.linked")
+        #expect(record?.analysisAppURL == "https://example.com/linked")
+        #expect(!cache.isStale(record!, currentModel: "ollama:llama3.2", currentAppURL: "https://example.com/linked"))
     }
 }
 

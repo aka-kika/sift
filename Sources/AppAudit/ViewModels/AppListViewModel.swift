@@ -194,8 +194,9 @@ final class AppListViewModel {
                     apps[i].isMyApp = record.isMyApp
                     apps[i].isFavorite = record.isFavorite
                     apps[i].isAnalysisLocked = record.isAnalysisLocked
+                    let currentAppURL = record.appURL
                     if !record.explanation.isEmpty,
-                       (record.isAnalysisLocked || !cache.isStale(record, currentModel: modelIdentifier)) {
+                       (record.isAnalysisLocked || !cache.isStale(record, currentModel: modelIdentifier, currentAppURL: currentAppURL)) {
                         apps[i].aiState = .loaded(
                             explanation: record.explanation,
                             score: record.relevanceScore,
@@ -229,7 +230,7 @@ final class AppListViewModel {
         let concurrencyLimit = 4
         var completed = self.apps.count - toEnrich.count
 
-        await withTaskGroup(of: (String, AppInfo.AIState).self) { group in
+        await withTaskGroup(of: (String, AppInfo.AIState, String?).self) { group in
             var pendingCount = 0
             var iterator = toEnrich.makeIterator()
 
@@ -240,14 +241,15 @@ final class AppListViewModel {
                 let capturedProvider = provider
                 let capturedAppURL = self.cacheService?.load(bundleID: app.bundleID)?.appURL
                 group.addTask {
-                    await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL)
+                    let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL)
+                    return (result.0, result.1, capturedAppURL)
                 }
                 pendingCount += 1
             }
 
             // Process results and add more as slots free up
             for await result in group {
-                let (bundleID, state) = result
+                let (bundleID, state, analysisAppURL) = result
                 if let idx = self.apps.firstIndex(where: { $0.bundleID == bundleID }) {
                     let isLocked = self.apps[idx].isAnalysisLocked ||
                         self.cacheService?.load(bundleID: bundleID)?.isAnalysisLocked == true
@@ -265,7 +267,8 @@ final class AppListViewModel {
                                 score: score,
                                 reason: reason,
                                 bestUse: bestUse,
-                                ollamaModel: modelIdentifier
+                                ollamaModel: modelIdentifier,
+                                analysisAppURL: analysisAppURL
                             )
                         }
                     }
@@ -280,7 +283,8 @@ final class AppListViewModel {
                     let capturedProvider = provider
                     let capturedAppURL = self.cacheService?.load(bundleID: next.bundleID)?.appURL
                     group.addTask {
-                        await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL)
+                        let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL)
+                        return (result.0, result.1, capturedAppURL)
                     }
                 }
             }
@@ -390,13 +394,13 @@ final class AppListViewModel {
         return record
     }
 
-    func reanalyze(bundleID: String) async {
+    func reanalyze(bundleID: String, appURL overrideAppURL: String? = nil) async {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
               !apps[idx].isAnalysisLocked else {
             return
         }
-        let appURL = cacheService?.load(bundleID: bundleID)?.appURL
+        let appURL = overrideAppURL ?? cacheService?.load(bundleID: bundleID)?.appURL
         workflowProfile = .current()
         apps[idx].aiState = .loading
         let provider = AnalysisProviderKind.current()
@@ -417,7 +421,8 @@ final class AppListViewModel {
                 score: score,
                 reason: reason,
                 bestUse: bestUse,
-                ollamaModel: modelIdentifier
+                ollamaModel: modelIdentifier,
+                analysisAppURL: appURL
             )
             // Re-sync isMyApp (save() preserves it; read back to stay in sync)
             if let record = cache.load(bundleID: bundleID) {
@@ -428,7 +433,7 @@ final class AppListViewModel {
         }
     }
 
-    func reanalyzeAfterLinkChange(bundleID: String) {
+    func reanalyzeAfterLinkChange(bundleID: String, appURL: String? = nil) {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }),
               !apps[idx].isAnalysisLocked,
               cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true else {
@@ -436,7 +441,7 @@ final class AppListViewModel {
         }
 
         Task {
-            await reanalyze(bundleID: bundleID)
+            await reanalyze(bundleID: bundleID, appURL: appURL)
         }
     }
 

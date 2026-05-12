@@ -16,18 +16,22 @@ final class CacheService {
         return try? context.fetch(descriptor).first
     }
 
-    func isStale(_ record: AppRecord, currentModel: String) -> Bool {
+    func isStale(_ record: AppRecord, currentModel: String, currentAppURL: String? = nil) -> Bool {
         if record.isAnalysisLocked {
             return false
         }
         // Invalidate when the selected analysis provider or model changes.
-        return record.ollamaModel != currentModel
+        if record.ollamaModel != currentModel {
+            return true
+        }
+
+        return normalizedURL(record.analysisAppURL) != normalizedURL(currentAppURL)
     }
 
     func save(
         bundleID: String, appName: String,
         explanation: String, score: Int, reason: String,
-        bestUse: String, ollamaModel: String
+        bestUse: String, ollamaModel: String, analysisAppURL: String? = nil
     ) {
         if let existing = load(bundleID: bundleID) {
             guard !existing.isAnalysisLocked else { return }
@@ -38,6 +42,7 @@ final class CacheService {
             existing.relevanceReason = reason
             existing.bestUse = bestUse.isEmpty ? nil : bestUse
             existing.ollamaModel = ollamaModel
+            existing.analysisAppURL = normalizedURL(analysisAppURL)
             existing.generatedAt = Date()
         } else {
             let record = AppRecord(
@@ -49,6 +54,7 @@ final class CacheService {
                 bestUse: bestUse,
                 ollamaModel: ollamaModel
             )
+            record.analysisAppURL = normalizedURL(analysisAppURL)
             context.insert(record)
         }
         try? context.save()
@@ -67,5 +73,10 @@ final class CacheService {
 
     func persist() {
         try? context.save()
+    }
+
+    private func normalizedURL(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
     }
 }
