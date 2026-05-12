@@ -60,7 +60,9 @@ final class AppListViewModel {
 
     private let scanner = AppScanner()
     private let ollama = OllamaService()
+    private let appleIntelligence = AppleIntelligenceService()
     private let updateChecker = UpdateChecker()
+    private let appLinkResolver = AppLinkResolver()
     var cacheService: CacheService?
     private var updateScanToken = UUID()
 
@@ -83,7 +85,12 @@ final class AppListViewModel {
             await self.refreshUpdates(for: scannedApps, token: updateToken)
         }
 
-        let ollamaModel = await ollama.currentModel
+        Task {
+            await self.refreshAppLinks(for: scannedApps, token: updateToken)
+        }
+
+        let provider = AnalysisProviderKind.current()
+        let modelIdentifier = provider.modelIdentifier
 
         // Check cache for each app
         var toEnrich: [AppInfo] = []
@@ -92,7 +99,7 @@ final class AppListViewModel {
                 if let record = cache.load(bundleID: apps[i].bundleID) {
                     apps[i].isMyApp = record.isMyApp
                     apps[i].isFavorite = record.isFavorite
-                    if !cache.isStale(record, currentModel: ollamaModel),
+                    if !cache.isStale(record, currentModel: modelIdentifier),
                        !record.explanation.isEmpty {
                         apps[i].aiState = .loaded(
                             explanation: record.explanation,
@@ -113,7 +120,7 @@ final class AppListViewModel {
 
         scanState = .enriching(completed: apps.count - toEnrich.count, total: apps.count)
 
-        await enrichConcurrently(apps: toEnrich, profile: workflowProfile, ollamaModel: ollamaModel)
+        await enrichConcurrently(apps: toEnrich, profile: workflowProfile, provider: provider, modelIdentifier: modelIdentifier)
 
         scanState = .done
     }
@@ -121,7 +128,8 @@ final class AppListViewModel {
     private func enrichConcurrently(
         apps toEnrich: [AppInfo],
         profile: WorkflowProfile,
-        ollamaModel: String
+        provider: AnalysisProviderKind,
+        modelIdentifier: String
     ) async {
         let concurrencyLimit = 4
         var completed = self.apps.count - toEnrich.count
@@ -134,8 +142,9 @@ final class AppListViewModel {
             while pendingCount < concurrencyLimit, let app = iterator.next() {
                 let capturedApp = app
                 let capturedProfile = profile
+                let capturedProvider = provider
                 group.addTask {
-                    await self.enrichSingle(app: capturedApp, profile: capturedProfile)
+                    await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider)
                 }
                 pendingCount += 1
             }
@@ -155,7 +164,7 @@ final class AppListViewModel {
                             score: score,
                             reason: reason,
                             bestUse: bestUse,
-                            ollamaModel: ollamaModel
+                            ollamaModel: modelIdentifier
                         )
                     }
                 }
@@ -166,16 +175,28 @@ final class AppListViewModel {
                 if let next = iterator.next() {
                     let capturedNext = next
                     let capturedProfile = profile
+                    let capturedProvider = provider
                     group.addTask {
-                        await self.enrichSingle(app: capturedNext, profile: capturedProfile)
+                        await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider)
                     }
                 }
             }
         }
     }
 
-    nonisolated private func enrichSingle(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil) async -> (String, AppInfo.AIState) {
-        let result = await ollama.analyze(app: app, profile: profile, appURL: appURL)
+    nonisolated private func enrichSingle(
+        app: AppInfo,
+        profile: WorkflowProfile,
+        provider: AnalysisProviderKind,
+        appURL: String? = nil
+    ) async -> (String, AppInfo.AIState) {
+        let result: OllamaService.OllamaResult
+        switch provider {
+        case .ollama:
+            result = await ollama.analyze(app: app, profile: profile, appURL: appURL)
+        case .appleIntelligence:
+            result = await appleIntelligence.analyze(app: app, profile: profile, appURL: appURL)
+        }
 
         switch result {
         case .unavailable(let msg):
@@ -240,15 +261,35 @@ final class AppListViewModel {
         }
     }
 
+    private func ensureCachedRecord(bundleID: String, appName: String) -> AppRecord? {
+        guard let cache = cacheService else { return nil }
+        if let record = cache.load(bundleID: bundleID) {
+            return record
+        }
+
+        let record = AppRecord(
+            bundleID: bundleID,
+            appName: appName,
+            explanation: "",
+            relevanceScore: 0,
+            relevanceReason: "",
+            bestUse: "",
+            ollamaModel: ""
+        )
+        cache.insert(record)
+        return record
+    }
+
     func reanalyze(bundleID: String) async {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         let appURL = cacheService?.load(bundleID: bundleID)?.appURL
         workflowProfile = .current()
         apps[idx].aiState = .loading
-        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, appURL: appURL)
+        let provider = AnalysisProviderKind.current()
+        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL)
         apps[idx].aiState = result.1
 
-        let ollamaModel = await ollama.currentModel
+        let modelIdentifier = provider.modelIdentifier
         if case .loaded(let explanation, let score, let reason, let bestUse) = result.1,
            let cache = cacheService {
             cache.save(
@@ -258,7 +299,7 @@ final class AppListViewModel {
                 score: score,
                 reason: reason,
                 bestUse: bestUse,
-                ollamaModel: ollamaModel
+                ollamaModel: modelIdentifier
             )
             // Re-sync isMyApp (save() preserves it; read back to stay in sync)
             if let record = cache.load(bundleID: bundleID) {
@@ -282,6 +323,26 @@ final class AppListViewModel {
         guard token == updateScanToken else { return }
         for idx in apps.indices where apps[idx].updateState == .checking {
             apps[idx].updateState = .unavailable
+        }
+    }
+
+    private func refreshAppLinks(for scannedApps: [AppInfo], token: UUID) async {
+        for app in scannedApps where app.isAppStoreInstall || app.sparkleFeedURL != nil {
+            guard token == updateScanToken else { return }
+            if let existingURL = cacheService?.load(bundleID: app.bundleID)?.appURL,
+               !existingURL.isEmpty {
+                continue
+            }
+
+            guard let resolvedLink = await appLinkResolver.resolve(app: app),
+                  token == updateScanToken,
+                  let record = ensureCachedRecord(bundleID: app.bundleID, appName: app.name),
+                  (record.appURL ?? "").isEmpty else {
+                continue
+            }
+
+            record.appURL = resolvedLink.url
+            cacheService?.persist()
         }
     }
 }

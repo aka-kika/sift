@@ -78,6 +78,31 @@ struct OllamaScoreParsingTests {
     }
 }
 
+@Suite("AnalysisProviderKind Tests")
+struct AnalysisProviderKindTests {
+
+    @Test("Defaults to Ollama when unset or invalid")
+    func defaultsToOllama() {
+        let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.defaults")!
+        defaults.removeObject(forKey: AnalysisProviderKind.storageKey)
+        #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
+
+        defaults.set("unknown-provider", forKey: AnalysisProviderKind.storageKey)
+        #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
+    }
+
+    @Test("Builds stable cache identifiers for each provider")
+    func modelIdentifiers() {
+        let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.models")!
+        defaults.removeObject(forKey: "ollamaModel")
+        #expect(AnalysisProviderKind.ollama.modelIdentifier(userDefaults: defaults) == "ollama:llama3.2")
+
+        defaults.set("mistral", forKey: "ollamaModel")
+        #expect(AnalysisProviderKind.ollama.modelIdentifier(userDefaults: defaults) == "ollama:mistral")
+        #expect(AnalysisProviderKind.appleIntelligence.modelIdentifier(userDefaults: defaults) == "apple-intelligence:foundation-models")
+    }
+}
+
 @Suite("AppInfo Tests")
 struct AppInfoTests {
 
@@ -224,6 +249,66 @@ struct UpdateCheckerTests {
 
         #expect(viewModel.apps.first?.updateState == .upToDate(source: .sparkle))
         #expect(viewModel.cacheService?.load(bundleID: "com.example.myapp")?.acknowledgedUpdateVersion == "2.0")
+    }
+}
+
+@Suite("AppLinkResolver Tests")
+struct AppLinkResolverTests {
+
+    @Test("Parses preferred App Store link from lookup response")
+    func parsesAppStoreLink() throws {
+        let data = Data("""
+        {
+          "resultCount": 2,
+          "results": [
+            {
+              "bundleId": "com.example.Other",
+              "trackViewUrl": "https://apps.apple.com/app/other/id111"
+            },
+            {
+              "bundleId": "com.example.MyApp",
+              "trackViewUrl": "https://apps.apple.com/app/myapp/id222"
+            }
+          ]
+        }
+        """.utf8)
+
+        let url = try AppLinkResolver.parseAppStoreLink(from: data, preferredBundleID: "com.example.MyApp")
+        #expect(url == "https://apps.apple.com/app/myapp/id222")
+    }
+
+    @Test("Parses Sparkle channel website")
+    func parsesSparkleWebsite() throws {
+        let data = Data("""
+        <rss>
+          <channel>
+            <title>Example App</title>
+            <link>https://example.com/app</link>
+            <item>
+              <link>https://example.com/app/release-notes</link>
+            </item>
+          </channel>
+        </rss>
+        """.utf8)
+
+        let url = try AppLinkResolver.parseSparkleWebsite(
+            from: data,
+            feedURL: URL(string: "https://updates.example.com/appcast.xml")!
+        )
+
+        #expect(url == "https://example.com/app")
+    }
+
+    @Test("Falls back to Sparkle feed host when website is missing")
+    func sparkleHostFallback() throws {
+        let data = Data("<rss><channel><title>No Link</title></channel></rss>".utf8)
+
+        let url = try AppLinkResolver.parseSparkleWebsite(
+            from: data,
+            feedURL: URL(string: "https://updates.example.com/appcast.xml")!
+        )
+
+        #expect(url == "https://updates.example.com")
     }
 }
 

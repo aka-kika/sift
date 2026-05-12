@@ -19,6 +19,7 @@ struct AppDetailView: View {
     @State private var editingLicenseKey = false
     @State private var draftLicenseKey = ""
     @State private var currentLicenseKey: String? = nil
+    @State private var notesExpanded = false
 
     var body: some View {
         ScrollView {
@@ -155,8 +156,8 @@ struct AppDetailView: View {
 
                 case .loading:
                     VStack(spacing: 8) {
-                        ProgressView("Analyzing with Ollama…")
-                        Text("Using local AI — this may take a moment")
+                        ProgressView("Analyzing with \(AnalysisProviderKind.current().displayName)...")
+                        Text("Using local AI. This may take a moment.")
                             .font(.caption).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity)
 
@@ -255,14 +256,26 @@ struct AppDetailView: View {
     // MARK: - Notes section
 
     private var notesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Notes", systemImage: "note.text").font(.headline)
+        DisclosureGroup(isExpanded: $notesExpanded) {
             NotesEditor(
                 text: Binding(
                     get: { record?.notes ?? "" },
                     set: { record?.notes = $0.isEmpty ? nil : $0; saveRecord() }
                 )
             )
+            .padding(.top, 8)
+        } label: {
+            HStack(spacing: 8) {
+                Label("Notes", systemImage: "note.text").font(.headline)
+                if let notes = record?.notes, !notes.isEmpty {
+                    Text("Saved")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onChange(of: app.bundleID) { _, _ in
+            notesExpanded = false
         }
     }
 
@@ -371,7 +384,7 @@ struct AppDetailView: View {
                     .buttonStyle(.borderless)
                 }
             } else {
-                Text("Add a GitHub repo or website so Ollama can use it as context when analyzing.")
+                Text("Add a GitHub repo or website so the selected analysis provider can use it as context.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -555,7 +568,7 @@ struct EditURLSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("App link for \(appName)")
                 .font(.headline)
-            Text("GitHub repo or website. Ollama will use this as context when the app is analyzed.")
+            Text("GitHub repo or website. The selected analysis provider will use this as context when the app is analyzed.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

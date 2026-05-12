@@ -11,8 +11,8 @@
 │         AppListViewModel                │  Business Logic
 │         @Observable @MainActor          │
 ├──────────────┬──────────────┬───────────┤
-│ AppScanner │ OllamaService │ UpdateChecker │ Services
-│ FileManager│ HTTP/Ollama   │ App Store/Sparkle
+│ AppScanner │ Local AI Providers │ Update/App Links │ Services
+│ FileManager│ Ollama/Foundation  │ App Store/Sparkle
 ├─────────────────────────────────────────┤
 │  CacheService  +  AppRecord (@Model)    │  Data
 │         SwiftData store                 │
@@ -34,11 +34,15 @@ App Launch
   │
   └── enrichConcurrently() [max 4 concurrent]
         │
-        └── OllamaService.analyze(app, profile)
-              → single request, structured response
+        └── selected provider analyzes app + profile
+              → Ollama structured text or Apple Foundation Models structured output
               → parseAnalysis() → AIState.loaded(...)
               → CacheService.save()
               → ViewModel updates app in place → SwiftUI re-renders row
+
+Background side tasks:
+- `UpdateChecker` checks App Store and Sparkle update state
+- `AppLinkResolver` fills missing app links from App Store lookup or Sparkle appcast metadata
 ```
 
 ## State Machine (AppListViewModel.ScanState)
@@ -51,13 +55,13 @@ idle → scanning → enriching(completed, total) → done
 
 ## Cache Invalidation
 
-Only one condition invalidates cache: **the Ollama model changes** (stored in `AppRecord.ollamaModel`).
+Cache is invalidated when the selected analysis provider or model changes. The identifier is stored in the legacy-named `AppRecord.ollamaModel` field.
 
 ## Concurrency
 
-- AI enrichment uses `withTaskGroup` capped at 4 concurrent Ollama requests
+- AI enrichment uses `withTaskGroup` capped at 4 concurrent provider requests
 - All ViewModel mutations happen on `@MainActor`
-- Services are `actor`-isolated (AppScanner, OllamaService)
+- Services are `actor`-isolated (AppScanner, OllamaService, AppleIntelligenceService)
 
 ## Persistence
 
@@ -67,9 +71,11 @@ SwiftData store: `~/Library/Application Support/AppAudit/AppAudit.store`
 
 License keys are stored in macOS Keychain via `LicenseKeyStore`. SwiftData keeps only a migration bridge field for older local stores.
 
+Manual `appURL` values are preserved. Automatic link discovery only writes when the field is empty.
+
 ## AI Prompt
 
-Single structured request per app:
+Single structured provider request per app:
 
 ```
 [system] You are an expert macOS app analyst...
@@ -84,3 +90,5 @@ Single structured request per app:
 ```
 
 Parser: line-by-line prefix matching on `EXPLANATION:`, `SCORE:`, `REASON:`, `BEST_USE:`.
+
+Apple Intelligence is optional and gated by `SystemLanguageModel.default.availability`. When available, `AppleIntelligenceService` asks Foundation Models for structured `@Generable` output, then converts it into the same parser format used by the rest of the app.

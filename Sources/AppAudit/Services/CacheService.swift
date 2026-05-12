@@ -17,7 +17,7 @@ final class CacheService {
     }
 
     func isStale(_ record: AppRecord, currentModel: String) -> Bool {
-        // Only invalidate when the user changes the Ollama model in Settings.
+        // Invalidate when the selected analysis provider or model changes.
         return record.ollamaModel != currentModel
     }
 

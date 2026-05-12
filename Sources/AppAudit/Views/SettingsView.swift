@@ -3,8 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     var body: some View {
         TabView {
-            OllamaSettingsTab()
-                .tabItem { Label("Ollama", systemImage: "brain") }
+            AnalysisSettingsTab()
+                .tabItem { Label("Analysis", systemImage: "brain") }
 
             ProfileSettingsTab()
                 .tabItem { Label("Profile", systemImage: "person.text.rectangle") }
@@ -16,76 +16,128 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Ollama Tab
+// MARK: - Analysis Tab
 
-struct OllamaSettingsTab: View {
+struct AnalysisSettingsTab: View {
+    @AppStorage(AnalysisProviderKind.storageKey) private var analysisProviderKind = AnalysisProviderKind.ollama.rawValue
     @AppStorage("ollamaBaseURL") private var ollamaBaseURL = "http://localhost:11434"
     @AppStorage("ollamaModel") private var ollamaModel = "llama3.2"
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
+    @State private var appleIntelligenceStatus = "Not checked"
 
     enum FetchState { case idle, loading, loaded, failed(String) }
 
+    private var selectedProvider: AnalysisProviderKind {
+        AnalysisProviderKind(rawValue: analysisProviderKind) ?? .ollama
+    }
+
     var body: some View {
         Form {
-            Section("Connection") {
-                HStack {
-                    TextField("Base URL", text: $ollamaBaseURL)
-                        .textFieldStyle(.roundedBorder)
-                    Button {
-                        Task { await fetchModels() }
-                    } label: {
-                        switch fetchState {
-                        case .loading:
-                            ProgressView().scaleEffect(0.7).frame(width: 16, height: 16)
-                        case .loaded:
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                        case .failed:
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-                        case .idle:
-                            Image(systemName: "arrow.clockwise")
-                        }
+            Section("Provider") {
+                Picker("Provider", selection: $analysisProviderKind) {
+                    ForEach(AnalysisProviderKind.allCases) { provider in
+                        Text(provider.displayName).tag(provider.rawValue)
                     }
-                    .buttonStyle(.borderless)
-                    .help("Test connection and fetch models")
                 }
+                .pickerStyle(.menu)
+
+                Text(providerStatusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            Section("Model") {
-                if availableModels.isEmpty {
+            if selectedProvider == .ollama {
+                Section("Ollama Connection") {
                     HStack {
-                        TextField("Model name", text: $ollamaModel)
+                        TextField("Base URL", text: $ollamaBaseURL)
                             .textFieldStyle(.roundedBorder)
-                        Button("Fetch Models") {
+                        Button {
                             Task { await fetchModels() }
+                        } label: {
+                            switch fetchState {
+                            case .loading:
+                                ProgressView().scaleEffect(0.7).frame(width: 16, height: 16)
+                            case .loaded:
+                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                            case .failed:
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                            case .idle:
+                                Image(systemName: "arrow.clockwise")
+                            }
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.borderless)
+                        .help("Test connection and fetch models")
                     }
-                    if case .failed(let msg) = fetchState {
-                        Text(msg)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                }
+
+                Section("Ollama Model") {
+                    if availableModels.isEmpty {
+                        HStack {
+                            TextField("Model name", text: $ollamaModel)
+                                .textFieldStyle(.roundedBorder)
+                            Button("Fetch Models") {
+                                Task { await fetchModels() }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        if case .failed(let msg) = fetchState {
+                            Text(msg)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        } else {
+                            Text("Click Fetch Models or the refresh button to load installed models")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     } else {
-                        Text("Click Fetch Models or the refresh button to load installed models")
+                        Picker("Active Model", selection: $ollamaModel) {
+                            ForEach(availableModels, id: \.self) { model in
+                                Text(model).tag(model)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        Text("\(availableModels.count) model(s) installed locally")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                } else {
-                    Picker("Active Model", selection: $ollamaModel) {
-                        ForEach(availableModels, id: \.self) { model in
-                            Text(model).tag(model)
+                }
+            } else {
+                Section("Apple Intelligence") {
+                    HStack {
+                        Text(appleIntelligenceStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Check Availability") {
+                            Task { await checkAppleIntelligence() }
                         }
+                        .buttonStyle(.bordered)
                     }
-                    .pickerStyle(.menu)
-                    Text("\(availableModels.count) model(s) installed locally")
+                    Text("Uses Apple's on-device Foundation Models when available. No API key, model download, or network connection is required.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .formStyle(.grouped)
-        .task { await fetchModels() }
+        .task {
+            if selectedProvider == .ollama {
+                await fetchModels()
+            } else {
+                await checkAppleIntelligence()
+            }
+        }
+    }
+
+    private var providerStatusText: String {
+        switch selectedProvider {
+        case .ollama:
+            return "Local Ollama server. Best for controllable local models."
+        case .appleIntelligence:
+            return "On-device Apple Foundation Models. Requires Apple Intelligence availability."
+        }
     }
 
     private func fetchModels() async {
@@ -119,6 +171,15 @@ struct OllamaSettingsTab: View {
             fetchState = .failed(error.localizedDescription)
         }
     }
+
+    private func checkAppleIntelligence() async {
+        let service = AppleIntelligenceService()
+        if let message = await service.availabilityMessage() {
+            appleIntelligenceStatus = message
+        } else {
+            appleIntelligenceStatus = "Available on this Mac"
+        }
+    }
 }
 
 // MARK: - Profile Tab
@@ -135,7 +196,7 @@ struct ProfileSettingsTab: View {
                     .scrollContentBackground(.hidden)
                     .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
 
-                Text("Used by Ollama when scoring app relevance. Re-analyze an app to refresh its result with the current profile.")
+                Text("Used by the selected analysis provider when scoring app relevance. Re-analyze an app to refresh its result with the current profile.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
