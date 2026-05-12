@@ -55,7 +55,7 @@ struct ContentView: View {
                 } actions: {
                     if viewModel.sortOrder != .updates {
                         Button {
-                            viewModel.sortOrder = .updates
+                            viewModel.showAvailableUpdates()
                         } label: {
                             Label("View Updates", systemImage: "arrow.down.app")
                         }

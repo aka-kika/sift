@@ -444,6 +444,57 @@ struct UpdateCheckerTests {
 
         #expect(viewModel.availableUpdateCount == 1)
     }
+
+    @Test("Showing available updates selects the first update row")
+    @MainActor
+    func showAvailableUpdatesSelectsFirstUpdateRow() {
+        let viewModel = AppListViewModel()
+        viewModel.apps = [
+            AppInfo(
+                id: "com.example.zed",
+                name: "Zed",
+                version: "1.0",
+                bundleID: "com.example.zed",
+                path: "/Applications/Zed.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .updateAvailable(latestVersion: "2.0", source: .sparkle, actionURL: nil)
+            ),
+            AppInfo(
+                id: "com.example.alpha",
+                name: "Alpha",
+                version: "1.0",
+                bundleID: "com.example.alpha",
+                path: "/Applications/Alpha.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .updateAvailable(latestVersion: "2.0", source: .appStore, actionURL: nil)
+            ),
+            AppInfo(
+                id: "com.example.other",
+                name: "Other",
+                version: "1.0",
+                bundleID: "com.example.other",
+                path: "/Applications/Other.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .upToDate(source: .sparkle)
+            )
+        ]
+        viewModel.searchText = "nothing matches this"
+
+        viewModel.showAvailableUpdates()
+
+        #expect(viewModel.searchText.isEmpty)
+        #expect(viewModel.sortOrder == .updates)
+        #expect(viewModel.selectedAppID == "com.example.alpha")
+    }
 }
 
 @Suite("AppLinkResolver Tests")

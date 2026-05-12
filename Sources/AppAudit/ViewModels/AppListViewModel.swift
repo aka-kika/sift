@@ -74,6 +74,12 @@ final class AppListViewModel {
         return app.name
     }
 
+    func showAvailableUpdates() {
+        searchText = ""
+        sortOrder = .updates
+        selectedAppID = filteredApps.first?.id
+    }
+
     private let scanner = AppScanner()
     private let ollama = OllamaService()
     private let appleIntelligence = AppleIntelligenceService()
