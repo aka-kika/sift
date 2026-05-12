@@ -238,6 +238,23 @@ struct AnalysisLockTests {
         #expect(record?.analysisAppURL == "https://example.com/linked")
         #expect(!cache.isStale(record!, currentModel: "ollama:llama3.2", currentAppURL: "https://example.com/linked"))
     }
+
+    @Test("New records start with no suggested or approved app link")
+    func newRecordsStartWithoutAppLinks() {
+        let record = AppRecord(
+            bundleID: "com.example.new",
+            appName: "New",
+            explanation: "",
+            relevanceScore: 0,
+            relevanceReason: "",
+            bestUse: "",
+            ollamaModel: ""
+        )
+
+        #expect(record.appURL == nil)
+        #expect(record.suggestedAppURL == nil)
+        #expect(record.analysisAppURL == nil)
+    }
 }
 
 @Suite("AppAnalysisPrompt Tests")
@@ -268,6 +285,32 @@ struct AppAnalysisPromptTests {
         #expect(prompt.contains("Do not infer a specific product category from a generic name alone."))
         #expect(prompt.contains("Score unclear apps conservatively"))
         #expect(prompt.contains("EXPLANATION:"))
+    }
+
+    @Test("Prompt asks for short professional descriptions")
+    func promptAsksForShortProfessionalDescriptions() {
+        let app = AppInfo(
+            id: "com.example.brief",
+            name: "Brief",
+            version: "1.0",
+            bundleID: "com.example.brief",
+            path: "/Applications/Brief.app",
+            humanReadableDescription: nil,
+            sparkleFeedURL: nil,
+            isAppStoreInstall: false,
+            icon: nil
+        )
+
+        let prompt = AppAnalysisPrompt.build(
+            app: app,
+            profile: .local(text: "SwiftUI, macOS apps"),
+            appURL: nil,
+            includeResponseFormat: true
+        )
+
+        #expect(prompt.contains("1-2 short sentences, max 35 words"))
+        #expect(prompt.contains("1 short sentence, max 22 words"))
+        #expect(AppAnalysisPrompt.system.contains("readable, friendly, and professional"))
     }
 
     @Test("Prompt includes reference URL when provided")

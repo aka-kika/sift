@@ -4,7 +4,8 @@ enum AppAnalysisPrompt {
     static let system = """
     You are an expert macOS app analyst helping a developer audit installed applications.
     Give honest, specific, actionable assessments. Do not write marketing copy.
-    Be direct, concise, and practical.
+    Be direct, concise, practical, readable, friendly, and professional.
+    Prefer short sentences. Avoid filler, hype, and long paragraphs.
     Avoid guessing. When metadata is sparse or ambiguous, say what the app appears to be and keep the score conservative.
     """
 
@@ -14,10 +15,10 @@ enum AppAnalysisPrompt {
         let responseFormat = includeResponseFormat ? """
 
         Respond in EXACTLY this format with no extra text before or after:
-        EXPLANATION: [2 clear sentences. Explain what the app does and who uses it, grounded in the evidence. If metadata is sparse, write "appears to" and avoid inventing a category from the name alone.]
+        EXPLANATION: [1-2 short sentences, max 35 words. Explain what the app does and who uses it, grounded in the evidence. If metadata is sparse, write "appears to" and avoid inventing a category from the name alone.]
         SCORE: [1-5]
-        REASON: [1 sentence. Explain why this score fits the developer's specific workflow.]
-        BEST_USE: [1 actionable sentence based on the app's actual context. If irrelevant or unclear, write: Not applicable to your workflow.]
+        REASON: [1 short sentence, max 22 words. Explain why this score fits the developer's specific workflow.]
+        BEST_USE: [1 short actionable sentence, max 22 words. If irrelevant or unclear, write: Not applicable to your workflow.]
         """ : ""
 
         return """

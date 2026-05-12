@@ -441,12 +441,31 @@ struct AppDetailView: View {
                         .font(.caption)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                } else if let suggestedURLString = record?.suggestedAppURL, !suggestedURLString.isEmpty,
+                          let suggestedURL = URL(string: suggestedURLString) {
+                    Link("Suggested: \(suggestedURLString)", destination: suggestedURL)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 } else {
                     Text("None")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
+                if record?.appURL == nil,
+                   let suggestedURL = record?.suggestedAppURL,
+                   !suggestedURL.isEmpty {
+                    Button {
+                        approveSuggestedAppURL(suggestedURL)
+                    } label: {
+                        Image(systemName: "checkmark.circle")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.green)
+                    .help("Use suggested app link")
+                }
                 Button {
                     draftURL = record?.appURL ?? ""
                     editingURL = true
@@ -479,6 +498,9 @@ struct AppDetailView: View {
                     let ensuredRecord = ensureRecord()
                     let previousURL = ensuredRecord.appURL
                     ensuredRecord.appURL = trimmed.isEmpty ? nil : trimmed
+                    if !trimmed.isEmpty {
+                        ensuredRecord.suggestedAppURL = nil
+                    }
                     saveRecord()
                     if !trimmed.isEmpty, trimmed != previousURL {
                         viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
@@ -486,6 +508,21 @@ struct AppDetailView: View {
                 }
                 editingURL = false
             }
+        }
+    }
+
+    private func approveSuggestedAppURL(_ suggestedURL: String) {
+        let ensuredRecord = ensureRecord()
+        let trimmed = suggestedURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let previousURL = ensuredRecord.appURL
+        ensuredRecord.appURL = trimmed
+        ensuredRecord.suggestedAppURL = nil
+        saveRecord()
+
+        if trimmed != previousURL {
+            viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
         }
     }
 

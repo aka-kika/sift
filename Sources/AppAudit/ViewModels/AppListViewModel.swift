@@ -480,7 +480,7 @@ final class AppListViewModel {
                 continue
             }
 
-            record.appURL = resolvedLink.url
+            record.suggestedAppURL = resolvedLink.url
             cacheService?.persist()
         }
     }
