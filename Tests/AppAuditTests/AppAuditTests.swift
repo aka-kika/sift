@@ -242,7 +242,36 @@ struct AppAnalysisPromptTests {
         )
 
         #expect(prompt.contains("Reference URL: https://example.com/linked"))
-        #expect(prompt.contains("Prefer bundle ID, reference URL"))
+        #expect(prompt.contains("Prefer bundle ID, reference URL context"))
+        #expect(prompt.contains("Host: example.com"))
+        #expect(prompt.contains("Slug keywords: linked"))
+        #expect(prompt.contains("Do not claim you opened, fetched, read, or verified the URL contents."))
+    }
+
+    @Test("Prompt identifies GitHub link context")
+    func promptIdentifiesGitHubLinkContext() {
+        let app = AppInfo(
+            id: "com.example.repoapp",
+            name: "Repo App",
+            version: "1.0",
+            bundleID: "com.example.repoapp",
+            path: "/Applications/Repo App.app",
+            humanReadableDescription: nil,
+            sparkleFeedURL: nil,
+            isAppStoreInstall: false,
+            icon: nil
+        )
+
+        let prompt = AppAnalysisPrompt.build(
+            app: app,
+            profile: .local(text: "SwiftUI, macOS apps"),
+            appURL: "https://github.com/example-owner/local-agent-tools",
+            includeResponseFormat: true
+        )
+
+        #expect(prompt.contains("Source type: GitHub repository"))
+        #expect(prompt.contains("Path context: example-owner / local-agent-tools"))
+        #expect(prompt.contains("Slug keywords: example, owner, local, agent, tools"))
     }
 }
 

@@ -10,14 +10,14 @@ enum AppAnalysisPrompt {
 
     static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, includeResponseFormat: Bool) -> String {
         let descriptionHint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
-        let urlHint = appURL.map { "\nReference URL: \($0)" } ?? ""
+        let linkContext = referenceURLContext(from: appURL)
         let responseFormat = includeResponseFormat ? """
 
         Respond in EXACTLY this format with no extra text before or after:
-        EXPLANATION: [2 clear sentences. Explain what the app does and who uses it. If metadata is sparse, write "appears to" and avoid inventing a category from the name alone.]
+        EXPLANATION: [2 clear sentences. Explain what the app does and who uses it, grounded in the evidence. If metadata is sparse, write "appears to" and avoid inventing a category from the name alone.]
         SCORE: [1-5]
         REASON: [1 sentence. Explain why this score fits the developer's specific workflow.]
-        BEST_USE: [1 actionable sentence. If irrelevant or unclear, write: Not applicable to your workflow.]
+        BEST_USE: [1 actionable sentence based on the app's actual context. If irrelevant or unclear, write: Not applicable to your workflow.]
         """ : ""
 
         return """
@@ -25,13 +25,16 @@ enum AppAnalysisPrompt {
         Name: \(app.name)
         Bundle ID: \(app.bundleID)
         Version: \(app.version.isEmpty ? "Unknown" : app.version)
-        Path: \(app.path)\(descriptionHint)\(urlHint)
+        Path: \(app.path)\(descriptionHint)\(linkContext)
 
         Developer workflow context:
         \(profile.promptDescription)
 
         Evidence rules:
-        - Prefer bundle ID, reference URL, app description, and installed path over the display name.
+        - Prefer bundle ID, reference URL context, app description, and installed path over the display name.
+        - If a reference URL is provided, use its host and path/slug as strong evidence for what the app is. A GitHub repo slug, App Store product slug, vendor domain, docs path, or product page path can identify the app's real purpose.
+        - Do not claim you opened, fetched, read, or verified the URL contents. You only know the URL string and context shown in this prompt.
+        - If the URL conflicts with the app name, bundle ID, or path, mention the uncertainty and score conservatively.
         - Do not infer a specific product category from a generic name alone.
         - If you are unsure what the app does, say it appears to be unknown or unclear instead of making up details.
         - Score unclear apps conservatively unless the metadata clearly matches the workflow.
@@ -44,5 +47,68 @@ enum AppAnalysisPrompt {
         2 = Rarely useful; unlikely to serve this workflow
         1 = No overlap; safe to uninstall
         """
+    }
+
+    private static func referenceURLContext(from appURL: String?) -> String {
+        guard let rawURL = appURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawURL.isEmpty else {
+            return ""
+        }
+
+        guard let url = URL(string: rawURL),
+              let host = url.host(percentEncoded: false) else {
+            return "\nReference URL: \(rawURL)\nReference URL context: Provided but not parseable. Use cautiously; do not invent page contents."
+        }
+
+        let path = url.path(percentEncoded: false)
+        let pathSegments = path
+            .split(separator: "/")
+            .map(String.init)
+            .filter { !$0.isEmpty }
+        let readablePath = pathSegments.isEmpty ? "(root)" : pathSegments.joined(separator: " / ")
+        let sourceKind = referenceSourceKind(host: host, pathSegments: pathSegments)
+        let slugHint = readableSlugHint(from: pathSegments)
+
+        return """
+
+        Reference URL: \(rawURL)
+        Reference URL context:
+        - Host: \(host)
+        - Source type: \(sourceKind)
+        - Path context: \(readablePath)
+        - Slug keywords: \(slugHint)
+        """
+    }
+
+    private static func referenceSourceKind(host: String, pathSegments: [String]) -> String {
+        let normalizedHost = host.lowercased()
+        if normalizedHost.contains("github.com") {
+            return pathSegments.count >= 2 ? "GitHub repository" : "GitHub page"
+        }
+        if normalizedHost.contains("apps.apple.com") || normalizedHost.contains("itunes.apple.com") {
+            return "App Store product page"
+        }
+        if normalizedHost.contains("docs.") || pathSegments.contains(where: { $0.localizedCaseInsensitiveContains("docs") }) {
+            return "Documentation page"
+        }
+        return "Vendor or product website"
+    }
+
+    private static func readableSlugHint(from pathSegments: [String]) -> String {
+        let tokens = pathSegments
+            .suffix(4)
+            .flatMap { segment in
+                segment
+                    .replacingOccurrences(of: "-", with: " ")
+                    .replacingOccurrences(of: "_", with: " ")
+                    .split(separator: " ")
+                    .map(String.init)
+            }
+            .filter { token in
+                let lowercased = token.lowercased()
+                return !lowercased.hasPrefix("id") && lowercased != "app" && lowercased != "apps"
+            }
+
+        return tokens.isEmpty ? "(none)" : tokens.joined(separator: ", ")
     }
 }
