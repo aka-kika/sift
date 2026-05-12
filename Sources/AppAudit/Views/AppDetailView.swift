@@ -23,16 +23,12 @@ struct AppDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 20) {
                 headerSection
                 Divider()
                 aiSection
                 Divider()
-                notesSection
-                Divider()
-                licenseKeySection
-                Divider()
-                urlSection
+                utilitySection
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
@@ -284,6 +280,19 @@ struct AppDetailView: View {
         }
     }
 
+    // MARK: - Utility section
+
+    private var utilitySection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            notesSection
+            DetailRowDivider()
+            licenseKeySection
+            DetailRowDivider()
+            urlSection
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     // MARK: - Notes section
 
     private var notesSection: some View {
@@ -294,7 +303,7 @@ struct AppDetailView: View {
                     set: { record?.notes = $0.isEmpty ? nil : $0; saveRecord() }
                 )
             )
-            .padding(.top, 8)
+            .padding(.top, 6)
         } label: {
             HStack(spacing: 8) {
                 Label("Notes", systemImage: "note.text").font(.headline)
@@ -303,11 +312,13 @@ struct AppDetailView: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
+                Spacer()
             }
         }
         .onChange(of: app.bundleID) { _, _ in
             notesExpanded = false
         }
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -315,56 +326,56 @@ struct AppDetailView: View {
 
     private var licenseKeySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(spacing: 8) {
                 Label("License Key", systemImage: "key.horizontal").font(.headline)
-                Spacer()
-                Button {
-                    draftLicenseKey = currentLicenseKey ?? ""
-                    editingLicenseKey = true
-                } label: {
-                    Label(currentLicenseKey != nil ? "Edit" : "Add Key",
-                          systemImage: currentLicenseKey != nil ? "pencil" : "plus.circle")
-                        .font(.caption)
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-            }
-
-            if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
-                HStack(spacing: 8) {
+                if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
                     Text(maskedLicenseKey(licenseKey))
                         .font(.body.monospaced())
+                        .lineLimit(1)
                         .textSelection(.enabled)
-                    Spacer()
+                } else {
+                    Text("None")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
+                if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
                     Button {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(licenseKey, forType: .string)
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
-                            .font(.caption)
+                        Image(systemName: "doc.on.doc")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Copy license key")
+                }
+                Button {
+                    draftLicenseKey = currentLicenseKey ?? ""
+                    editingLicenseKey = true
+                } label: {
+                    Image(systemName: currentLicenseKey != nil ? "pencil" : "plus.circle")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help(currentLicenseKey != nil ? "Edit license key" : "Add license key")
 
+                if currentLicenseKey != nil {
                     Button(role: .destructive) {
                         licenseKeyStore.delete(bundleID: app.bundleID)
                         currentLicenseKey = nil
                         record?.licenseKey = nil
                         saveRecord()
                     } label: {
-                        Label("Remove", systemImage: "trash")
-                            .font(.caption)
+                        Image(systemName: "trash")
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
+                    .help("Remove license key")
                 }
-            } else {
-                Text("Store a purchased license key for this app so you can copy it later.")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .multilineTextAlignment(.leading)
             }
         }
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $editingLicenseKey) {
             DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
@@ -385,29 +396,30 @@ struct AppDetailView: View {
 
     private var urlSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(spacing: 8) {
                 Label("App Link", systemImage: "link").font(.headline)
+                if let urlString = record?.appURL, !urlString.isEmpty,
+                   let url = URL(string: urlString) {
+                    Link(urlString, destination: url)
+                        .font(.caption)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                } else {
+                    Text("None")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
                 Spacer()
                 Button {
                     draftURL = record?.appURL ?? ""
                     editingURL = true
                 } label: {
-                    Label(record?.appURL != nil ? "Edit" : "Add Link",
-                          systemImage: record?.appURL != nil ? "pencil" : "plus.circle")
-                        .font(.caption)
+                    Image(systemName: record?.appURL != nil ? "pencil" : "plus.circle")
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-            }
-
-            if let urlString = record?.appURL, !urlString.isEmpty,
-               let url = URL(string: urlString) {
-                HStack(spacing: 4) {
-                    Link(urlString, destination: url)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer()
+                .help(record?.appURL != nil ? "Edit app link" : "Add app link")
+                if record?.appURL != nil {
                     Button(role: .destructive) {
                         record?.appURL = nil
                         saveRecord()
@@ -417,15 +429,11 @@ struct AppDetailView: View {
                             .font(.caption)
                     }
                     .buttonStyle(.borderless)
+                    .help("Remove app link")
                 }
-            } else {
-                Text("Add a GitHub repo or website so the selected analysis provider can use it as context.")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .multilineTextAlignment(.leading)
             }
         }
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $editingURL) {
             EditURLSheet(appName: app.name, draft: $draftURL) { saved in
@@ -671,12 +679,19 @@ struct NotesEditor: View {
             }
             TextEditor(text: $text)
                 .font(.body)
-                .frame(minHeight: 100)
+                .frame(minHeight: 76)
                 .scrollContentBackground(.hidden)
                 .focused($focused)
                 .padding(8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private struct DetailRowDivider: View {
+    var body: some View {
+        Divider()
+            .padding(.leading, 28)
     }
 }
