@@ -72,5 +72,10 @@ rm -rf "$DMG_SOURCE"
 echo "==> Applying DMG file icon"
 set_dmg_file_icon "$DMG_NAME" "$ROOT/Icon.icns"
 
+if [[ "${SIGNING_MODE:-adhoc}" != "adhoc" && -n "${APP_IDENTITY:-}" ]]; then
+  echo "==> Signing DMG"
+  codesign --force --timestamp --sign "$APP_IDENTITY" "$DMG_NAME"
+fi
+
 echo ""
 echo "✅ Created: $(ls -lh "$DMG_NAME" | awk '{print $9, "("$5")"}')"

@@ -36,7 +36,9 @@ Confirm the app is signed with hardened runtime:
 ```bash
 codesign --verify --deep --strict --verbose=2 AppAudit.app
 codesign -dv --verbose=4 AppAudit.app
+codesign --verify --verbose=2 AppAudit-1.0.0.dmg
 spctl --assess --type execute --verbose=4 AppAudit.app
+spctl --assess --type open --context context:primary-signature --verbose=4 AppAudit-1.0.0.dmg
 hdiutil verify AppAudit-1.0.0.dmg
 ```
 
