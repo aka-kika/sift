@@ -26,11 +26,10 @@ struct AppDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 14) {
                 headerSection
                 Divider()
                 aiSection
-                Divider()
                 utilitySection
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -310,6 +309,7 @@ struct AppDetailView: View {
 
     private var utilitySection: some View {
         VStack(alignment: .leading, spacing: 0) {
+            Divider()
             notesSection
             DetailRowDivider()
             licenseKeySection
@@ -344,7 +344,7 @@ struct AppDetailView: View {
         .onChange(of: app.bundleID) { _, _ in
             notesExpanded = false
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -401,7 +401,7 @@ struct AppDetailView: View {
                 }
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $editingLicenseKey) {
             DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
@@ -459,7 +459,7 @@ struct AppDetailView: View {
                 }
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $editingURL) {
             EditURLSheet(appName: app.name, draft: $draftURL) { saved in
