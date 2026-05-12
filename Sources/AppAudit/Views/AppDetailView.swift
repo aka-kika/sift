@@ -199,23 +199,20 @@ struct AppDetailView: View {
                 }
             }
 
-            // Best Use
-            if case .loaded(_, _, _, let bestUse) = app.aiState, !bestUse.isEmpty {
+            // Best use and relevance
+            if case .loaded(_, let score, let reason, let bestUse) = app.aiState {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Best use for you", systemImage: "bolt.fill").font(.headline)
-                    Text(bestUse)
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+                    Label("Best use and ranking for your needs", systemImage: "checkmark.seal.fill")
+                        .font(.headline)
 
-            // Relevance score
-            if case .loaded(_, let score, let reason, _) = app.aiState {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Do you need this?", systemImage: "checkmark.seal.fill").font(.headline)
+                    if !bestUse.isEmpty {
+                        Text(bestUse)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     HStack(spacing: 8) {
                         ForEach(1...5, id: \.self) { i in
                             Circle()
@@ -226,7 +223,10 @@ struct AppDetailView: View {
                             .font(.subheadline.bold())
                             .foregroundStyle(colorForScore(score))
                     }
-                    Text(reason).font(.body).foregroundStyle(.secondary)
+
+                    Text(reason)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
