@@ -42,7 +42,7 @@ App Launch
 
 Background side tasks:
 - `UpdateChecker` checks App Store and Sparkle update state
-- `AppLinkResolver` fills missing app links from App Store lookup or Sparkle appcast metadata
+- `AppLinkResolver` suggests missing app links from App Store lookup or Sparkle appcast metadata
 ```
 
 ## State Machine (AppListViewModel.ScanState)
@@ -55,7 +55,7 @@ idle → scanning → enriching(completed, total) → done
 
 ## Cache Invalidation
 
-Cache is invalidated when the selected analysis provider or model changes. The identifier is stored in the legacy-named `AppRecord.ollamaModel` field.
+Cache is invalidated when the selected analysis provider, model, or approved app link changes. The provider/model identifier is stored in the legacy-named `AppRecord.ollamaModel` field.
 
 Locked analyses opt out of invalidation and overwrite. `CacheService.save` refuses to update locked records, background enrichment skips locked apps, and manual re-analysis is disabled while locked.
 
@@ -73,9 +73,9 @@ SwiftData store: `~/Library/Application Support/AppAudit/AppAudit.store`
 
 License keys are stored in macOS Keychain via `LicenseKeyStore`. SwiftData keeps only a migration bridge field for older local stores.
 
-Manual `appURL` values are preserved. Automatic link discovery only writes when the field is empty.
+Manual `appURL` values are preserved. Automatic link discovery writes `suggestedAppURL`, which the user must approve before it becomes analysis context.
 
-Manual link changes trigger app re-analysis with the stored `appURL` as prompt context unless the record is locked.
+Approved or manually changed links trigger app re-analysis with the stored `appURL` as prompt context unless the record is locked.
 
 ## AI Prompt
 
@@ -87,10 +87,10 @@ Single structured provider request per app:
 [user]  Analyze the macOS app "X" (bundle ID: ...)
         Developer workflow: [editable local profile text]
 
-        EXPLANATION: [2 sentences]
+        EXPLANATION: [1-2 short sentences]
         SCORE: [1-5]
-        REASON: [1 sentence]
-        BEST_USE: [1 sentence]
+        REASON: [1 short sentence]
+        BEST_USE: [1 short actionable sentence]
 ```
 
 Parser: line-by-line prefix matching on `EXPLANATION:`, `SCORE:`, `REASON:`, `BEST_USE:`.

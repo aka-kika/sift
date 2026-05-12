@@ -7,7 +7,7 @@ For every app on your Mac, AppAudit answers three questions:
 - **Best use for you** — one actionable tip based on your actual workflow
 - **Do you need this?** — a 1–5 relevance score
 
-Everything runs locally. No cloud. No tracking.
+Analysis runs locally. Update and app-link checks use public vendor endpoints when those features are enabled.
 
 ---
 
@@ -19,6 +19,7 @@ Everything runs locally. No cloud. No tracking.
 | [Ollama](https://ollama.ai) | Default local AI analysis provider | `brew install ollama` |
 | A pulled Ollama model | Default LLM for analysis | `ollama pull llama3.2` |
 | Apple Intelligence | Optional on-device provider | macOS 26+ with Apple Intelligence enabled |
+| `create-dmg` | Polished release DMG builder | `brew install create-dmg` |
 
 ---
 
@@ -43,10 +44,10 @@ AppAudit scans `/Applications` and `~/Applications` on launch and begins analyzi
 
 ### App Analysis
 Each app is analyzed with the selected local provider and returns:
-- **Explanation** — 2 sentences: what it does and who uses it
+- **Explanation** — 1–2 short sentences: what it does and who uses it
 - **Relevance score** — 1 (safe to uninstall) → 5 (essential)
-- **Score reason** — why this score given your workflow
-- **Best use** — one concrete action tip for your stack
+- **Score reason** — why this score fits your workflow
+- **Best use** — one concise action tip for your stack
 
 ### Workflow Context
 AppAudit scores apps against an editable local workflow profile. The default profile is focused on native app development, web development, terminal tooling, Codex, Ollama, packaging, and local-first software work.
@@ -58,7 +59,7 @@ Results are stored in SwiftData at:
 ```
 Cached results are used on every launch — AI is only called for new apps or when you click **Re-analyze**.
 
-Cache is invalidated when you change the analysis provider or Ollama model in Settings.
+Cache is invalidated when you change the analysis provider, Ollama model, or approved app link.
 
 Profile edits are used the next time an app is analyzed. Click **Re-analyze** on an app to refresh its score with the current profile.
 
@@ -72,13 +73,13 @@ Right-click any app → **Mark as My App** to tag apps you built yourself. Tagge
 For App Store apps and apps with a Sparkle appcast URL, AppAudit checks whether a newer version is available. Right-click an app or use the detail pane to open the update target or mark the update as handled.
 
 ### App Links
-AppAudit automatically fills missing app links when it can resolve them safely:
+AppAudit automatically suggests missing app links when it can resolve them:
 - App Store apps use Apple's lookup API by bundle ID
 - Sparkle apps use the appcast website link or feed host
 
-Manual links are never overwritten.
+Suggested links are not used for analysis until you approve them. Manual links are never overwritten.
 
-When you manually add or change an app link, AppAudit immediately re-analyzes that app with the link as context unless the analysis is locked.
+When you approve, add, or change an app link, AppAudit immediately re-analyzes that app with the link as context unless the analysis is locked.
 
 ### License Keys
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
@@ -153,7 +154,9 @@ bash Scripts/make_dmg.sh
 |---|---|
 | `Scripts/compile_and_run.sh` | Kill → build release → package → launch |
 | `Scripts/package_app.sh` | Create signed `.app` bundle from binary |
-| `Scripts/make_dmg.sh` | Create compressed DMG with drag-to-install layout |
+| `Scripts/make_dmg.sh` | Build the app and create a polished `create-dmg` drag-to-install DMG |
+
+See [Release Checklist](RELEASE.md) before Developer ID signing or notarization.
 
 ---
 
@@ -209,6 +212,10 @@ Apple Intelligence uses Foundation Models structured generation and is availabil
 | `userDescription` | `String?` | User's custom description |
 | `notes` | `String?` | Free-form user notes |
 | `isMyApp` | `Bool` | Tagged as user-built |
+| `isAnalysisLocked` | `Bool` | Prevents accidental regeneration |
+| `appURL` | `String?` | User-approved app link used as analysis context |
+| `suggestedAppURL` | `String?` | Automatically found link awaiting user approval |
+| `analysisAppURL` | `String?` | App link used for the current cached analysis |
 | `acknowledgedUpdateVersion` | `String?` | Latest version the user marked handled |
 | `generatedAt` | `Date` | When last analyzed |
 
