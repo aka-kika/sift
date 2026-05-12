@@ -32,27 +32,27 @@ struct AppRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Text(app.name)
-                        .font(.body)
+                        .font(.body.weight(.medium))
                         .lineLimit(1)
                         .truncationMode(.tail)
                     if app.isFavorite {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 9))
+                            .font(.caption2)
                             .foregroundStyle(.yellow)
                     }
                     if app.isMyApp {
                         Image(systemName: "hammer.fill")
-                            .font(.system(size: 9))
+                            .font(.caption2)
                             .foregroundStyle(.purple)
                     }
                     if existingLicenseKey != nil {
                         Image(systemName: "key.horizontal.fill")
-                            .font(.system(size: 9))
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                     if app.isAnalysisLocked {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 9))
+                            .font(.caption2)
                             .foregroundStyle(.orange)
                     }
                     if case .updateAvailable(let latestVersion, let source, _) = app.updateState {
@@ -60,7 +60,7 @@ struct AppRow: View {
                     }
                 }
                 Text(app.version.isEmpty ? app.bundleID : app.version)
-                    .font(.caption)
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -74,7 +74,7 @@ struct AppRow: View {
                 HStack(spacing: 4) {
                     if source == .homebrew && homebrewCommandCopied {
                         Text("Command copied")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -83,12 +83,13 @@ struct AppRow: View {
                         performUpdateAction(source: source)
                     } label: {
                         Image(systemName: updateActionIcon(source: source))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.caption.weight(.semibold))
                             .frame(width: 22, height: 22)
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.orange)
                     .help(updateActionHelp(latestVersion: latestVersion, source: source))
+                    .accessibilityLabel(updateActionAccessibilityLabel(latestVersion: latestVersion, source: source))
                 }
             }
 
@@ -356,21 +357,34 @@ struct AppRow: View {
 
     private func updateActionTitle(latestVersion: String, source: AppInfo.UpdateSource) -> String {
         switch source {
-        case .appStore, .sparkle:
-            return "Update via \(source.rawValue) (\(latestVersion))"
+        case .appStore:
+            return "Open in App Store (\(latestVersion))"
+        case .sparkle:
+            return "Open Download (\(latestVersion))"
         case .homebrew:
-            return "Copy Homebrew update command (\(latestVersion))"
+            return "Copy Brew Command (\(latestVersion))"
         }
     }
 
     private func updateActionHelp(latestVersion: String, source: AppInfo.UpdateSource) -> String {
         switch source {
         case .appStore:
-            return "Open App Store update page for \(latestVersion)"
+            return "Open \(app.name) in the App Store to update to \(latestVersion)."
         case .sparkle:
-            return "Open this app's Sparkle update route for \(latestVersion)"
+            return "Open \(app.name)'s download page for \(latestVersion)."
         case .homebrew:
             return "Copy \(app.homebrewUpdateCommand ?? "brew upgrade --cask ...")"
+        }
+    }
+
+    private func updateActionAccessibilityLabel(latestVersion: String, source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore:
+            return "Open \(app.name) in App Store, version \(latestVersion)"
+        case .sparkle:
+            return "Open \(app.name) download, version \(latestVersion)"
+        case .homebrew:
+            return "Copy Homebrew update command for \(app.name), version \(latestVersion)"
         }
     }
 }
@@ -381,7 +395,7 @@ private struct UpdateBadgeView: View {
 
     var body: some View {
         Text("\(source.badgeLabel) \(latestVersion)")
-            .font(.system(size: 9, weight: .semibold))
+            .font(.caption2.weight(.semibold).monospacedDigit())
             .foregroundStyle(.orange)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
@@ -463,7 +477,7 @@ struct ScoreBadgeView: View {
         case .loaded(_, let score, _, _):
             ZStack {
                 Text("\(score)")
-                    .font(.caption.bold())
+                    .font(.caption.weight(.bold).monospacedDigit())
                     .foregroundStyle(.white)
                     .frame(width: 24, height: 24)
                     .background(scoreColor(score), in: Circle())

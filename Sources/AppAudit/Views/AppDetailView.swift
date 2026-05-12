@@ -77,10 +77,15 @@ struct AppDetailView: View {
             }
             #endif
             VStack(alignment: .leading, spacing: 4) {
-                Text(app.name).font(.title.bold())
-                Text(app.bundleID).font(.caption).foregroundStyle(.secondary)
+                Text(app.name).font(.title2.weight(.semibold))
+                Text(app.bundleID)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
                 if !app.version.isEmpty {
-                    Text("Version \(app.version)").font(.caption).foregroundStyle(.secondary)
+                    Text("Version \(app.version)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
                 }
                 updateStatusView
             }
@@ -94,11 +99,11 @@ struct AppDetailView: View {
         switch app.updateState {
         case .checking:
             Label("Checking for updates...", systemImage: "arrow.triangle.2.circlepath")
-                .font(.caption)
+                .font(.callout)
                 .foregroundStyle(.secondary)
         case .upToDate(let source):
             Label("Up to date via \(source.rawValue)", systemImage: "checkmark.circle.fill")
-                .font(.caption)
+                .font(.callout)
                 .foregroundStyle(.green)
         case .updateAvailable(let latestVersion, let source, _):
             VStack(alignment: .leading, spacing: 6) {
@@ -106,15 +111,17 @@ struct AppDetailView: View {
                     performUpdateAction(source: source)
                 } label: {
                     Label(updateActionTitle(latestVersion: latestVersion, source: source), systemImage: updateActionIcon(source: source))
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundStyle(.orange)
                 }
                 .buttonStyle(.plain)
                 .disabled(runningHomebrewUpdate)
+                .help(updateActionHelp(latestVersion: latestVersion, source: source))
+                .accessibilityLabel(updateActionAccessibilityLabel(latestVersion: latestVersion, source: source))
 
                 if runningHomebrewUpdate {
                     ProgressView("Running Homebrew update...")
-                        .font(.caption)
+                        .font(.callout)
                         .controlSize(.small)
                 }
 
@@ -122,7 +129,7 @@ struct AppDetailView: View {
                     viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
                 } label: {
                     Label("Mark Updated", systemImage: "checkmark.circle")
-                        .font(.caption)
+                        .font(.callout)
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
@@ -556,11 +563,33 @@ struct AppDetailView: View {
     private func updateActionTitle(latestVersion: String, source: AppInfo.UpdateSource) -> String {
         switch source {
         case .appStore:
-            return "Update via App Store: \(latestVersion)"
+            return "Open in App Store: \(latestVersion)"
         case .sparkle:
-            return "Update via Sparkle: \(latestVersion)"
+            return "Open Download: \(latestVersion)"
         case .homebrew:
-            return "Update via Homebrew: \(latestVersion)"
+            return "Update with Homebrew: \(latestVersion)"
+        }
+    }
+
+    private func updateActionHelp(latestVersion: String, source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore:
+            return "Open \(app.name) in the App Store to update to \(latestVersion)."
+        case .sparkle:
+            return "Open \(app.name)'s download page for \(latestVersion)."
+        case .homebrew:
+            return "Run or copy \(app.homebrewUpdateCommand ?? "brew upgrade --cask ...")"
+        }
+    }
+
+    private func updateActionAccessibilityLabel(latestVersion: String, source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore:
+            return "Open \(app.name) in App Store, version \(latestVersion)"
+        case .sparkle:
+            return "Open \(app.name) download, version \(latestVersion)"
+        case .homebrew:
+            return "Open Homebrew update options for \(app.name), version \(latestVersion)"
         }
     }
 
