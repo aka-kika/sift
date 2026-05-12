@@ -591,6 +591,55 @@ struct UpdateCheckerTests {
 
         #expect(viewModel.selectedAppID == nil)
     }
+
+    @Test("Sidebar empty state reports search misses before filter misses")
+    @MainActor
+    func sidebarEmptyStateReportsSearchMissesBeforeFilterMisses() {
+        let viewModel = AppListViewModel()
+        viewModel.apps = [
+            AppInfo(
+                id: "com.example.alpha",
+                name: "Alpha",
+                version: "1.0",
+                bundleID: "com.example.alpha",
+                path: "/Applications/Alpha.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .upToDate(source: .sparkle)
+            )
+        ]
+
+        viewModel.setSortOrder(.updates)
+        viewModel.setSearchText("missing")
+
+        #expect(viewModel.sidebarEmptyState == .noResults)
+    }
+
+    @Test("Sidebar empty state reports no updates")
+    @MainActor
+    func sidebarEmptyStateReportsNoUpdates() {
+        let viewModel = AppListViewModel()
+        viewModel.apps = [
+            AppInfo(
+                id: "com.example.alpha",
+                name: "Alpha",
+                version: "1.0",
+                bundleID: "com.example.alpha",
+                path: "/Applications/Alpha.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .upToDate(source: .sparkle)
+            )
+        ]
+
+        viewModel.setSortOrder(.updates)
+
+        #expect(viewModel.sidebarEmptyState == .noUpdates)
+    }
 }
 
 @Suite("AppLinkResolver Tests")

@@ -42,6 +42,14 @@ final class AppListViewModel {
         case favorites = "Favorites"
     }
 
+    enum SidebarEmptyState: Equatable {
+        case noApps
+        case noResults
+        case noUpdates
+        case noMyApps
+        case noFavorites
+    }
+
     var filteredApps: [AppInfo] {
         var base = searchText.isEmpty ? apps : apps.filter {
             $0.name.localizedCaseInsensitiveContains(searchText)
@@ -65,6 +73,23 @@ final class AppListViewModel {
             case .relevance:
                 return (a.aiState.score ?? 0) > (b.aiState.score ?? 0)
             }
+        }
+    }
+
+    var sidebarEmptyState: SidebarEmptyState? {
+        guard filteredApps.isEmpty else { return nil }
+        if apps.isEmpty { return .noApps }
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return .noResults }
+
+        switch sortOrder {
+        case .updates:
+            return .noUpdates
+        case .myApps:
+            return .noMyApps
+        case .favorites:
+            return .noFavorites
+        case .relevance, .name:
+            return .noApps
         }
     }
 
