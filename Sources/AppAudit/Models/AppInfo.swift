@@ -98,6 +98,10 @@ extension AppInfo.UpdateState {
         return false
     }
 
+    var belongsInUpdatesList: Bool {
+        isUpdateAvailable || self == .checking
+    }
+
     var actionURL: URL? {
         guard case .updateAvailable(_, _, let actionURLString) = self,
               let actionURLString,

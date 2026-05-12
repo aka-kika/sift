@@ -43,12 +43,31 @@ struct AppListView: View {
             }
             ToolbarItem(placement: .automatic) {
                 Button {
-                    Task { await viewModel.runFullScan() }
+                    Task {
+                        if viewModel.sortOrder == .updates {
+                            await viewModel.refreshUpdateStatuses()
+                        } else {
+                            await viewModel.runFullScan()
+                        }
+                    }
                 } label: {
-                    Label("Rescan", systemImage: "arrow.clockwise")
+                    Label(refreshButtonTitle, systemImage: "arrow.clockwise")
                 }
-                .disabled(viewModel.scanState == .scanning)
+                .disabled(isRefreshButtonDisabled)
             }
         }
+    }
+
+    private var refreshButtonTitle: String {
+        if viewModel.sortOrder == .updates {
+            return viewModel.isRefreshingUpdates ? "Refreshing Updates" : "Refresh Updates"
+        }
+        return "Rescan"
+    }
+
+    private var isRefreshButtonDisabled: Bool {
+        viewModel.scanState == .scanning ||
+            viewModel.isRefreshingUpdates ||
+            (viewModel.sortOrder == .updates && viewModel.apps.isEmpty)
     }
 }

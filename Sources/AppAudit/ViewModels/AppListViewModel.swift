@@ -11,6 +11,7 @@ final class AppListViewModel {
     var workflowProfile: WorkflowProfile = .current()
     var searchText = ""
     var sortOrder: SortOrder = .relevance
+    var isRefreshingUpdates = false
 
     var availableUpdateCount: Int {
         apps.filter(\.updateState.isUpdateAvailable).count
@@ -47,7 +48,7 @@ final class AppListViewModel {
         }
         switch sortOrder {
         case .updates:
-            base = base.filter { $0.updateState.isUpdateAvailable }
+            base = base.filter { $0.updateState.belongsInUpdatesList }
         case .myApps:
             base = base.filter { $0.isMyApp }
         case .favorites:
@@ -78,6 +79,28 @@ final class AppListViewModel {
         searchText = ""
         sortOrder = .updates
         selectedAppID = filteredApps.first?.id
+    }
+
+    func refreshUpdateStatuses() async {
+        guard !isRefreshingUpdates,
+              scanState != .scanning,
+              !apps.isEmpty else {
+            return
+        }
+
+        isRefreshingUpdates = true
+        defer { isRefreshingUpdates = false }
+
+        let token = UUID()
+        updateScanToken = token
+        let appsToRefresh = apps.filter { !$0.version.isEmpty && $0.canCheckForUpdates }
+        let visibleUpdateIDs = Set(apps.filter { $0.updateState.isUpdateAvailable }.map(\.id))
+
+        for index in apps.indices where visibleUpdateIDs.contains(apps[index].id) {
+            apps[index].updateState = .checking
+        }
+
+        await refreshUpdates(for: appsToRefresh, token: token)
     }
 
     private let scanner = AppScanner()

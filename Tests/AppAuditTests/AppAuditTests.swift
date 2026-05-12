@@ -445,6 +445,41 @@ struct UpdateCheckerTests {
         #expect(viewModel.availableUpdateCount == 1)
     }
 
+    @Test("Updates filter keeps checking rows visible")
+    @MainActor
+    func updatesFilterKeepsCheckingRowsVisible() {
+        let viewModel = AppListViewModel()
+        viewModel.sortOrder = .updates
+        viewModel.apps = [
+            AppInfo(
+                id: "com.example.checking",
+                name: "Checking",
+                version: "1.0",
+                bundleID: "com.example.checking",
+                path: "/Applications/Checking.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: "https://example.com/appcast.xml",
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .checking
+            ),
+            AppInfo(
+                id: "com.example.current",
+                name: "Current",
+                version: "1.0",
+                bundleID: "com.example.current",
+                path: "/Applications/Current.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: "https://example.com/appcast.xml",
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .upToDate(source: .sparkle)
+            )
+        ]
+
+        #expect(viewModel.filteredApps.map(\.id) == ["com.example.checking"])
+    }
+
     @Test("Showing available updates selects the first update row")
     @MainActor
     func showAvailableUpdatesSelectsFirstUpdateRow() {
