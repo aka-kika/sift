@@ -1,0 +1,103 @@
+import Foundation
+import Security
+
+protocol SecretStoreBackend: Sendable {
+    func read(account: String) -> String?
+    func write(_ value: String, account: String)
+    func delete(account: String)
+}
+
+final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
+    private let service: String
+
+    init(service: String = "com.kikaapp.appaudit.licensekeys") {
+        self.service = service
+    }
+
+    func read(account: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess,
+              let data = item as? Data,
+              let value = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return value
+    }
+
+    func write(_ value: String, account: String) {
+        let data = Data(value.utf8)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+
+        let attributes: [String: Any] = [kSecValueData as String: data]
+        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            var createQuery = query
+            createQuery[kSecValueData as String] = data
+            SecItemAdd(createQuery as CFDictionary, nil)
+        }
+    }
+
+    func delete(account: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
+struct LicenseKeyResolution: Equatable {
+    let value: String?
+    let didMigrateLegacyValue: Bool
+}
+
+final class LicenseKeyStore: @unchecked Sendable {
+    static let shared = LicenseKeyStore()
+
+    private let backend: SecretStoreBackend
+
+    init(backend: SecretStoreBackend = KeychainSecretStoreBackend()) {
+        self.backend = backend
+    }
+
+    func resolveKey(bundleID: String, legacyValue: String?) -> LicenseKeyResolution {
+        if let existing = backend.read(account: bundleID), !existing.isEmpty {
+            return LicenseKeyResolution(value: existing, didMigrateLegacyValue: false)
+        }
+
+        let trimmedLegacy = legacyValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmedLegacy.isEmpty else {
+            return LicenseKeyResolution(value: nil, didMigrateLegacyValue: false)
+        }
+
+        backend.write(trimmedLegacy, account: bundleID)
+        return LicenseKeyResolution(value: trimmedLegacy, didMigrateLegacyValue: true)
+    }
+
+    func save(_ value: String?, bundleID: String) {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty {
+            backend.delete(account: bundleID)
+        } else {
+            backend.write(trimmed, account: bundleID)
+        }
+    }
+
+    func delete(bundleID: String) {
+        backend.delete(account: bundleID)
+    }
+}

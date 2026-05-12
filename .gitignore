@@ -1,0 +1,13 @@
+.DS_Store
+.build/
+.swiftpm/
+
+# Local packaged artifacts
+*.app/
+*.dmg
+
+# Xcode and SwiftPM user state
+*.xcuserdata/
+*.xcuserstate
+Package.resolved
+.claude/settings.local.json

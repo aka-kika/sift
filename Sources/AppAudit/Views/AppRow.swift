@@ -1,0 +1,374 @@
+import SwiftUI
+import SwiftData
+
+#if canImport(AppKit)
+import AppKit
+#endif
+
+struct AppRow: View {
+    let app: AppInfo
+    @Environment(\.modelContext) private var modelContext
+    @Environment(AppListViewModel.self) private var viewModel
+    private let licenseKeyStore = LicenseKeyStore.shared
+    @State private var editingLicenseKey = false
+    @State private var draftLicenseKey = ""
+
+    var body: some View {
+        HStack(spacing: 10) {
+            #if canImport(AppKit)
+            if let sendableIcon = app.icon {
+                Image(nsImage: sendableIcon.image)
+                    .resizable()
+                    .frame(width: 32, height: 32)
+                    .cornerRadius(6)
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(.quaternary)
+                    .frame(width: 32, height: 32)
+            }
+            #endif
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(app.name)
+                        .font(.body)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if app.isFavorite {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.yellow)
+                    }
+                    if app.isMyApp {
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.purple)
+                    }
+                    if existingLicenseKey != nil {
+                        Image(systemName: "key.horizontal.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                    }
+                    if case .updateAvailable(let latestVersion, _, _) = app.updateState {
+                        UpdateBadgeView(latestVersion: latestVersion)
+                    }
+                }
+                Text(app.version.isEmpty ? app.bundleID : app.version)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .layoutPriority(1)
+
+            Spacer(minLength: 4)
+
+            ScoreBadgeView(state: app.aiState, isMyApp: app.isMyApp)
+        }
+        .padding(.vertical, 2)
+        .contextMenu {
+            Button {
+                toggleFavorite()
+            } label: {
+                if app.isFavorite {
+                    Label("Remove from Favorites", systemImage: "star.slash")
+                } else {
+                    Label("Add to Favorites", systemImage: "star")
+                }
+            }
+
+            Button {
+                toggleMyApp()
+            } label: {
+                if app.isMyApp {
+                    Label("Unmark as My App", systemImage: "hammer.slash")
+                } else {
+                    Label("Mark as My App", systemImage: "hammer.fill")
+                }
+            }
+
+            Divider()
+
+            if let licenseKey = existingLicenseKey {
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(licenseKey, forType: .string)
+                } label: {
+                    Label("Copy Key", systemImage: "key.horizontal")
+                }
+
+                Button {
+                    prepareLicenseKeyDraft()
+                    editingLicenseKey = true
+                } label: {
+                    Label("Edit Key", systemImage: "pencil")
+                }
+
+                Button(role: .destructive) {
+                    removeLicenseKey()
+                } label: {
+                    Label("Remove Key", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    prepareLicenseKeyDraft()
+                    editingLicenseKey = true
+                } label: {
+                    Label("Add Key", systemImage: "key.badge.plus")
+                }
+            }
+
+            Divider()
+
+            Button {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.path)])
+            } label: {
+                Label("Show in Finder", systemImage: "folder")
+            }
+            Button {
+                NSWorkspace.shared.open(URL(fileURLWithPath: app.path))
+            } label: {
+                Label("Open App", systemImage: "arrow.up.right.square")
+            }
+            if let updateURL = app.updateState.actionURL {
+                Button {
+                    NSWorkspace.shared.open(updateURL)
+                } label: {
+                    Label("Update App", systemImage: "arrow.up.forward.app")
+                }
+
+                if case .updateAvailable = app.updateState {
+                    Button {
+                        viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
+                    } label: {
+                        Label("Mark Updated", systemImage: "checkmark.circle")
+                    }
+                }
+            }
+            Divider()
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(app.bundleID, forType: .string)
+            } label: {
+                Label("Copy Bundle ID", systemImage: "doc.on.doc")
+            }
+        }
+        .sheet(isPresented: $editingLicenseKey) {
+            LicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
+                if saved {
+                    saveLicenseKey()
+                }
+                editingLicenseKey = false
+            }
+        }
+    }
+
+    private func toggleFavorite() {
+        let bundleID = app.bundleID
+        let descriptor = FetchDescriptor<AppRecord>(predicate: #Predicate { $0.bundleID == bundleID })
+        if let existing = try? modelContext.fetch(descriptor).first {
+            existing.isFavorite.toggle()
+            try? modelContext.save()
+            viewModel.setFavorite(bundleID: bundleID, value: existing.isFavorite)
+        } else {
+            let rec = AppRecord(
+                bundleID: bundleID,
+                appName: app.name,
+                explanation: "",
+                relevanceScore: 0,
+                relevanceReason: "",
+                bestUse: "",
+                ollamaModel: ""
+            )
+            rec.isFavorite = true
+            modelContext.insert(rec)
+            try? modelContext.save()
+            viewModel.setFavorite(bundleID: bundleID, value: true)
+        }
+    }
+
+    private func toggleMyApp() {
+        let bundleID = app.bundleID
+        let descriptor = FetchDescriptor<AppRecord>(predicate: #Predicate { $0.bundleID == bundleID })
+        if let existing = try? modelContext.fetch(descriptor).first {
+            existing.isMyApp.toggle()
+            try? modelContext.save()
+            viewModel.setMyApp(bundleID: bundleID, value: existing.isMyApp)
+        } else {
+            // No AI record yet — create a stub just to hold the flag
+            let rec = AppRecord(
+                bundleID: bundleID,
+                appName: app.name,
+                explanation: "",
+                relevanceScore: 0,
+                relevanceReason: "",
+                bestUse: "",
+                ollamaModel: ""
+            )
+            rec.isMyApp = true
+            modelContext.insert(rec)
+            try? modelContext.save()
+            viewModel.setMyApp(bundleID: bundleID, value: true)
+        }
+    }
+
+    private var existingLicenseKey: String? {
+        resolveLicenseKey().value
+    }
+
+    private func prepareLicenseKeyDraft() {
+        draftLicenseKey = existingLicenseKey ?? ""
+    }
+
+    private func saveLicenseKey() {
+        let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let record = fetchRecord(for: app.bundleID) ?? {
+            let record = makeStubRecord()
+            modelContext.insert(record)
+            return record
+        }()
+
+        licenseKeyStore.save(trimmed, bundleID: app.bundleID)
+        record.licenseKey = nil
+        try? modelContext.save()
+    }
+
+    private func removeLicenseKey() {
+        licenseKeyStore.delete(bundleID: app.bundleID)
+        if let record = fetchRecord(for: app.bundleID) {
+            record.licenseKey = nil
+            try? modelContext.save()
+        }
+    }
+
+    private func resolveLicenseKey() -> LicenseKeyResolution {
+        let record = fetchRecord(for: app.bundleID)
+        let resolution = licenseKeyStore.resolveKey(bundleID: app.bundleID, legacyValue: record?.licenseKey)
+        if resolution.didMigrateLegacyValue, let record {
+            record.licenseKey = nil
+            try? modelContext.save()
+        }
+        return resolution
+    }
+
+    private func fetchRecord(for bundleID: String) -> AppRecord? {
+        let descriptor = FetchDescriptor<AppRecord>(predicate: #Predicate { $0.bundleID == bundleID })
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func makeStubRecord() -> AppRecord {
+        AppRecord(
+            bundleID: app.bundleID,
+            appName: app.name,
+            explanation: "",
+            relevanceScore: 0,
+            relevanceReason: "",
+            bestUse: "",
+            ollamaModel: ""
+        )
+    }
+}
+
+private struct UpdateBadgeView: View {
+    let latestVersion: String
+
+    var body: some View {
+        Text("Update \(latestVersion)")
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.orange.opacity(0.12), in: Capsule())
+    }
+}
+
+private struct LicenseKeySheet: View {
+    let appName: String
+    @Binding var draft: String
+    let onDone: (Bool) -> Void
+
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("License key for \(appName)")
+                .font(.headline)
+            Text("Store the purchased key for this app so you can copy it later from the context menu.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            SecureField("Enter license key", text: $draft)
+                .textFieldStyle(.roundedBorder)
+                .focused($focused)
+
+            HStack {
+                Button("Cancel") { onDone(false) }
+                    .keyboardShortcut(.escape)
+                Spacer()
+                Button("Clear") { draft = ""; onDone(true) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                Button("Save") { onDone(true) }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(20)
+        .frame(width: 400)
+        .onAppear { focused = true }
+    }
+}
+
+struct ScoreBadgeView: View {
+    let state: AppInfo.AIState
+    var isMyApp: Bool = false
+
+    var body: some View {
+        switch state {
+        case .pending:
+            if isMyApp {
+                Image(systemName: "hammer.fill")
+                    .font(.caption)
+                    .foregroundStyle(.purple)
+                    .frame(width: 24, height: 24)
+            } else {
+                Circle()
+                    .fill(.quaternary)
+                    .frame(width: 24, height: 24)
+            }
+        case .loading:
+            ProgressView()
+                .scaleEffect(0.6)
+                .frame(width: 24, height: 24)
+        case .loaded(_, let score, _, _):
+            ZStack {
+                Text("\(score)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .frame(width: 24, height: 24)
+                    .background(scoreColor(score), in: Circle())
+                if isMyApp {
+                    Circle()
+                        .stroke(.purple, lineWidth: 2)
+                        .frame(width: 24, height: 24)
+                }
+            }
+        case .unavailable:
+            Image(systemName: "brain.slash")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 24, height: 24)
+        }
+    }
+
+    func scoreColor(_ score: Int) -> Color {
+        switch score {
+        case 1: return .red
+        case 2: return .orange
+        case 3: return .yellow
+        case 4: return .mint
+        case 5: return .green
+        default: return .gray
+        }
+    }
+}
