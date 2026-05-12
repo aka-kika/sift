@@ -12,6 +12,7 @@ struct AppRow: View {
     private let licenseKeyStore = LicenseKeyStore.shared
     @State private var editingLicenseKey = false
     @State private var draftLicenseKey = ""
+    @State private var homebrewCommandCopied = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -70,16 +71,25 @@ struct AppRow: View {
 
             if viewModel.sortOrder == .updates,
                case .updateAvailable(let latestVersion, let source, _) = app.updateState {
-                Button {
-                    performUpdateAction(source: source)
-                } label: {
-                    Image(systemName: updateActionIcon(source: source))
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(width: 22, height: 22)
+                HStack(spacing: 4) {
+                    if source == .homebrew && homebrewCommandCopied {
+                        Text("Command copied")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Button {
+                        performUpdateAction(source: source)
+                    } label: {
+                        Image(systemName: updateActionIcon(source: source))
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(width: 22, height: 22)
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.orange)
+                    .help(updateActionHelp(latestVersion: latestVersion, source: source))
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.orange)
-                .help(updateActionTitle(latestVersion: latestVersion, source: source))
             }
 
             ScoreBadgeView(state: app.aiState, isMyApp: app.isMyApp)
@@ -319,6 +329,17 @@ struct AppRow: View {
             guard let command = app.homebrewUpdateCommand else { return }
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(command, forType: .string)
+            showHomebrewCopiedConfirmation()
+        }
+    }
+
+    private func showHomebrewCopiedConfirmation() {
+        homebrewCommandCopied = true
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            await MainActor.run {
+                homebrewCommandCopied = false
+            }
         }
     }
 
@@ -339,6 +360,17 @@ struct AppRow: View {
             return "Update via \(source.rawValue) (\(latestVersion))"
         case .homebrew:
             return "Copy Homebrew update command (\(latestVersion))"
+        }
+    }
+
+    private func updateActionHelp(latestVersion: String, source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore:
+            return "Open App Store update page for \(latestVersion)"
+        case .sparkle:
+            return "Open this app's Sparkle update route for \(latestVersion)"
+        case .homebrew:
+            return "Copy \(app.homebrewUpdateCommand ?? "brew upgrade --cask ...")"
         }
     }
 }
