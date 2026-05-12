@@ -32,7 +32,7 @@ struct AppRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Text(app.name)
-                        .font(.body.weight(.medium))
+                        .font(.body)
                         .lineLimit(1)
                         .truncationMode(.tail)
                     if app.isFavorite {
@@ -83,7 +83,7 @@ struct AppRow: View {
                         performUpdateAction(source: source)
                     } label: {
                         Image(systemName: updateActionIcon(source: source))
-                            .font(.caption.weight(.semibold))
+                            .font(.caption)
                             .frame(width: 22, height: 22)
                     }
                     .buttonStyle(.borderless)
@@ -395,7 +395,7 @@ private struct UpdateBadgeView: View {
 
     var body: some View {
         Text("\(source.badgeLabel) \(latestVersion)")
-            .font(.caption2.weight(.semibold).monospacedDigit())
+            .font(.caption2.monospacedDigit())
             .foregroundStyle(.orange)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
@@ -477,7 +477,7 @@ struct ScoreBadgeView: View {
         case .loaded(_, let score, _, _):
             ZStack {
                 Text("\(score)")
-                    .font(.caption.weight(.bold).monospacedDigit())
+                    .font(.caption.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.white)
                     .frame(width: 24, height: 24)
                     .background(scoreColor(score), in: Circle())

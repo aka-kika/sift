@@ -77,7 +77,7 @@ struct AppDetailView: View {
             }
             #endif
             VStack(alignment: .leading, spacing: 4) {
-                Text(app.name).font(.title2.weight(.semibold))
+                Text(app.name).font(.title2.weight(.medium))
                 Text(app.bundleID)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -146,7 +146,8 @@ struct AppDetailView: View {
             // What is this?
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Label("What is this?", systemImage: "info.circle.fill").font(.headline)
+                    Label("What is this?", systemImage: "info.circle.fill")
+                        .font(.subheadline.weight(.semibold))
                     Spacer()
                     Button {
                         toggleAnalysisLock()
@@ -235,7 +236,7 @@ struct AppDetailView: View {
             if case .loaded(_, let score, let reason, let bestUse) = app.aiState {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Best use and ranking for your needs", systemImage: "checkmark.seal.fill")
-                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
 
                     if !bestUse.isEmpty {
                         Text(bestUse)
@@ -252,7 +253,7 @@ struct AppDetailView: View {
                                 .frame(width: 16, height: 16)
                         }
                         Text(scoreLabel(score))
-                            .font(.subheadline.bold())
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(colorForScore(score))
                     }
 
@@ -339,7 +340,8 @@ struct AppDetailView: View {
             .padding(.top, 6)
         } label: {
             HStack(spacing: 8) {
-                Label("Notes", systemImage: "note.text").font(.headline)
+                Label("Notes", systemImage: "note.text")
+                    .font(.subheadline.weight(.semibold))
                 if let notes = record?.notes, !notes.isEmpty {
                     Text("Saved")
                         .font(.caption2)
@@ -360,7 +362,8 @@ struct AppDetailView: View {
     private var licenseKeySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Label("License Key", systemImage: "key.horizontal").font(.headline)
+                Label("License Key", systemImage: "key.horizontal")
+                    .font(.subheadline.weight(.semibold))
                 if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
                     Text(maskedLicenseKey(licenseKey))
                         .font(.body.monospaced())
@@ -430,7 +433,8 @@ struct AppDetailView: View {
     private var urlSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Label("App Link", systemImage: "link").font(.headline)
+                Label("App Link", systemImage: "link")
+                    .font(.subheadline.weight(.semibold))
                 if let urlString = record?.appURL, !urlString.isEmpty,
                    let url = URL(string: urlString) {
                     Link(urlString, destination: url)
