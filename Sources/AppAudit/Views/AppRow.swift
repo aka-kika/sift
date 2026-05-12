@@ -147,19 +147,17 @@ struct AppRow: View {
             } label: {
                 Label("Open App", systemImage: "arrow.up.right.square")
             }
-            if let updateURL = app.updateState.actionURL {
+            if case .updateAvailable(let latestVersion, let source, _) = app.updateState {
                 Button {
-                    NSWorkspace.shared.open(updateURL)
+                    performUpdateAction(source: source)
                 } label: {
-                    Label("Update App", systemImage: "arrow.up.forward.app")
+                    Label(updateActionTitle(latestVersion: latestVersion, source: source), systemImage: updateActionIcon(source: source))
                 }
 
-                if case .updateAvailable = app.updateState {
-                    Button {
-                        viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
-                    } label: {
-                        Label("Mark Updated", systemImage: "checkmark.circle")
-                    }
+                Button {
+                    viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
+                } label: {
+                    Label("Mark Updated", systemImage: "checkmark.circle")
                 }
             }
             Divider()
@@ -296,6 +294,39 @@ struct AppRow: View {
             ollamaModel: ""
         )
     }
+
+    private func performUpdateAction(source: AppInfo.UpdateSource) {
+        switch source {
+        case .appStore, .sparkle:
+            if let updateURL = app.updateState.actionURL {
+                NSWorkspace.shared.open(updateURL)
+            }
+        case .homebrew:
+            guard let command = app.homebrewUpdateCommand else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(command, forType: .string)
+        }
+    }
+
+    private func updateActionIcon(source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore:
+            return "bag.fill"
+        case .sparkle:
+            return "sparkles"
+        case .homebrew:
+            return "terminal.fill"
+        }
+    }
+
+    private func updateActionTitle(latestVersion: String, source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore, .sparkle:
+            return "Update via \(source.rawValue) (\(latestVersion))"
+        case .homebrew:
+            return "Copy Homebrew update command (\(latestVersion))"
+        }
+    }
 }
 
 private struct UpdateBadgeView: View {
@@ -400,4 +431,5 @@ struct ScoreBadgeView: View {
         default: return .gray
         }
     }
+
 }

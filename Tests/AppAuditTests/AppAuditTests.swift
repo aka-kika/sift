@@ -338,6 +338,33 @@ struct UpdateCheckerTests {
         #expect(metadata?.url == "https://example.com/download-1.10.zip")
     }
 
+    @Test("Parses Homebrew outdated cask metadata")
+    func parsesHomebrewOutdatedCasks() throws {
+        let data = Data("""
+        {
+          "casks": [
+            {
+              "name": "betterdisplay",
+              "installed_versions": ["4.3.0"],
+              "current_version": "4.4.0"
+            }
+          ]
+        }
+        """.utf8)
+
+        let casks = HomebrewService.parseOutdatedCasks(from: data)
+        #expect(casks == [
+            HomebrewCaskInfo(token: "betterdisplay", installedVersion: "4.3.0", latestVersion: "4.4.0")
+        ])
+    }
+
+    @Test("Parses Homebrew Caskroom path token")
+    func parsesHomebrewCaskroomToken() throws {
+        let token = HomebrewService.caskTokenFromCaskroomPath("/opt/homebrew/Caskroom/betterdisplay/4.3.0/BetterDisplay.app")
+
+        #expect(token == "betterdisplay")
+    }
+
     @Test("Acknowledging an update immediately changes in-memory state")
     @MainActor
     func acknowledgingUpdateChangesState() throws {

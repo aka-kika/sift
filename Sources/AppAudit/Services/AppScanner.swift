@@ -8,6 +8,7 @@ actor AppScanner {
 
     private let systemPrefixes = ["com.apple.", "com.microsoft.edgemac.Canary"]
     private let skipPaths = ["/System/", "/Library/Frameworks/", "/private/"]
+    private let homebrew = HomebrewService()
 
     func scan(includeApple: Bool? = nil, includeUtilities: Bool? = nil) async -> [AppInfo] {
         let shouldIncludeApple = includeApple ?? UserDefaults.standard.bool(forKey: "includeAppleApps")
@@ -21,6 +22,7 @@ actor AppScanner {
             scanDirs = [override]
         }
 
+        let installedCasks = homebrew.installedCasks()
         var apps: [AppInfo] = []
         let fm = FileManager.default
 
@@ -35,7 +37,11 @@ actor AppScanner {
                 // Skip system paths
                 if skipPaths.contains(where: { fullPath.hasPrefix($0) }) { continue }
 
-                if let appInfo = makeAppInfo(from: fullPath, includeApple: shouldIncludeApple) {
+                if let appInfo = makeAppInfo(
+                    from: fullPath,
+                    includeApple: shouldIncludeApple,
+                    installedCasks: installedCasks
+                ) {
                     apps.append(appInfo)
                 }
             }
@@ -44,7 +50,7 @@ actor AppScanner {
         return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    private func makeAppInfo(from path: String, includeApple: Bool) -> AppInfo? {
+    private func makeAppInfo(from path: String, includeApple: Bool, installedCasks: [String]) -> AppInfo? {
         let plistPath = (path as NSString).appendingPathComponent("Contents/Info.plist")
         guard let plist = NSDictionary(contentsOfFile: plistPath),
               let name = plist["CFBundleName"] as? String ?? plist["CFBundleDisplayName"] as? String,
@@ -58,6 +64,7 @@ actor AppScanner {
                      ?? plist["CFBundleGetInfoString"] as? String
         let sparkleFeedURL = plist["SUFeedURL"] as? String
         let isAppStoreInstall = FileManager.default.fileExists(atPath: (path as NSString).appendingPathComponent("Contents/_MASReceipt/receipt"))
+        let homebrewCaskToken = homebrew.caskToken(forAppName: name, path: path, installedCasks: installedCasks)
 
         let icon: SendableImage?
 #if canImport(AppKit)
@@ -75,6 +82,7 @@ actor AppScanner {
             humanReadableDescription: humanDesc,
             sparkleFeedURL: sparkleFeedURL,
             isAppStoreInstall: isAppStoreInstall,
+            homebrewCaskToken: homebrewCaskToken,
             icon: icon
         )
     }

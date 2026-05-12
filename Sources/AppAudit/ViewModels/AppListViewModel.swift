@@ -345,7 +345,9 @@ final class AppListViewModel {
     }
 
     private func refreshUpdates(for scannedApps: [AppInfo], token: UUID) async {
-        for app in scannedApps where !app.version.isEmpty && (app.isAppStoreInstall || app.sparkleFeedURL != nil) {
+        await updateChecker.resetHomebrewCache()
+
+        for app in scannedApps where !app.version.isEmpty && app.canCheckForUpdates {
             let acknowledgedVersion = cacheService?.load(bundleID: app.bundleID)?.acknowledgedUpdateVersion
             let state = await updateChecker.check(app: app, acknowledgedVersion: acknowledgedVersion)
             guard token == updateScanToken,

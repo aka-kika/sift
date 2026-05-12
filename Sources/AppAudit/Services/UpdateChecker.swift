@@ -22,9 +22,15 @@ actor UpdateChecker {
     }
 
     private let client: any UpdateMetadataClient
+    private let homebrew = HomebrewService()
+    private var outdatedCasksCache: [HomebrewCaskInfo]?
 
     init(client: any UpdateMetadataClient = LiveUpdateMetadataClient()) {
         self.client = client
+    }
+
+    func resetHomebrewCache() {
+        outdatedCasksCache = nil
     }
 
     func check(app: AppInfo, acknowledgedVersion: String? = nil) async -> AppInfo.UpdateState {
@@ -43,6 +49,19 @@ actor UpdateChecker {
             return .upToDate(source: .appStore)
         }
 
+        if let homebrewMetadata = fetchHomebrewMetadata(caskToken: app.homebrewCaskToken),
+           let latestVersion = homebrewMetadata.latestVersion,
+           Self.isVersion(latestVersion, newerThan: app.version) {
+            if acknowledgedVersion == latestVersion {
+                return .upToDate(source: .homebrew)
+            }
+            return .updateAvailable(
+                latestVersion: latestVersion,
+                source: .homebrew,
+                actionURL: nil
+            )
+        }
+
         if let sparkleMetadata = await fetchSparkleMetadata(feedURLString: app.sparkleFeedURL) {
             if Self.isVersion(sparkleMetadata.version, newerThan: app.version) {
                 if acknowledgedVersion == sparkleMetadata.version {
@@ -55,6 +74,10 @@ actor UpdateChecker {
                 )
             }
             return .upToDate(source: .sparkle)
+        }
+
+        if app.homebrewCaskToken != nil {
+            return .upToDate(source: .homebrew)
         }
 
         return .unavailable
@@ -81,6 +104,14 @@ actor UpdateChecker {
         } catch {
             return nil
         }
+    }
+
+    private func fetchHomebrewMetadata(caskToken: String?) -> HomebrewCaskInfo? {
+        guard let caskToken else { return nil }
+        if outdatedCasksCache == nil {
+            outdatedCasksCache = homebrew.outdatedCasks()
+        }
+        return outdatedCasksCache?.first { $0.token == caskToken }
     }
 
     static func appStoreLookupURL(for bundleID: String) -> URL? {

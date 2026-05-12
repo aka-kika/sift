@@ -20,6 +20,9 @@ struct AppDetailView: View {
     @State private var draftLicenseKey = ""
     @State private var currentLicenseKey: String? = nil
     @State private var notesExpanded = false
+    @State private var confirmingHomebrewUpdate = false
+    @State private var runningHomebrewUpdate = false
+    @State private var homebrewUpdateMessage: String? = nil
 
     var body: some View {
         ScrollView {
@@ -37,6 +40,28 @@ struct AppDetailView: View {
         .task(id: app.bundleID) {
             loadRecord()
             loadLicenseKey()
+        }
+        .alert("Update with Homebrew?", isPresented: $confirmingHomebrewUpdate) {
+            Button("Run Update") {
+                Task { await runHomebrewUpdate() }
+            }
+            Button("Copy Command") {
+                copyHomebrewUpdateCommand()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(app.homebrewUpdateCommand ?? "brew upgrade --cask <token>")
+        }
+        .alert(
+            "Homebrew Update",
+            isPresented: Binding(
+                get: { homebrewUpdateMessage != nil },
+                set: { if !$0 { homebrewUpdateMessage = nil } }
+            )
+        ) {
+            Button("OK") {}
+        } message: {
+            Text(homebrewUpdateMessage ?? "")
         }
     }
 
@@ -78,19 +103,20 @@ struct AppDetailView: View {
                 .foregroundStyle(.green)
         case .updateAvailable(let latestVersion, let source, _):
             VStack(alignment: .leading, spacing: 6) {
-                if let updateURL = app.updateState.actionURL {
-                    Button {
-                        NSWorkspace.shared.open(updateURL)
-                    } label: {
-                        Label("Update available: \(latestVersion) via \(source.rawValue)", systemImage: "arrow.down.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Label("Update available: \(latestVersion) via \(source.rawValue)", systemImage: "arrow.down.circle.fill")
+                Button {
+                    performUpdateAction(source: source)
+                } label: {
+                    Label(updateActionTitle(latestVersion: latestVersion, source: source), systemImage: updateActionIcon(source: source))
                         .font(.caption)
                         .foregroundStyle(.orange)
+                }
+                .buttonStyle(.plain)
+                .disabled(runningHomebrewUpdate)
+
+                if runningHomebrewUpdate {
+                    ProgressView("Running Homebrew update...")
+                        .font(.caption)
+                        .controlSize(.small)
                 }
 
                 Button {
@@ -525,6 +551,55 @@ struct AppDetailView: View {
         case 5: return .green
         default: return .gray
         }
+    }
+
+    private func updateActionTitle(latestVersion: String, source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore:
+            return "Update via App Store: \(latestVersion)"
+        case .sparkle:
+            return "Update via Sparkle: \(latestVersion)"
+        case .homebrew:
+            return "Update via Homebrew: \(latestVersion)"
+        }
+    }
+
+    private func updateActionIcon(source: AppInfo.UpdateSource) -> String {
+        switch source {
+        case .appStore:
+            return "bag.fill"
+        case .sparkle:
+            return "sparkles"
+        case .homebrew:
+            return "terminal.fill"
+        }
+    }
+
+    private func performUpdateAction(source: AppInfo.UpdateSource) {
+        switch source {
+        case .appStore, .sparkle:
+            if let updateURL = app.updateState.actionURL {
+                NSWorkspace.shared.open(updateURL)
+            }
+        case .homebrew:
+            confirmingHomebrewUpdate = true
+        }
+    }
+
+    private func copyHomebrewUpdateCommand() {
+        guard let command = app.homebrewUpdateCommand else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
+    }
+
+    private func runHomebrewUpdate() async {
+        guard let token = app.homebrewCaskToken else { return }
+        runningHomebrewUpdate = true
+        let output = await Task.detached {
+            HomebrewService().upgradeCask(token)
+        }.value
+        runningHomebrewUpdate = false
+        homebrewUpdateMessage = output.isEmpty ? "Homebrew finished. Rescan to refresh this app's version." : output
     }
 }
 

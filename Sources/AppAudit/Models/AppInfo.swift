@@ -20,6 +20,7 @@ struct AppInfo: Identifiable {
     let humanReadableDescription: String?
     let sparkleFeedURL: String?
     let isAppStoreInstall: Bool
+    let homebrewCaskToken: String?
     let icon: SendableImage?
 
     var aiState: AIState = .pending
@@ -27,6 +28,40 @@ struct AppInfo: Identifiable {
     var isMyApp: Bool = false
     var isFavorite: Bool = false
     var isAnalysisLocked: Bool = false
+
+    init(
+        id: String,
+        name: String,
+        version: String,
+        bundleID: String,
+        path: String,
+        humanReadableDescription: String?,
+        sparkleFeedURL: String?,
+        isAppStoreInstall: Bool,
+        homebrewCaskToken: String? = nil,
+        icon: SendableImage?,
+        aiState: AIState = .pending,
+        updateState: UpdateState = .unknown,
+        isMyApp: Bool = false,
+        isFavorite: Bool = false,
+        isAnalysisLocked: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.version = version
+        self.bundleID = bundleID
+        self.path = path
+        self.humanReadableDescription = humanReadableDescription
+        self.sparkleFeedURL = sparkleFeedURL
+        self.isAppStoreInstall = isAppStoreInstall
+        self.homebrewCaskToken = homebrewCaskToken
+        self.icon = icon
+        self.aiState = aiState
+        self.updateState = updateState
+        self.isMyApp = isMyApp
+        self.isFavorite = isFavorite
+        self.isAnalysisLocked = isAnalysisLocked
+    }
 
     enum AIState: Sendable {
         case pending
@@ -38,6 +73,7 @@ struct AppInfo: Identifiable {
     enum UpdateSource: String, Sendable {
         case appStore = "App Store"
         case sparkle = "Sparkle"
+        case homebrew = "Homebrew"
     }
 
     enum UpdateState: Sendable, Equatable {
@@ -64,5 +100,16 @@ extension AppInfo.UpdateState {
             return nil
         }
         return url
+    }
+}
+
+extension AppInfo {
+    var canCheckForUpdates: Bool {
+        isAppStoreInstall || sparkleFeedURL != nil || homebrewCaskToken != nil
+    }
+
+    var homebrewUpdateCommand: String? {
+        guard let homebrewCaskToken, !homebrewCaskToken.isEmpty else { return nil }
+        return "brew upgrade --cask \(homebrewCaskToken)"
     }
 }
