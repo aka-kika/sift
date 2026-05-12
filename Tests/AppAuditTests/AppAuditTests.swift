@@ -398,6 +398,52 @@ struct UpdateCheckerTests {
         #expect(viewModel.apps.first?.updateState == .upToDate(source: .sparkle))
         #expect(viewModel.cacheService?.load(bundleID: "com.example.myapp")?.acknowledgedUpdateVersion == "2.0")
     }
+
+    @Test("Available update count ignores non-actionable states")
+    @MainActor
+    func availableUpdateCountIgnoresNonActionableStates() {
+        let viewModel = AppListViewModel()
+        viewModel.apps = [
+            AppInfo(
+                id: "com.example.one",
+                name: "One",
+                version: "1.0",
+                bundleID: "com.example.one",
+                path: "/Applications/One.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .updateAvailable(latestVersion: "2.0", source: .sparkle, actionURL: nil)
+            ),
+            AppInfo(
+                id: "com.example.two",
+                name: "Two",
+                version: "1.0",
+                bundleID: "com.example.two",
+                path: "/Applications/Two.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .upToDate(source: .appStore)
+            ),
+            AppInfo(
+                id: "com.example.three",
+                name: "Three",
+                version: "1.0",
+                bundleID: "com.example.three",
+                path: "/Applications/Three.app",
+                humanReadableDescription: nil,
+                sparkleFeedURL: nil,
+                isAppStoreInstall: false,
+                icon: nil,
+                updateState: .checking
+            )
+        ]
+
+        #expect(viewModel.availableUpdateCount == 1)
+    }
 }
 
 @Suite("AppLinkResolver Tests")

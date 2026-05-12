@@ -12,6 +12,10 @@ final class AppListViewModel {
     var searchText = ""
     var sortOrder: SortOrder = .relevance
 
+    var availableUpdateCount: Int {
+        apps.filter(\.updateState.isUpdateAvailable).count
+    }
+
     enum ScanState: Equatable {
         case idle
         case scanning
