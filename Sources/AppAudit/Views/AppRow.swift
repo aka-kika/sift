@@ -49,6 +49,11 @@ struct AppRow: View {
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                     }
+                    if app.isAnalysisLocked {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.orange)
+                    }
                     if case .updateAvailable(let latestVersion, _, _) = app.updateState {
                         UpdateBadgeView(latestVersion: latestVersion)
                     }
@@ -84,6 +89,18 @@ struct AppRow: View {
                     Label("Unmark as My App", systemImage: "hammer.slash")
                 } else {
                     Label("Mark as My App", systemImage: "hammer.fill")
+                }
+            }
+
+            Divider()
+
+            Button {
+                toggleAnalysisLock()
+            } label: {
+                if app.isAnalysisLocked {
+                    Label("Unlock Analysis", systemImage: "lock.open")
+                } else {
+                    Label("Lock Analysis", systemImage: "lock.fill")
                 }
             }
 
@@ -210,6 +227,18 @@ struct AppRow: View {
             try? modelContext.save()
             viewModel.setMyApp(bundleID: bundleID, value: true)
         }
+    }
+
+    private func toggleAnalysisLock() {
+        let record = fetchRecord(for: app.bundleID) ?? {
+            let record = makeStubRecord()
+            modelContext.insert(record)
+            return record
+        }()
+
+        record.isAnalysisLocked.toggle()
+        try? modelContext.save()
+        viewModel.setAnalysisLocked(bundleID: app.bundleID, value: record.isAnalysisLocked)
     }
 
     private var existingLicenseKey: String? {

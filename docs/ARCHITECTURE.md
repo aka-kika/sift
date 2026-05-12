@@ -57,6 +57,8 @@ idle → scanning → enriching(completed, total) → done
 
 Cache is invalidated when the selected analysis provider or model changes. The identifier is stored in the legacy-named `AppRecord.ollamaModel` field.
 
+Locked analyses opt out of invalidation and overwrite. `CacheService.save` refuses to update locked records, background enrichment skips locked apps, and manual re-analysis is disabled while locked.
+
 ## Concurrency
 
 - AI enrichment uses `withTaskGroup` capped at 4 concurrent provider requests
@@ -72,6 +74,8 @@ SwiftData store: `~/Library/Application Support/AppAudit/AppAudit.store`
 License keys are stored in macOS Keychain via `LicenseKeyStore`. SwiftData keeps only a migration bridge field for older local stores.
 
 Manual `appURL` values are preserved. Automatic link discovery only writes when the field is empty.
+
+Manual link changes trigger app re-analysis with the stored `appURL` as prompt context unless the record is locked.
 
 ## AI Prompt
 

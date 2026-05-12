@@ -34,6 +34,7 @@ struct AppDetailView: View {
                 Divider()
                 urlSection
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
         }
         .navigationTitle(app.name)
@@ -65,6 +66,7 @@ struct AppDetailView: View {
             }
             Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -119,6 +121,15 @@ struct AppDetailView: View {
                     Label("What is this?", systemImage: "info.circle.fill").font(.headline)
                     Spacer()
                     Button {
+                        toggleAnalysisLock()
+                    } label: {
+                        Label(app.isAnalysisLocked ? "Unlock" : "Lock",
+                              systemImage: app.isAnalysisLocked ? "lock.fill" : "lock.open")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(app.isAnalysisLocked ? .orange : .secondary)
+                    Button {
                         draftDescription = record?.userDescription ?? ""
                         editingDescription = true
                     } label: {
@@ -143,8 +154,11 @@ struct AppDetailView: View {
                         }
                         Text(userDesc)
                             .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
                 }
@@ -170,8 +184,11 @@ struct AppDetailView: View {
                         Text(explanation)
                             .font(.body)
                             .foregroundStyle(record?.userDescription != nil ? .secondary : .primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 case .unavailable(let msg):
                     ContentUnavailableView {
@@ -192,8 +209,11 @@ struct AppDetailView: View {
                     Label("Best use for you", systemImage: "bolt.fill").font(.headline)
                     Text(bestUse)
                         .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             // Relevance score
@@ -211,8 +231,11 @@ struct AppDetailView: View {
                             .foregroundStyle(colorForScore(score))
                     }
                     Text(reason).font(.body).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             // Actions
@@ -221,9 +244,16 @@ struct AppDetailView: View {
                     Button {
                         Task { await viewModel.reanalyze(bundleID: app.bundleID) }
                     } label: {
-                        Label("Re-analyze", systemImage: "arrow.clockwise")
+                        Label(app.isAnalysisLocked ? "Locked" : "Re-analyze",
+                              systemImage: app.isAnalysisLocked ? "lock.fill" : "arrow.clockwise")
                     }
                     .buttonStyle(.bordered)
+                    .disabled(app.isAnalysisLocked)
+                    if app.isAnalysisLocked {
+                        Text("Locked analysis will not be regenerated automatically.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 if let _ = record?.userDescription {
                     Button(role: .destructive) {
@@ -238,6 +268,7 @@ struct AppDetailView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $editingDescription) {
             EditDescriptionSheet(
                 appName: app.name,
@@ -277,6 +308,7 @@ struct AppDetailView: View {
         .onChange(of: app.bundleID) { _, _ in
             notesExpanded = false
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - License Key section
@@ -329,8 +361,11 @@ struct AppDetailView: View {
                 Text("Store a purchased license key for this app so you can copy it later.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $editingLicenseKey) {
             DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
                 if saved {
@@ -387,14 +422,22 @@ struct AppDetailView: View {
                 Text("Add a GitHub repo or website so the selected analysis provider can use it as context.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $editingURL) {
             EditURLSheet(appName: app.name, draft: $draftURL) { saved in
                 if saved {
                     let trimmed = draftURL.trimmingCharacters(in: .whitespacesAndNewlines)
-                    record?.appURL = trimmed.isEmpty ? nil : trimmed
+                    let ensuredRecord = ensureRecord()
+                    let previousURL = ensuredRecord.appURL
+                    ensuredRecord.appURL = trimmed.isEmpty ? nil : trimmed
                     saveRecord()
+                    if !trimmed.isEmpty, trimmed != previousURL {
+                        viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID)
+                    }
                 }
                 editingURL = false
             }
@@ -420,6 +463,13 @@ struct AppDetailView: View {
 
     private func saveRecord() {
         try? modelContext.save()
+    }
+
+    private func toggleAnalysisLock() {
+        let ensuredRecord = ensureRecord()
+        ensuredRecord.isAnalysisLocked.toggle()
+        viewModel.setAnalysisLocked(bundleID: app.bundleID, value: ensuredRecord.isAnalysisLocked)
+        saveRecord()
     }
 
     private func ensureRecord() -> AppRecord {
@@ -568,7 +618,7 @@ struct EditURLSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("App link for \(appName)")
                 .font(.headline)
-            Text("GitHub repo or website. The selected analysis provider will use this as context when the app is analyzed.")
+            Text("GitHub repo or website. Saving a new link re-analyzes the app unless its analysis is locked.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -613,6 +663,8 @@ struct NotesEditor: View {
                 Text("Add notes about this app — when you last used it, why you installed it, whether to keep or delete…")
                     .font(.body)
                     .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .allowsHitTesting(false)
@@ -624,6 +676,7 @@ struct NotesEditor: View {
                 .focused($focused)
                 .padding(8)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
     }
 }

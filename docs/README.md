@@ -62,6 +62,9 @@ Cache is invalidated when you change the analysis provider or Ollama model in Se
 
 Profile edits are used the next time an app is analyzed. Click **Re-analyze** on an app to refresh its score with the current profile.
 
+### Lock Mode
+Lock an app's analysis from the detail pane or row context menu to prevent accidental regeneration. Locked analyses are preserved across rescans, provider changes, model changes, and manual Re-analyze clicks until you unlock them.
+
 ### My Apps
 Right-click any app → **Mark as My App** to tag apps you built yourself. Tagged apps show a 🔨 badge and purple score ring. Use the **My Apps** sort option to filter to just your apps.
 
@@ -74,6 +77,8 @@ AppAudit automatically fills missing app links when it can resolve them safely:
 - Sparkle apps use the appcast website link or feed host
 
 Manual links are never overwritten.
+
+When you manually add or change an app link, AppAudit immediately re-analyzes that app with the link as context unless the analysis is locked.
 
 ### License Keys
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.

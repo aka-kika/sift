@@ -4,7 +4,7 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             AnalysisSettingsTab()
-                .tabItem { Label("Analysis", systemImage: "brain") }
+                .tabItem { Label("Models", systemImage: "brain") }
 
             ProfileSettingsTab()
                 .tabItem { Label("Profile", systemImage: "person.text.rectangle") }
@@ -12,7 +12,8 @@ struct SettingsView: View {
             ScanningSettingsTab()
                 .tabItem { Label("Scanning", systemImage: "folder.badge.gearshape") }
         }
-        .frame(width: 500, height: 340)
+        .frame(width: 430, height: 220)
+        .fixedSize()
     }
 }
 
@@ -25,34 +26,55 @@ struct AnalysisSettingsTab: View {
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
-    @State private var appleIntelligenceStatus = "Not checked"
+    @State private var appleIntelligenceStatus: ProviderTestStatus = .idle("Not checked")
 
     enum FetchState { case idle, loading, loaded, failed(String) }
+
+    enum ProviderTestStatus {
+        case idle(String)
+        case testing(String)
+        case success(String)
+        case failure(String)
+    }
 
     private var selectedProvider: AnalysisProviderKind {
         AnalysisProviderKind(rawValue: analysisProviderKind) ?? .ollama
     }
 
     var body: some View {
-        Form {
-            Section("Provider") {
-                Picker("Provider", selection: $analysisProviderKind) {
-                    ForEach(AnalysisProviderKind.allCases) { provider in
-                        Text(provider.displayName).tag(provider.rawValue)
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsSectionTitle("Provider")
+            SettingsCard {
+                HStack {
+                    Text("Engine")
+                        .frame(width: 64, alignment: .leading)
+                    Spacer()
+                    Picker("", selection: $analysisProviderKind) {
+                        ForEach(AnalysisProviderKind.allCases) { provider in
+                            Text(provider.displayName).tag(provider.rawValue)
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: 190)
                 }
-                .pickerStyle(.menu)
 
-                Text(providerStatusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Divider()
+
+                SettingsFooter(providerStatusText)
             }
 
-            if selectedProvider == .ollama {
-                Section("Ollama Connection") {
+            SettingsSectionTitle(selectedProvider.displayName)
+                .padding(.top, 2)
+
+            SettingsCard {
+                if selectedProvider == .ollama {
                     HStack {
+                        Text("Base URL")
+                            .frame(width: 64, alignment: .leading)
                         TextField("Base URL", text: $ollamaBaseURL)
                             .textFieldStyle(.roundedBorder)
+                            .controlSize(.small)
                         Button {
                             Task { await fetchModels() }
                         } label: {
@@ -70,58 +92,61 @@ struct AnalysisSettingsTab: View {
                         .buttonStyle(.borderless)
                         .help("Test connection and fetch models")
                     }
-                }
 
-                Section("Ollama Model") {
+                    Divider()
+
+                    ProviderStatusView(status: ollamaProviderStatus)
+
+                    Divider()
+
                     if availableModels.isEmpty {
                         HStack {
+                            Text("Model")
+                                .frame(width: 64, alignment: .leading)
                             TextField("Model name", text: $ollamaModel)
                                 .textFieldStyle(.roundedBorder)
-                            Button("Fetch Models") {
+                                .controlSize(.small)
+                            Button("Fetch") {
                                 Task { await fetchModels() }
                             }
+                            .controlSize(.small)
                             .buttonStyle(.bordered)
                         }
-                        if case .failed(let msg) = fetchState {
-                            Text(msg)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        } else {
-                            Text("Click Fetch Models or the refresh button to load installed models")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
                     } else {
-                        Picker("Active Model", selection: $ollamaModel) {
-                            ForEach(availableModels, id: \.self) { model in
-                                Text(model).tag(model)
+                        HStack {
+                            Text("Model")
+                                .frame(width: 64, alignment: .leading)
+                            Spacer()
+                            Picker("", selection: $ollamaModel) {
+                                ForEach(availableModels, id: \.self) { model in
+                                    Text(model).tag(model)
+                                }
                             }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .frame(maxWidth: 220)
                         }
-                        .pickerStyle(.menu)
-                        Text("\(availableModels.count) model(s) installed locally")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
-                }
-            } else {
-                Section("Apple Intelligence") {
+                } else {
                     HStack {
-                        Text(appleIntelligenceStatus)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        ProviderStatusView(status: appleIntelligenceStatus)
                         Spacer()
                         Button("Check Availability") {
                             Task { await checkAppleIntelligence() }
                         }
+                        .controlSize(.small)
                         .buttonStyle(.bordered)
                     }
-                    Text("Uses Apple's on-device Foundation Models when available. No API key, model download, or network connection is required.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    SettingsFooter("On-device Foundation Models. No API key or network connection.")
                 }
             }
         }
-        .formStyle(.grouped)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .controlSize(.small)
         .task {
             if selectedProvider == .ollama {
                 await fetchModels()
@@ -137,6 +162,23 @@ struct AnalysisSettingsTab: View {
             return "Local Ollama server. Best for controllable local models."
         case .appleIntelligence:
             return "On-device Apple Foundation Models. Requires Apple Intelligence availability."
+        }
+    }
+
+    private var ollamaProviderStatus: ProviderTestStatus {
+        switch fetchState {
+        case .idle:
+            return .idle("Not tested")
+        case .loading:
+            return .testing("Testing Ollama...")
+        case .loaded:
+            let count = availableModels.count
+            if count == 0 {
+                return .success("Connected. No models installed.")
+            }
+            return .success("Connected. \(count) model(s) installed.")
+        case .failed(let message):
+            return .failure(message)
         }
     }
 
@@ -173,11 +215,12 @@ struct AnalysisSettingsTab: View {
     }
 
     private func checkAppleIntelligence() async {
+        appleIntelligenceStatus = .testing("Checking Apple Intelligence...")
         let service = AppleIntelligenceService()
         if let message = await service.availabilityMessage() {
-            appleIntelligenceStatus = message
+            appleIntelligenceStatus = .failure(message)
         } else {
-            appleIntelligenceStatus = "Available on this Mac"
+            appleIntelligenceStatus = .success("Available on this Mac")
         }
     }
 }
@@ -192,22 +235,22 @@ struct ProfileSettingsTab: View {
             Section("Workflow") {
                 TextEditor(text: $profileText)
                     .font(.body)
-                    .frame(minHeight: 120)
+                    .frame(minHeight: 58)
                     .scrollContentBackground(.hidden)
                     .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
 
-                Text("Used by the selected analysis provider when scoring app relevance. Re-analyze an app to refresh its result with the current profile.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsFooter("Used when scoring app relevance. Re-analyze an app to refresh with this profile.")
             }
 
             Section {
                 Button("Restore Default Profile") {
                     profileText = WorkflowProfile.defaultProfileText
                 }
+                .controlSize(.small)
             }
         }
         .formStyle(.grouped)
+        .controlSize(.small)
     }
 }
 
@@ -226,11 +269,92 @@ struct ScanningSettingsTab: View {
             }
 
             Section {
-                Text("Changes take effect on the next rescan (⌘R).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsFooter("Changes take effect on the next rescan.")
             }
         }
         .formStyle(.grouped)
+        .controlSize(.small)
+    }
+}
+
+private struct SettingsFooter: View {
+    let text: String
+    let color: Color
+
+    init(_ text: String, color: Color = .secondary) {
+        self.text = text
+        self.color = color
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(color)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct SettingsSectionTitle: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.headline)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 2)
+    }
+}
+
+private struct SettingsCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            content
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private struct ProviderStatusView: View {
+    let status: AnalysisSettingsTab.ProviderTestStatus
+
+    var body: some View {
+        HStack(spacing: 6) {
+            switch status {
+            case .idle(let text):
+                Image(systemName: "circle")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                SettingsFooter(text)
+            case .testing(let text):
+                ProgressView()
+                    .scaleEffect(0.55)
+                    .frame(width: 12, height: 12)
+                SettingsFooter(text)
+            case .success(let text):
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                SettingsFooter(text, color: .green)
+            case .failure(let text):
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                SettingsFooter(text, color: .red)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

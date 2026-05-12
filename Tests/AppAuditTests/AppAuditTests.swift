@@ -125,6 +125,127 @@ struct AppInfoTests {
     }
 }
 
+@Suite("Analysis Lock Tests")
+struct AnalysisLockTests {
+
+    @Test("Locked records are not considered stale")
+    @MainActor
+    func lockedRecordIsNotStale() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = container.mainContext
+        let cache = CacheService(context: context)
+        let record = AppRecord(
+            bundleID: "com.example.locked",
+            appName: "Locked",
+            explanation: "Keep this",
+            relevanceScore: 4,
+            relevanceReason: "Useful",
+            bestUse: "Use it",
+            ollamaModel: "ollama:old"
+        )
+        record.isAnalysisLocked = true
+
+        context.insert(record)
+
+        #expect(!cache.isStale(record, currentModel: "apple-intelligence:foundation-models"))
+    }
+
+    @Test("Save does not overwrite locked analysis")
+    @MainActor
+    func savePreservesLockedAnalysis() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = container.mainContext
+        let cache = CacheService(context: context)
+        let record = AppRecord(
+            bundleID: "com.example.locked",
+            appName: "Locked",
+            explanation: "Original",
+            relevanceScore: 5,
+            relevanceReason: "Original reason",
+            bestUse: "Original use",
+            ollamaModel: "ollama:old"
+        )
+        record.isAnalysisLocked = true
+        context.insert(record)
+
+        cache.save(
+            bundleID: "com.example.locked",
+            appName: "Locked",
+            explanation: "New",
+            score: 1,
+            reason: "New reason",
+            bestUse: "New use",
+            ollamaModel: "apple-intelligence:foundation-models"
+        )
+
+        #expect(record.explanation == "Original")
+        #expect(record.relevanceScore == 5)
+        #expect(record.ollamaModel == "ollama:old")
+    }
+}
+
+@Suite("AppAnalysisPrompt Tests")
+struct AppAnalysisPromptTests {
+
+    @Test("Prompt includes app evidence and ambiguity guardrails")
+    func promptIncludesEvidenceAndGuardrails() {
+        let app = AppInfo(
+            id: "com.example.glyph",
+            name: "Glyph",
+            version: "0.3.0",
+            bundleID: "com.example.glyph",
+            path: "/Applications/Glyph.app",
+            humanReadableDescription: nil,
+            sparkleFeedURL: nil,
+            isAppStoreInstall: false,
+            icon: nil
+        )
+
+        let prompt = AppAnalysisPrompt.build(
+            app: app,
+            profile: .local(text: "SwiftUI, macOS apps"),
+            appURL: nil,
+            includeResponseFormat: true
+        )
+
+        #expect(prompt.contains("Path: /Applications/Glyph.app"))
+        #expect(prompt.contains("Do not infer a specific product category from a generic name alone."))
+        #expect(prompt.contains("Score unclear apps conservatively"))
+        #expect(prompt.contains("EXPLANATION:"))
+    }
+
+    @Test("Prompt includes reference URL when provided")
+    func promptIncludesReferenceURL() {
+        let app = AppInfo(
+            id: "com.example.linked",
+            name: "Linked",
+            version: "1.0",
+            bundleID: "com.example.linked",
+            path: "/Applications/Linked.app",
+            humanReadableDescription: nil,
+            sparkleFeedURL: nil,
+            isAppStoreInstall: false,
+            icon: nil
+        )
+
+        let prompt = AppAnalysisPrompt.build(
+            app: app,
+            profile: .local(text: "SwiftUI, macOS apps"),
+            appURL: "https://example.com/linked",
+            includeResponseFormat: true
+        )
+
+        #expect(prompt.contains("Reference URL: https://example.com/linked"))
+        #expect(prompt.contains("Prefer bundle ID, reference URL"))
+    }
+}
+
 @Suite("LicenseKeyStore Tests")
 struct LicenseKeyStoreTests {
 

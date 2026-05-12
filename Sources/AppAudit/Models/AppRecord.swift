@@ -15,6 +15,7 @@ final class AppRecord {
     var notes: String?
     var isMyApp: Bool = false
     var isFavorite: Bool = false
+    var isAnalysisLocked: Bool = false
     var appURL: String? = nil
     var acknowledgedUpdateVersion: String? = nil
     // Migration-only bridge for older stores. New writes go to Keychain via LicenseKeyStore.
@@ -34,6 +35,8 @@ final class AppRecord {
         self.userDescription = nil
         self.notes = nil
         self.isMyApp = false
+        self.isFavorite = false
+        self.isAnalysisLocked = false
         self.acknowledgedUpdateVersion = nil
         self.licenseKey = nil
     }

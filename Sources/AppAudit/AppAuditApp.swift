@@ -33,5 +33,6 @@ struct AppAuditApp: App {
         Settings {
             SettingsView()
         }
+        .windowResizability(.contentSize)
     }
 }

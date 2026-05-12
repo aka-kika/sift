@@ -22,11 +22,7 @@ private struct AppleIntelligenceAppAnalysis {
 
 actor AppleIntelligenceService {
 
-    private let systemPrompt = """
-    You are an expert macOS app analyst helping a developer audit installed applications.
-    Give honest, specific, actionable assessments. Do not write marketing copy.
-    Be direct, concise, and practical.
-    """
+    private let systemPrompt = AppAnalysisPrompt.system
 
     func availabilityMessage() -> String? {
         #if canImport(FoundationModels)
@@ -56,21 +52,12 @@ actor AppleIntelligenceService {
             return .unavailable(message)
         }
 
-        let hint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
-        let urlHint = appURL.map { "\nReference URL: \($0)" } ?? ""
-        let prompt = """
-        Analyze the macOS app "\(app.name)" (bundle ID: \(app.bundleID))\(hint)\(urlHint)
-
-        Developer workflow context:
-        \(profile.promptDescription)
-
-        Scoring guide:
-        5 = Daily driver for this workflow; uninstalling would break their work
-        4 = Regularly useful; removes friction in their specific stack
-        3 = Occasionally useful; nice to have but not essential
-        2 = Rarely useful; unlikely to serve this workflow
-        1 = No overlap; safe to uninstall
-        """
+        let prompt = AppAnalysisPrompt.build(
+            app: app,
+            profile: profile,
+            appURL: appURL,
+            includeResponseFormat: false
+        )
 
         do {
             let session = LanguageModelSession {

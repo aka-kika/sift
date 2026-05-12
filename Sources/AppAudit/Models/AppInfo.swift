@@ -26,6 +26,7 @@ struct AppInfo: Identifiable {
     var updateState: UpdateState = .unknown
     var isMyApp: Bool = false
     var isFavorite: Bool = false
+    var isAnalysisLocked: Bool = false
 
     enum AIState: Sendable {
         case pending

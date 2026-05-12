@@ -17,6 +17,9 @@ final class CacheService {
     }
 
     func isStale(_ record: AppRecord, currentModel: String) -> Bool {
+        if record.isAnalysisLocked {
+            return false
+        }
         // Invalidate when the selected analysis provider or model changes.
         return record.ollamaModel != currentModel
     }
@@ -27,6 +30,7 @@ final class CacheService {
         bestUse: String, ollamaModel: String
     ) {
         if let existing = load(bundleID: bundleID) {
+            guard !existing.isAnalysisLocked else { return }
             // Update AI fields in-place to preserve user edits (notes, description, appURL, isMyApp)
             existing.appName = appName
             existing.explanation = explanation

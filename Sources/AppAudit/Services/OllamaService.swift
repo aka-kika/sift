@@ -33,12 +33,7 @@ actor OllamaService {
         UserDefaults.standard.string(forKey: "ollamaModel") ?? "llama3.2"
     }
 
-    private let systemPrompt = """
-    You are an expert macOS app analyst helping a developer audit their installed applications.
-    Your job is to give honest, specific, and actionable assessments — not marketing copy.
-    Be direct. Use plain language. Never pad your responses.
-    Always respond in the exact structured format requested. No extra commentary before or after.
-    """
+    private let systemPrompt = AppAnalysisPrompt.system + "\nAlways respond in the exact structured format requested. No extra commentary before or after."
 
     private func chat(messages: [OllamaRequest.Message]) async -> OllamaResult {
         guard let url = URL(string: "\(baseURL)/api/chat") else {
@@ -66,27 +61,12 @@ actor OllamaService {
 
     /// Single request returning explanation, score, reason, and best use — 3x faster than separate calls.
     func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil) async -> OllamaResult {
-        let hint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
-        let urlHint = appURL.map { "\nReference URL: \($0)" } ?? ""
-        let prompt = """
-        Analyze the macOS app "\(app.name)" (bundle ID: \(app.bundleID))\(hint)\(urlHint)
-
-        Developer workflow context:
-        \(profile.promptDescription)
-
-        Respond in EXACTLY this format with no extra text before or after:
-        EXPLANATION: [2 clear sentences — what this app does and who uses it. Be specific, not generic.]
-        SCORE: [1-5]
-        REASON: [1 sentence — why this score given the developer's specific workflow above]
-        BEST_USE: [1 actionable sentence — the single most useful thing this developer can do with this app. If irrelevant, write: Not applicable to your workflow.]
-
-        Scoring guide:
-        5 = Daily driver for this workflow — uninstalling would break their work
-        4 = Regularly useful — removes friction in their specific stack
-        3 = Occasionally useful — nice to have but not essential
-        2 = Rarely useful — unlikely to serve this workflow
-        1 = No overlap — safe to uninstall
-        """
+        let prompt = AppAnalysisPrompt.build(
+            app: app,
+            profile: profile,
+            appURL: appURL,
+            includeResponseFormat: true
+        )
         return await chat(messages: [.init(role: "user", content: prompt)])
     }
 
