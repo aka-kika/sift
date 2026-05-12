@@ -31,6 +31,7 @@ final class AppListViewModel {
 
     enum SortOrder: String, CaseIterable {
         case relevance = "Relevance"
+        case updates = "Updates"
         case myApps = "My Apps"
         case name = "Name"
         case favorites = "Favorites"
@@ -41,6 +42,8 @@ final class AppListViewModel {
             $0.name.localizedCaseInsensitiveContains(searchText)
         }
         switch sortOrder {
+        case .updates:
+            base = base.filter { $0.updateState.isUpdateAvailable }
         case .myApps:
             base = base.filter { $0.isMyApp }
         case .favorites:
@@ -52,10 +55,19 @@ final class AppListViewModel {
             switch sortOrder {
             case .name, .myApps, .favorites:
                 return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            case .updates:
+                return updateSortKey(a).localizedCaseInsensitiveCompare(updateSortKey(b)) == .orderedAscending
             case .relevance:
                 return (a.aiState.score ?? 0) > (b.aiState.score ?? 0)
             }
         }
+    }
+
+    private func updateSortKey(_ app: AppInfo) -> String {
+        if case .updateAvailable(_, let source, _) = app.updateState {
+            return "\(source.rawValue)-\(app.name)"
+        }
+        return app.name
     }
 
     private let scanner = AppScanner()

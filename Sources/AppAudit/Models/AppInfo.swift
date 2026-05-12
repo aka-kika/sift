@@ -93,6 +93,11 @@ extension AppInfo.AIState {
 }
 
 extension AppInfo.UpdateState {
+    var isUpdateAvailable: Bool {
+        if case .updateAvailable = self { return true }
+        return false
+    }
+
     var actionURL: URL? {
         guard case .updateAvailable(_, _, let actionURLString) = self,
               let actionURLString,

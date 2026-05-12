@@ -54,8 +54,8 @@ struct AppRow: View {
                             .font(.system(size: 9))
                             .foregroundStyle(.orange)
                     }
-                    if case .updateAvailable(let latestVersion, _, _) = app.updateState {
-                        UpdateBadgeView(latestVersion: latestVersion)
+                    if case .updateAvailable(let latestVersion, let source, _) = app.updateState {
+                        UpdateBadgeView(latestVersion: latestVersion, source: source)
                     }
                 }
                 Text(app.version.isEmpty ? app.bundleID : app.version)
@@ -331,14 +331,28 @@ struct AppRow: View {
 
 private struct UpdateBadgeView: View {
     let latestVersion: String
+    let source: AppInfo.UpdateSource
 
     var body: some View {
-        Text("Update \(latestVersion)")
+        Text("\(source.badgeLabel) \(latestVersion)")
             .font(.system(size: 9, weight: .semibold))
             .foregroundStyle(.orange)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(.orange.opacity(0.12), in: Capsule())
+    }
+}
+
+private extension AppInfo.UpdateSource {
+    var badgeLabel: String {
+        switch self {
+        case .appStore:
+            return "Store"
+        case .sparkle:
+            return "Sparkle"
+        case .homebrew:
+            return "Brew"
+        }
     }
 }
 
