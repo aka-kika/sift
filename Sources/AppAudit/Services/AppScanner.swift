@@ -1,4 +1,5 @@
 import Foundation
+import CoreServices
 
 #if canImport(AppKit)
 import AppKit
@@ -83,7 +84,18 @@ actor AppScanner {
             sparkleFeedURL: sparkleFeedURL,
             isAppStoreInstall: isAppStoreInstall,
             homebrewCaskToken: homebrewCaskToken,
-            icon: icon
+            icon: icon,
+            lastUsedDate: lastUsedDate(forPath: path)
         )
+    }
+
+    /// Reads Spotlight's last-used timestamp for an app bundle. Returns nil when
+    /// Spotlight has no record (e.g. never launched, or indexing disabled).
+    private func lastUsedDate(forPath path: String) -> Date? {
+        guard let item = MDItemCreate(nil, path as CFString),
+              let value = MDItemCopyAttribute(item, kMDItemLastUsedDate) else {
+            return nil
+        }
+        return value as? Date
     }
 }

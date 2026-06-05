@@ -64,7 +64,7 @@ struct AppRow: View {
                         UpdateBadgeView(latestVersion: latestVersion, source: source)
                     }
                 }
-                Text(app.version.isEmpty ? app.bundleID : app.version)
+                Text(subtitleText)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -217,6 +217,23 @@ struct AppRow: View {
             }
         }
     }
+
+    private var subtitleText: String {
+        let base = app.version.isEmpty ? app.bundleID : app.version
+        guard viewModel.sortOrder == .lastUsed else { return base }
+        return "\(base) · \(lastUsedText)"
+    }
+
+    private var lastUsedText: String {
+        guard let date = app.lastUsedDate else { return "Never used" }
+        return "Used " + Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter
+    }()
 
     private func toggleFavorite() {
         let bundleID = app.bundleID

@@ -224,6 +224,12 @@ ahead of the main plan, because they were fast and high-value.
 - **Item 11 — Settings window text overflow.** Bumped the fixed Settings size from
   430×220 to 480×340 so footer/status text is no longer clipped. (The Models tab
   shrinks further once Apple Intelligence is removed per item 8a.)
+- **Item 12 — Sort by last used.** New `AppInfo.lastUsedDate`, read at scan time
+  from Spotlight's `kMDItemLastUsedDate` via `MDItem`. New `SortOrder.lastUsed`
+  ("Last Used") sorts most-recent first; apps Spotlight has never seen sort to the
+  bottom, then alphabetically. The row subtitle shows a relative "Used N ago" /
+  "Never used" while this sort is active. Inspired by the Mole app. *Follow-up:
+  once My Apps/Favorites become filters (item 8c), keep Last Used as a sort.*
 
 ## Data Model Changes
 

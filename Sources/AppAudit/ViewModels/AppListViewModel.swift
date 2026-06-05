@@ -37,6 +37,7 @@ final class AppListViewModel {
     enum SortOrder: String, CaseIterable {
         case relevance = "Relevance"
         case updates = "Updates"
+        case lastUsed = "Last Used"
         case myApps = "My Apps"
         case name = "Name"
         case favorites = "Favorites"
@@ -72,7 +73,27 @@ final class AppListViewModel {
                 return updateSortKey(a).localizedCaseInsensitiveCompare(updateSortKey(b)) == .orderedAscending
             case .relevance:
                 return (a.aiState.score ?? 0) > (b.aiState.score ?? 0)
+            case .lastUsed:
+                return lastUsedIsOrderedBefore(a, b)
             }
+        }
+    }
+
+    /// Most recently used first; apps Spotlight has never seen sort to the bottom,
+    /// then alphabetically for stability.
+    private func lastUsedIsOrderedBefore(_ a: AppInfo, _ b: AppInfo) -> Bool {
+        switch (a.lastUsedDate, b.lastUsedDate) {
+        case let (da?, db?):
+            if da == db {
+                return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            }
+            return da > db
+        case (_?, nil):
+            return true
+        case (nil, _?):
+            return false
+        case (nil, nil):
+            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
         }
     }
 
@@ -88,7 +109,7 @@ final class AppListViewModel {
             return .noMyApps
         case .favorites:
             return .noFavorites
-        case .relevance, .name:
+        case .relevance, .name, .lastUsed:
             return .noApps
         }
     }
