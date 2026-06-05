@@ -193,6 +193,7 @@ final class AppListViewModel {
                 if let record = cache.load(bundleID: apps[i].bundleID) {
                     apps[i].isMyApp = record.isMyApp
                     apps[i].isFavorite = record.isFavorite
+                    apps[i].isSubscribed = record.hasSubscription
                     apps[i].isAnalysisLocked = record.isAnalysisLocked
                     let currentAppURL = record.appURL
                     if !record.explanation.isEmpty,
@@ -333,6 +334,11 @@ final class AppListViewModel {
         apps[idx].isFavorite = value
     }
 
+    func setSubscription(bundleID: String, value: Bool) {
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
+        apps[idx].isSubscribed = value
+    }
+
     func setAnalysisLocked(bundleID: String, value: Bool) {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         apps[idx].isAnalysisLocked = value
@@ -428,6 +434,7 @@ final class AppListViewModel {
             if let record = cache.load(bundleID: bundleID) {
                 apps[idx].isMyApp = record.isMyApp
                 apps[idx].isFavorite = record.isFavorite
+                apps[idx].isSubscribed = record.hasSubscription
                 apps[idx].isAnalysisLocked = record.isAnalysisLocked
             }
         }

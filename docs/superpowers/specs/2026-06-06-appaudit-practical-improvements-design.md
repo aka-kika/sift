@@ -204,10 +204,32 @@ no approve step; My Apps/Favorites are filters; Vault is reachable.
 
 ---
 
+## Live Fixes From Testing (shipped 2026-06-06)
+
+Surfaced while the owner used the AppAudit2 side-build. Implemented immediately,
+ahead of the main plan, because they were fast and high-value.
+
+- **Item 9 — Subscription marker.** New `AppRecord.hasSubscription` /
+  `AppInfo.isSubscribed`, mirroring the My App / Favorite pattern. Toggle via the
+  row context menu ("Mark as Subscription"); a teal `creditcard.fill` badge shows
+  on flagged rows. Lets the owner remember which apps cost a recurring
+  subscription. *Follow-up (next session): expose it in the detail panel redesign
+  and add a "Subscriptions" filter alongside My Apps / Favorites.*
+- **Item 10 — De-hedge the analysis prompt.** The system/format/evidence prompt
+  in `AppAnalysisPrompt` explicitly told the model to write "appears to be" when
+  metadata was sparse, so nearly every card hedged. Reworked to state purpose
+  directly, banning "appears to be"/"seems to be" and only allowing "unclear" when
+  evidence is genuinely absent. *Cached analyses keep their old wording until
+  re-analyzed — the bulk re-analyze (item 2) will refresh them.*
+- **Item 11 — Settings window text overflow.** Bumped the fixed Settings size from
+  430×220 to 480×340 so footer/status text is no longer clipped. (The Models tab
+  shrinks further once Apple Intelligence is removed per item 8a.)
+
 ## Data Model Changes
 
 `AppRecord` (SwiftData, additive only — safe for lightweight migration):
 - **Add** `hasLicenseKey: Bool = false` (item 4).
+- **Add** `hasSubscription: Bool = false` (item 9, shipped 2026-06-06).
 - `suggestedAppURL` retained on the model but no longer written (item 8b).
 - `licenseKey` retained as the migration bridge; nulled by item 3.
 

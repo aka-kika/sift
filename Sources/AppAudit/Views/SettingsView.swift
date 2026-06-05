@@ -12,7 +12,7 @@ struct SettingsView: View {
             ScanningSettingsTab()
                 .tabItem { Label("Scanning", systemImage: "folder.badge.gearshape") }
         }
-        .frame(width: 430, height: 220)
+        .frame(width: 480, height: 340)
         .fixedSize()
     }
 }

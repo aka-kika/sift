@@ -6,7 +6,8 @@ enum AppAnalysisPrompt {
     Give honest, specific, actionable assessments. Do not write marketing copy.
     Be direct, concise, practical, readable, friendly, and professional.
     Prefer short sentences. Avoid filler, hype, and long paragraphs.
-    Avoid guessing. When metadata is sparse or ambiguous, say what the app appears to be and keep the score conservative.
+    State what the app is directly and confidently, grounded in the evidence. Do not hedge.
+    Never use the phrase "appears to be" or "seems to be". When evidence is genuinely missing or conflicting, name the most likely purpose plainly and keep the score conservative, or say the purpose is unclear — but do not pad every sentence with hedges.
     """
 
     static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, includeResponseFormat: Bool) -> String {
@@ -15,7 +16,7 @@ enum AppAnalysisPrompt {
         let responseFormat = includeResponseFormat ? """
 
         Respond in EXACTLY this format with no extra text before or after:
-        EXPLANATION: [1-2 short sentences, max 35 words. Explain what the app does and who uses it, grounded in the evidence. If metadata is sparse, write "appears to" and avoid inventing a category from the name alone.]
+        EXPLANATION: [1-2 short sentences, max 35 words. State directly what the app does and who uses it, grounded in the evidence. Do NOT write "appears to be" or "seems to be". If evidence is missing, say the purpose is unclear rather than inventing a category from the name alone.]
         SCORE: [1-5]
         REASON: [1 short sentence, max 22 words. Explain why this score fits the developer's specific workflow.]
         BEST_USE: [1 short actionable sentence, max 22 words. If irrelevant or unclear, write: Not applicable to your workflow.]
@@ -37,7 +38,7 @@ enum AppAnalysisPrompt {
         - Do not claim you opened, fetched, read, or verified the URL contents. You only know the URL string and context shown in this prompt.
         - If the URL conflicts with the app name, bundle ID, or path, mention the uncertainty and score conservatively.
         - Do not infer a specific product category from a generic name alone.
-        - If you are unsure what the app does, say it appears to be unknown or unclear instead of making up details.
+        - If you are unsure what the app does, say its purpose is unclear instead of making up details. Do not use the phrase "appears to be".
         - Score unclear apps conservatively unless the metadata clearly matches the workflow.
         \(responseFormat)
 

@@ -45,6 +45,11 @@ struct AppRow: View {
                             .font(.caption2)
                             .foregroundStyle(.purple)
                     }
+                    if app.isSubscribed {
+                        Image(systemName: "creditcard.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.teal)
+                    }
                     if existingLicenseKey != nil {
                         Image(systemName: "key.horizontal.fill")
                             .font(.caption2)
@@ -114,6 +119,16 @@ struct AppRow: View {
                     Label("Unmark as My App", systemImage: "hammer.slash")
                 } else {
                     Label("Mark as My App", systemImage: "hammer.fill")
+                }
+            }
+
+            Button {
+                toggleSubscription()
+            } label: {
+                if app.isSubscribed {
+                    Label("Unmark Subscription", systemImage: "creditcard.trianglebadge.exclamationmark")
+                } else {
+                    Label("Mark as Subscription", systemImage: "creditcard")
                 }
             }
 
@@ -249,6 +264,21 @@ struct AppRow: View {
             modelContext.insert(rec)
             try? modelContext.save()
             viewModel.setMyApp(bundleID: bundleID, value: true)
+        }
+    }
+
+    private func toggleSubscription() {
+        let bundleID = app.bundleID
+        if let existing = fetchRecord(for: bundleID) {
+            existing.hasSubscription.toggle()
+            try? modelContext.save()
+            viewModel.setSubscription(bundleID: bundleID, value: existing.hasSubscription)
+        } else {
+            let rec = makeStubRecord()
+            rec.hasSubscription = true
+            modelContext.insert(rec)
+            try? modelContext.save()
+            viewModel.setSubscription(bundleID: bundleID, value: true)
         }
     }
 
