@@ -34,7 +34,16 @@ swift build
 swift test
 bash Scripts/compile_and_run.sh
 bash Scripts/make_dmg.sh
+bash Scripts/build_appaudit2.sh   # isolated AppAudit2 side-build for testing
 ```
+
+## Side-build (AppAudit2)
+
+`Scripts/build_appaudit2.sh` installs a parallel `AppAudit2.app` with bundle ID
+`com.kikaapp.appaudit2`. The SwiftData store folder and Keychain service derive from
+the bundle identifier (`AppAuditApp.dataFolderName`, `KeychainSecretStoreBackend.defaultService`),
+so the side-build uses an isolated store (`~/Library/Application Support/AppAudit2`)
+and Keychain service and never touches the primary app's data or license keys.
 
 ## Release Docs
 

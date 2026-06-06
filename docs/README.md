@@ -59,15 +59,33 @@ Results are stored in SwiftData at:
 ```
 Cached results are used on every launch — AI is only called for new apps or when you click **Re-analyze**.
 
-Cache is invalidated when you change the analysis provider, Ollama model, or approved app link.
+Cache is invalidated only when the **approved app link** used for the analysis changes. Switching the Ollama model no longer wipes your analyses — instead AppAudit keeps them and shows a dismissible banner offering to re-analyze the affected apps (see **Re-analyze**).
+
+Side-builds (e.g. the `AppAudit2` test app) use a store folder derived from the bundle identifier, so they never touch the primary app's data.
 
 Profile edits are used the next time an app is analyzed. Click **Re-analyze** on an app to refresh its score with the current profile.
+
+### Re-analyze (single and bulk)
+- **Re-analyze** in an app's detail pane refreshes just that app.
+- **Re-analyze All Apps** (toolbar ⋯ menu) refreshes every unlocked app at once.
+- When you switch models, the **"model changed"** banner offers a one-click re-analyze of only the apps whose analysis came from a different model. Locked analyses are always skipped.
 
 ### Lock Mode
 Lock an app's analysis from the detail pane or row context menu to prevent accidental regeneration. Locked analyses are preserved across rescans, provider changes, model changes, and manual Re-analyze clicks until you unlock them.
 
 ### My Apps
 Right-click any app → **Mark as My App** to tag apps you built yourself. Tagged apps show a 🔨 badge and purple score ring. Use the **My Apps** sort option to filter to just your apps.
+
+### Subscriptions
+Right-click any app → **Mark as Subscription** to flag apps you pay a recurring fee for. Flagged apps show a teal 💳 badge so you can spot ongoing costs at a glance.
+
+### Sorting
+The toolbar **Sort** menu offers:
+- **Relevance** — highest score first
+- **Updates** — apps with an available update
+- **Last Used** — most recently used first (from Spotlight's `kMDItemLastUsedDate`); apps macOS has no usage record for sort last as "Never used". While this sort is active each row shows a relative "Used N ago".
+- **My Apps** / **Favorites** — filter to tagged apps
+- **Name** — alphabetical
 
 ### Updates
 For App Store apps and apps with a Sparkle appcast URL, AppAudit checks whether a newer version is available. Right-click an app or use the detail pane to open the update target or mark the update as handled.
@@ -94,7 +112,10 @@ Both are preserved across re-analyses.
 ### Right-click Menu
 | Action | Description |
 |---|---|
+| Add / Remove from Favorites | Tag apps for a short review list |
 | Mark / Unmark as My App | Tag apps you built |
+| Mark / Unmark Subscription | Flag apps with a recurring fee |
+| Lock / Unlock Analysis | Prevent accidental regeneration |
 | Add / Copy / Edit / Remove Key | Manage purchased license keys |
 | Update App / Mark Updated | Open available update target or acknowledge it |
 | Show in Finder | Reveal the .app bundle |
@@ -155,6 +176,7 @@ bash Scripts/make_dmg.sh
 | `Scripts/compile_and_run.sh` | Kill → build release → package → launch |
 | `Scripts/package_app.sh` | Create signed `.app` bundle from binary |
 | `Scripts/make_dmg.sh` | Build the app and create a polished `create-dmg` drag-to-install DMG |
+| `Scripts/build_appaudit2.sh` | Build/sign/install the `AppAudit2` side-build (isolated store + Keychain) for testing alongside the primary app |
 
 See [Release Checklist](RELEASE.md) before Developer ID signing or notarization.
 
@@ -212,6 +234,8 @@ Apple Intelligence uses Foundation Models structured generation and is availabil
 | `userDescription` | `String?` | User's custom description |
 | `notes` | `String?` | Free-form user notes |
 | `isMyApp` | `Bool` | Tagged as user-built |
+| `isFavorite` | `Bool` | Tagged as a favorite |
+| `hasSubscription` | `Bool` | Flagged as a recurring/subscription cost |
 | `isAnalysisLocked` | `Bool` | Prevents accidental regeneration |
 | `appURL` | `String?` | User-approved app link used as analysis context |
 | `suggestedAppURL` | `String?` | Automatically found link awaiting user approval |
@@ -219,14 +243,16 @@ Apple Intelligence uses Foundation Models structured generation and is availabil
 | `acknowledgedUpdateVersion` | `String?` | Latest version the user marked handled |
 | `generatedAt` | `Date` | When last analyzed |
 
-License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftData.
+License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftData. The Keychain service name is derived from the bundle identifier, so side-builds (e.g. `AppAudit2`) use an isolated service and never read or prompt for the primary app's keys.
+
+`lastUsedDate` (most-recent-use, from Spotlight) is read fresh at scan time and lives on the in-memory `AppInfo`, not in SwiftData.
 
 ---
 
 ## Troubleshooting
 
-**App re-analyzes everything on every launch**
-Cache is invalidated when the provider or Ollama model changes. Check Settings → Analysis.
+**Analyses look out of date after switching models**
+Switching the Ollama model no longer auto-wipes analyses. AppAudit keeps the old results and shows a banner offering to re-analyze the affected apps — click **Re-analyze** in the banner, or use **Re-analyze All Apps** in the toolbar ⋯ menu.
 
 **"AI Unavailable" in detail panel**
 For Ollama, start it with `ollama serve`. For Apple Intelligence, check Settings → Analysis → Check Availability.

@@ -9,6 +9,9 @@ AppAudit scans installed apps, explains what each app is, ranks whether it fits 
 - Audits apps in `/Applications` and `~/Applications`
 - Scores each app from 1 to 5 against your local workflow profile
 - Shows one concise best-use recommendation
+- Sorts by relevance, updates, **last used**, name, and your tags
+- Tags apps you **build**, **favorite**, or pay a **subscription** for
+- Re-analyzes a single app or **all apps at once**; switching models keeps existing analyses (with a one-click refresh banner) instead of wiping them
 - Finds app updates from the App Store, Sparkle feeds, and Homebrew casks
 - Suggests app links automatically, then waits for approval before using them as analysis context
 - Stores license keys in macOS Keychain
@@ -35,6 +38,13 @@ bash Scripts/make_dmg.sh
 ```
 
 The release DMG is written to `AppAudit-1.0.0.dmg`.
+
+To run a throwaway **AppAudit2** side-build next to the installed app — with its own
+data store and Keychain so it never disturbs your primary install — use:
+
+```bash
+bash Scripts/build_appaudit2.sh
+```
 
 ## Docs
 
