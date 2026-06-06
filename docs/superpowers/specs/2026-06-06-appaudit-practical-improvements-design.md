@@ -232,6 +232,16 @@ ahead of the main plan, because they were fast and high-value.
 - **Item 11 — Settings window text overflow.** Bumped the fixed Settings size from
   430×220 to 480×340 so footer/status text is no longer clipped. (The Models tab
   shrinks further once Apple Intelligence is removed per item 8a.)
+- **Item 13 — Isolate the AppAudit2 side-build.** The SwiftData store folder and
+  the Keychain service name now derive from the bundle identifier. The primary app
+  (`com.kikaapp.appaudit`) is unchanged (same `AppAudit` folder, same
+  `com.kikaapp.appaudit.licensekeys` service); the `com.kikaapp.appaudit2` test
+  build gets its own isolated store and Keychain service. This fixes the ad-hoc
+  side-build re-prompting for every license key on every read. Added
+  `Scripts/build_appaudit2.sh` to build/sign/install the side-build in one command.
+  The owner's 8 existing license keys were first exported to an encrypted
+  (`AES-256`/PBKDF2) backup on the Desktop, passphrase stored in the login Keychain
+  under "AppAudit License Backup".
 - **Item 12 — Sort by last used.** New `AppInfo.lastUsedDate`, read at scan time
   from Spotlight's `kMDItemLastUsedDate` via `MDItem`. New `SortOrder.lastUsed`
   ("Last Used") sorts most-recent first; apps Spotlight has never seen sort to the

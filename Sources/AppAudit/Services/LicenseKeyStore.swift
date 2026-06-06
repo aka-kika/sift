@@ -10,8 +10,18 @@ protocol SecretStoreBackend: Sendable {
 final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
     private let service: String
 
-    init(service: String = "com.kikaapp.appaudit.licensekeys") {
+    init(service: String = KeychainSecretStoreBackend.defaultService) {
         self.service = service
+    }
+
+    /// Keychain service name for license keys. Side-builds (e.g. the AppAudit2 test
+    /// app) use their own service so they never read or prompt for the primary app's
+    /// keys. The primary app keeps the historical service name.
+    static var defaultService: String {
+        switch Bundle.main.bundleIdentifier {
+        case "com.kikaapp.appaudit2": return "com.kikaapp.appaudit2.licensekeys"
+        default: return "com.kikaapp.appaudit.licensekeys"
+        }
     }
 
     func read(account: String) -> String? {
