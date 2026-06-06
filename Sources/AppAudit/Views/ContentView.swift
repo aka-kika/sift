@@ -8,15 +8,21 @@ struct ContentView: View {
     var body: some View {
         @Bindable var vm = viewModel
 
-        NavigationSplitView {
-            AppListView()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
-        } detail: {
-            if let selectedID = viewModel.selectedAppID,
-               let app = viewModel.apps.first(where: { $0.id == selectedID }) {
-                AppDetailView(app: app)
-            } else {
-                emptyDetailView
+        VStack(spacing: 0) {
+            if viewModel.staleModelCount > 0 {
+                modelChangedBanner
+            }
+
+            NavigationSplitView {
+                AppListView()
+                    .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
+            } detail: {
+                if let selectedID = viewModel.selectedAppID,
+                   let app = viewModel.apps.first(where: { $0.id == selectedID }) {
+                    AppDetailView(app: app)
+                } else {
+                    emptyDetailView
+                }
             }
         }
         .toolbar {
@@ -32,6 +38,35 @@ struct ContentView: View {
             viewModel.cacheService = CacheService(context: modelContext)
             await viewModel.runFullScan()
         }
+    }
+
+    private var modelChangedBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "wand.and.stars")
+                .foregroundStyle(.orange)
+            Text(modelChangedMessage)
+                .font(.callout)
+            Spacer(minLength: 8)
+            Button("Re-analyze \(viewModel.staleModelCount)") {
+                Task { await viewModel.reanalyzeAll(scope: .modelChangedUnlocked) }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            Button("Dismiss") {
+                viewModel.dismissModelChangeBanner()
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.orange.opacity(0.12))
+    }
+
+    private var modelChangedMessage: String {
+        let count = viewModel.staleModelCount
+        let noun = count == 1 ? "analysis was" : "analyses were"
+        return "\(count) \(noun) generated with a different model. Re-analyze to refresh?"
     }
 
     @ViewBuilder

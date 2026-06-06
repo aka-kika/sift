@@ -239,6 +239,59 @@ struct AnalysisLockTests {
         #expect(!cache.isStale(record!, currentModel: "ollama:llama3.2", currentAppURL: "https://example.com/linked"))
     }
 
+    @Test("Changing the model alone does not make analysis stale")
+    @MainActor
+    func modelChangeDoesNotMakeAnalysisStale() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = container.mainContext
+        let cache = CacheService(context: context)
+        let record = AppRecord(
+            bundleID: "com.example.model",
+            appName: "Model",
+            explanation: "Existing analysis",
+            relevanceScore: 4,
+            relevanceReason: "Reason",
+            bestUse: "Use",
+            ollamaModel: "ollama:llama3.2"
+        )
+        record.analysisAppURL = "https://example.com/model"
+        context.insert(record)
+
+        // Different model, same link -> NOT stale (we no longer auto-wipe on model change).
+        #expect(!cache.isStale(record, currentModel: "ollama:mistral", currentAppURL: "https://example.com/model"))
+        // ...but the drift is detectable so the UI can offer a re-analyze.
+        #expect(cache.wasAnalyzedWithDifferentModel(record, currentModel: "ollama:mistral"))
+        #expect(!cache.wasAnalyzedWithDifferentModel(record, currentModel: "ollama:llama3.2"))
+    }
+
+    @Test("Model drift is ignored for locked or empty analyses")
+    @MainActor
+    func modelDriftIgnoredForLockedOrEmpty() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let cache = CacheService(context: container.mainContext)
+
+        let locked = AppRecord(
+            bundleID: "com.example.locked", appName: "Locked",
+            explanation: "Analysis", relevanceScore: 5, relevanceReason: "r",
+            bestUse: "u", ollamaModel: "ollama:old"
+        )
+        locked.isAnalysisLocked = true
+        #expect(!cache.wasAnalyzedWithDifferentModel(locked, currentModel: "ollama:new"))
+
+        let empty = AppRecord(
+            bundleID: "com.example.empty", appName: "Empty",
+            explanation: "", relevanceScore: 0, relevanceReason: "",
+            bestUse: "", ollamaModel: "ollama:old"
+        )
+        #expect(!cache.wasAnalyzedWithDifferentModel(empty, currentModel: "ollama:new"))
+    }
+
     @Test("New records start with no suggested or approved app link")
     func newRecordsStartWithoutAppLinks() {
         let record = AppRecord(

@@ -59,6 +59,19 @@ struct AppListView: View {
                 }
                 .disabled(isRefreshButtonDisabled)
             }
+            ToolbarItem(placement: .automatic) {
+                Menu {
+                    Button {
+                        Task { await viewModel.reanalyzeAll(scope: .allUnlocked) }
+                    } label: {
+                        Label("Re-analyze All Apps", systemImage: "arrow.clockwise.circle")
+                    }
+                    .disabled(viewModel.apps.isEmpty)
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
+                }
+                .disabled(viewModel.scanState == .scanning)
+            }
         }
     }
 

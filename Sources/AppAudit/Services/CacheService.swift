@@ -20,12 +20,20 @@ final class CacheService {
         if record.isAnalysisLocked {
             return false
         }
-        // Invalidate when the selected analysis provider or model changes.
-        if record.ollamaModel != currentModel {
-            return true
-        }
-
+        // A model change no longer auto-invalidates analyses — switching models
+        // would otherwise silently wipe and regenerate everything. We only treat
+        // an analysis as stale when the reference app link it was built from changed.
+        // Model drift is surfaced separately (see wasAnalyzedWithDifferentModel)
+        // so the user can choose to re-analyze.
         return normalizedURL(record.analysisAppURL) != normalizedURL(currentAppURL)
+    }
+
+    /// Read-only: true when this record holds a real analysis produced by a
+    /// different model than the one currently selected. Used to offer (not force)
+    /// a re-analyze. Locked or empty analyses never count as drifted.
+    func wasAnalyzedWithDifferentModel(_ record: AppRecord, currentModel: String) -> Bool {
+        guard !record.isAnalysisLocked, !record.explanation.isEmpty else { return false }
+        return record.ollamaModel != currentModel
     }
 
     func save(

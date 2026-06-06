@@ -47,6 +47,14 @@ after the app feels right — not as a gating concern up front.
 
 ---
 
+## Status (2026-06-06)
+
+**Shipped:** items 1 (no auto-wipe on model change + drift banner), 2 (bulk
+re-analyze), 6 (lower enrichment concurrency 4→2), and 9–12 (subscription marker,
+de-hedged prompt, Settings size, Last-Used sort). **Remaining:** items 3
+(license hardening), 4 (License Vault), 5 (CSV export), 7 (detail redesign),
+8 (trims).
+
 ## Work Items
 
 ### 1. Stop auto-wiping analyses on model change

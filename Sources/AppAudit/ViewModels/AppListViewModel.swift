@@ -13,6 +13,19 @@ final class AppListViewModel {
     var sortOrder: SortOrder = .relevance
     var isRefreshingUpdates = false
 
+    /// Number of displayed, unlocked analyses that were generated with a model
+    /// other than the one currently selected. Drives the "model changed" banner.
+    var staleModelCount = 0
+
+    /// Max number of apps analyzed in parallel. Kept low to limit peak memory and
+    /// CPU while local AI runs in the background.
+    private let enrichmentConcurrency = 2
+
+    enum ReanalyzeScope {
+        case allUnlocked
+        case modelChangedUnlocked
+    }
+
     var availableUpdateCount: Int {
         apps.filter(\.updateState.isUpdateAvailable).count
     }
@@ -184,6 +197,7 @@ final class AppListViewModel {
     func runFullScan() async {
         guard scanState == .idle || scanState == .done else { return }
         apps = []
+        staleModelCount = 0
         scanState = .scanning
 
         let scannedApps = await scanner.scan()
@@ -225,6 +239,9 @@ final class AppListViewModel {
                             reason: record.relevanceReason,
                             bestUse: record.bestUse ?? ""
                         )
+                        if cache.wasAnalyzedWithDifferentModel(record, currentModel: modelIdentifier) {
+                            staleModelCount += 1
+                        }
                     } else if !record.isAnalysisLocked {
                         toEnrich.append(apps[i])
                     }
@@ -249,7 +266,7 @@ final class AppListViewModel {
         provider: AnalysisProviderKind,
         modelIdentifier: String
     ) async {
-        let concurrencyLimit = 4
+        let concurrencyLimit = enrichmentConcurrency
         var completed = self.apps.count - toEnrich.count
 
         await withTaskGroup(of: (String, AppInfo.AIState, String?).self) { group in
@@ -459,6 +476,49 @@ final class AppListViewModel {
                 apps[idx].isAnalysisLocked = record.isAnalysisLocked
             }
         }
+    }
+
+    func dismissModelChangeBanner() {
+        staleModelCount = 0
+    }
+
+    /// Re-runs analysis for many apps at once. Locked analyses are always skipped.
+    /// `.modelChangedUnlocked` targets only apps whose cached analysis came from a
+    /// different model; `.allUnlocked` targets every unlocked app.
+    func reanalyzeAll(scope: ReanalyzeScope) async {
+        guard scanState == .done || scanState == .idle else { return }
+
+        workflowProfile = .current()
+        let provider = AnalysisProviderKind.current()
+        let modelIdentifier = provider.modelIdentifier
+
+        var targets: [AppInfo] = []
+        for app in apps {
+            let record = cacheService?.load(bundleID: app.bundleID)
+            let locked = app.isAnalysisLocked || record?.isAnalysisLocked == true
+            if locked { continue }
+            if scope == .modelChangedUnlocked {
+                guard let record,
+                      !record.explanation.isEmpty,
+                      record.ollamaModel != modelIdentifier else { continue }
+            }
+            targets.append(app)
+        }
+
+        guard !targets.isEmpty else {
+            staleModelCount = 0
+            return
+        }
+
+        let targetIDs = Set(targets.map(\.bundleID))
+        for idx in apps.indices where targetIDs.contains(apps[idx].bundleID) {
+            apps[idx].aiState = .loading
+        }
+
+        scanState = .enriching(completed: apps.count - targets.count, total: apps.count)
+        await enrichConcurrently(apps: targets, profile: workflowProfile, provider: provider, modelIdentifier: modelIdentifier)
+        scanState = .done
+        staleModelCount = 0
     }
 
     func reanalyzeAfterLinkChange(bundleID: String, appURL: String? = nil) {
