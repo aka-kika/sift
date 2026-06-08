@@ -102,9 +102,19 @@ When you approve, add, or change an app link, AppAudit immediately re-analyzes t
 ### License Keys
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
 
+### Detail Panel
+The detail panel is **recommendation-first**: the relevance score, best-use tip, and
+reason appear at the top, followed by the "What is this?" explanation, then calm
+Notes / License / App Link rows. The header shows the app icon, name · version, tag
+badges (⭐ favorite, 🔨 My App, 💳 subscription, 🔒 locked), and a compact update pill.
+
+A single **⋯ overflow menu** (top-right) holds all per-app actions: Re-analyze,
+Lock/Unlock, Customize/Remove description, Favorite / My App / Subscription toggles,
+Show in Finder, Open App, and Copy Bundle ID.
+
 ### Editing
 In the detail panel you can:
-- **Customize description** — override the AI explanation with your own text
+- **Customize description** — override the AI explanation with your own text (⋯ menu)
 - **Notes** — free-form notes (when you installed it, whether to keep it, etc.)
 
 Both are preserved across re-analyses.
