@@ -2,7 +2,7 @@
 
 Native macOS app auditing for people who build software.
 
-AppAudit scans installed apps, explains what each app is, ranks whether it fits your workflow, tracks updates, stores license keys, and lets you keep notes. Analysis runs through Ollama — a local server by default, or ollama.com cloud models with an API key.
+AppAudit scans installed apps, explains what each app is, ranks whether it fits your workflow, tracks updates, stores license keys, and lets you keep notes. Analysis runs through your choice of provider: a local Ollama server (default), or a cloud provider with an API key — ollama.com, Anthropic, or OpenAI.
 
 ## What It Does
 

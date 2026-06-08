@@ -7,7 +7,6 @@ import AppKit
 
 struct AppListView: View {
     @Environment(AppListViewModel.self) private var viewModel
-    @State private var showingVault = false
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -100,7 +99,7 @@ struct AppListView: View {
                     Divider()
 
                     Button {
-                        showingVault = true
+                        viewModel.showingVault = true
                     } label: {
                         Label("License Vault…", systemImage: "key.horizontal")
                     }
@@ -110,7 +109,7 @@ struct AppListView: View {
                 .disabled(viewModel.scanState == .scanning)
             }
         }
-        .sheet(isPresented: $showingVault) {
+        .sheet(isPresented: $vm.showingVault) {
             LicenseVaultView(installedBundleIDs: Set(viewModel.apps.map(\.bundleID)))
         }
     }

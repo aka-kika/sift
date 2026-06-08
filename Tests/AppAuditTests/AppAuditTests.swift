@@ -91,14 +91,21 @@ struct AnalysisProviderKindTests {
         #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
     }
 
-    @Test("Builds stable cache identifiers from the Ollama model")
+    @Test("Builds stable cache identifiers per provider and model")
     func modelIdentifiers() {
         let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.models")!
         defaults.removeObject(forKey: "ollamaModel")
+        defaults.removeObject(forKey: "anthropicModel")
+        defaults.removeObject(forKey: "openAIModel")
+
         #expect(AnalysisProviderKind.ollama.modelIdentifier(userDefaults: defaults) == "ollama:llama3.2")
+        #expect(AnalysisProviderKind.anthropic.modelIdentifier(userDefaults: defaults) == "anthropic:claude-3-5-haiku-latest")
+        #expect(AnalysisProviderKind.openAI.modelIdentifier(userDefaults: defaults) == "openAI:gpt-4o-mini")
 
         defaults.set("mistral", forKey: "ollamaModel")
+        defaults.set("gpt-4o", forKey: "openAIModel")
         #expect(AnalysisProviderKind.ollama.modelIdentifier(userDefaults: defaults) == "ollama:mistral")
+        #expect(AnalysisProviderKind.openAI.modelIdentifier(userDefaults: defaults) == "openAI:gpt-4o")
     }
 }
 

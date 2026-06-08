@@ -1,6 +1,8 @@
 import Foundation
 
-actor OllamaService {
+actor OllamaService: AnalysisService {
+
+    typealias OllamaResult = AnalysisResult
 
     struct OllamaRequest: Encodable {
         let model: String
@@ -18,11 +20,6 @@ actor OllamaService {
         struct Message: Decodable {
             let content: String
         }
-    }
-
-    enum OllamaResult: Sendable {
-        case success(String)
-        case unavailable(String)
     }
 
     private var baseURL: String {
@@ -139,4 +136,32 @@ actor OllamaService {
     }
 
     var currentModel: String { model }
+
+    func fetchModels() async -> ModelFetchResult {
+        guard let url = URL(string: "\(baseURL)/api/tags") else {
+            return .failure("Invalid URL")
+        }
+        var request = URLRequest(url: url, timeoutInterval: 8)
+        request.httpMethod = "GET"
+        let key = apiKey
+        if !key.isEmpty {
+            request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                return .failure("Ollama returned an error response")
+            }
+            struct TagsResponse: Decodable {
+                struct Model: Decodable { let name: String }
+                let models: [Model]
+            }
+            let decoded = try JSONDecoder().decode(TagsResponse.self, from: data)
+            return .models(decoded.models.map(\.name))
+        } catch let error as URLError where error.code == .cannotConnectToHost || error.code == .timedOut {
+            return .failure("Cannot connect — is Ollama running? Try: ollama serve")
+        } catch {
+            return .failure(error.localizedDescription)
+        }
+    }
 }

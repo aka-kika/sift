@@ -23,7 +23,7 @@ Generated files such as `.build/`, `AppAudit.app/`, and `AppAudit-*.dmg` are ign
 |---|---|
 | App entry | `AppAuditApp.swift` |
 | Models | `AppInfo.swift`, `AppRecord.swift`, `WorkflowProfile.swift`, `AnalysisProviderKind.swift` |
-| Services | `AppScanner.swift`, `OllamaService.swift`, `CacheService.swift`, `UpdateChecker.swift`, `AppLinkResolver.swift`, `LicenseKeyStore.swift`, `HomebrewService.swift`, `AppAnalysisPrompt.swift`, `CSVExporter.swift` |
+| Services | `AnalysisService.swift` (protocol + result types), `OllamaService.swift`, `AnthropicService.swift`, `OpenAIService.swift`, `AppScanner.swift`, `CacheService.swift`, `UpdateChecker.swift`, `AppLinkResolver.swift`, `LicenseKeyStore.swift`, `HomebrewService.swift`, `AppAnalysisPrompt.swift`, `CSVExporter.swift` |
 | View model | `AppListViewModel.swift` |
 | Views | `ContentView.swift`, `AppListView.swift`, `AppRow.swift`, `AppDetailView.swift`, `SettingsView.swift`, `LicenseVaultView.swift` |
 

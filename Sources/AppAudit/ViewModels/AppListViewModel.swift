@@ -13,6 +13,10 @@ final class AppListViewModel {
     var sortOrder: SortOrder = .relevance
     var isRefreshingUpdates = false
 
+    /// App-wide flag for presenting the License Vault sheet (set from the toolbar
+    /// menu or the macOS menu bar).
+    var showingVault = false
+
     /// Number of displayed, unlocked analyses that were generated with a model
     /// other than the one currently selected. Drives the "model changed" banner.
     var staleModelCount = 0
@@ -199,6 +203,8 @@ final class AppListViewModel {
 
     private let scanner = AppScanner()
     private let ollama = OllamaService()
+    private let anthropic = AnthropicService()
+    private let openAI = OpenAIService()
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     var cacheService: CacheService?
@@ -346,7 +352,15 @@ final class AppListViewModel {
         provider: AnalysisProviderKind,
         appURL: String? = nil
     ) async -> (String, AppInfo.AIState) {
-        let result = await ollama.analyze(app: app, profile: profile, appURL: appURL)
+        let result: AnalysisResult
+        switch provider {
+        case .ollama:
+            result = await ollama.analyze(app: app, profile: profile, appURL: appURL)
+        case .anthropic:
+            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL)
+        case .openAI:
+            result = await openAI.analyze(app: app, profile: profile, appURL: appURL)
+        }
 
         switch result {
         case .unavailable(let msg):

@@ -20,9 +20,14 @@ struct SettingsView: View {
 // MARK: - Analysis Tab
 
 struct AnalysisSettingsTab: View {
+    @AppStorage(AnalysisProviderKind.storageKey) private var providerRaw = AnalysisProviderKind.ollama.rawValue
     @AppStorage("ollamaBaseURL") private var ollamaBaseURL = "http://localhost:11434"
     @AppStorage("ollamaModel") private var ollamaModel = "llama3.2"
     @AppStorage("ollamaApiKey") private var ollamaApiKey = ""
+    @AppStorage("anthropicApiKey") private var anthropicApiKey = ""
+    @AppStorage("anthropicModel") private var anthropicModel = "claude-3-5-haiku-latest"
+    @AppStorage("openAIApiKey") private var openAIApiKey = ""
+    @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -36,102 +41,163 @@ struct AnalysisSettingsTab: View {
         case failure(String)
     }
 
+    private var provider: AnalysisProviderKind {
+        AnalysisProviderKind(rawValue: providerRaw) ?? .ollama
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SettingsSectionTitle("Ollama")
+            SettingsSectionTitle("Provider")
             SettingsCard {
                 HStack {
-                    Text("Base URL")
+                    Text("Engine")
                         .frame(width: 64, alignment: .leading)
-                    TextField("Base URL", text: $ollamaBaseURL)
-                        .textFieldStyle(.roundedBorder)
-                        .controlSize(.small)
-                    Button {
-                        Task { await fetchModels() }
-                    } label: {
-                        switch fetchState {
-                        case .loading:
-                            ProgressView().scaleEffect(0.7).frame(width: 16, height: 16)
-                        case .loaded:
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                        case .failed:
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-                        case .idle:
-                            Image(systemName: "arrow.clockwise")
+                    Spacer()
+                    Picker("", selection: $providerRaw) {
+                        ForEach(AnalysisProviderKind.allCases) { provider in
+                            Text(provider.displayName).tag(provider.rawValue)
                         }
                     }
-                    .buttonStyle(.borderless)
-                    .help("Test connection and fetch models")
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: 190)
                 }
+            }
 
-                Divider()
+            SettingsSectionTitle(provider.displayName)
+                .padding(.top, 2)
 
-                HStack {
-                    Text("API Key")
-                        .frame(width: 64, alignment: .leading)
-                    SecureField("Optional — for ollama.com cloud models", text: $ollamaApiKey)
-                        .textFieldStyle(.roundedBorder)
-                        .controlSize(.small)
-                }
-
-                SettingsFooter("Leave blank for a local Ollama server. Add an ollama.com key (and set the Base URL to https://ollama.com) to use cloud models.")
-
-                Divider()
-
-                ProviderStatusView(status: ollamaProviderStatus)
-
-                Divider()
-
-                if availableModels.isEmpty {
-                    HStack {
-                        Text("Model")
-                            .frame(width: 64, alignment: .leading)
-                        TextField("Model name", text: $ollamaModel)
-                            .textFieldStyle(.roundedBorder)
-                            .controlSize(.small)
-                        Button("Fetch") {
-                            Task { await fetchModels() }
-                        }
-                        .controlSize(.small)
-                        .buttonStyle(.bordered)
-                    }
-                } else {
-                    HStack {
-                        Text("Model")
-                            .frame(width: 64, alignment: .leading)
-                        Spacer()
-                        Picker("", selection: $ollamaModel) {
-                            ForEach(availableModels, id: \.self) { model in
-                                Text(model).tag(model)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: 220)
-                    }
+            SettingsCard {
+                switch provider {
+                case .ollama:
+                    ollamaConfig
+                case .anthropic:
+                    cloudConfig(apiKey: $anthropicApiKey, model: $anthropicModel,
+                                hint: "Anthropic API key (console.anthropic.com). Stored in app preferences.")
+                case .openAI:
+                    cloudConfig(apiKey: $openAIApiKey, model: $openAIModel,
+                                hint: "OpenAI API key (platform.openai.com). Stored in app preferences.")
                 }
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .controlSize(.small)
-        .task {
+        .task(id: providerRaw) {
+            availableModels = []
+            fetchState = .idle
             await fetchModels()
         }
     }
 
-    private var ollamaProviderStatus: ProviderTestStatus {
+    @ViewBuilder
+    private var ollamaConfig: some View {
+        HStack {
+            Text("Base URL")
+                .frame(width: 64, alignment: .leading)
+            TextField("Base URL", text: $ollamaBaseURL)
+                .textFieldStyle(.roundedBorder)
+                .controlSize(.small)
+            fetchButton
+        }
+
+        Divider()
+
+        HStack {
+            Text("API Key")
+                .frame(width: 64, alignment: .leading)
+            SecureField("Optional — for ollama.com cloud models", text: $ollamaApiKey)
+                .textFieldStyle(.roundedBorder)
+                .controlSize(.small)
+        }
+
+        SettingsFooter("Leave blank for a local Ollama server. Add an ollama.com key (and set the Base URL to https://ollama.com) to use cloud models.")
+
+        Divider()
+        ProviderStatusView(status: providerStatus)
+        Divider()
+        modelRow(model: $ollamaModel)
+    }
+
+    @ViewBuilder
+    private func cloudConfig(apiKey: Binding<String>, model: Binding<String>, hint: String) -> some View {
+        HStack {
+            Text("API Key")
+                .frame(width: 64, alignment: .leading)
+            SecureField("Paste API key", text: apiKey)
+                .textFieldStyle(.roundedBorder)
+                .controlSize(.small)
+            fetchButton
+        }
+
+        SettingsFooter(hint)
+
+        Divider()
+        ProviderStatusView(status: providerStatus)
+        Divider()
+        modelRow(model: model)
+    }
+
+    private var fetchButton: some View {
+        Button {
+            Task { await fetchModels() }
+        } label: {
+            switch fetchState {
+            case .loading:
+                ProgressView().scaleEffect(0.7).frame(width: 16, height: 16)
+            case .loaded:
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            case .failed:
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+            case .idle:
+                Image(systemName: "arrow.clockwise")
+            }
+        }
+        .buttonStyle(.borderless)
+        .help("Test connection and fetch models")
+    }
+
+    @ViewBuilder
+    private func modelRow(model: Binding<String>) -> some View {
+        if availableModels.isEmpty {
+            HStack {
+                Text("Model")
+                    .frame(width: 64, alignment: .leading)
+                TextField("Model name", text: model)
+                    .textFieldStyle(.roundedBorder)
+                    .controlSize(.small)
+                Button("Fetch") {
+                    Task { await fetchModels() }
+                }
+                .controlSize(.small)
+                .buttonStyle(.bordered)
+            }
+        } else {
+            HStack {
+                Text("Model")
+                    .frame(width: 64, alignment: .leading)
+                Spacer()
+                Picker("", selection: model) {
+                    ForEach(availableModels, id: \.self) { name in
+                        Text(name).tag(name)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(maxWidth: 220)
+            }
+        }
+    }
+
+    private var providerStatus: ProviderTestStatus {
         switch fetchState {
         case .idle:
             return .idle("Not tested")
         case .loading:
-            return .testing("Testing Ollama...")
+            return .testing("Testing \(provider.displayName)…")
         case .loaded:
             let count = availableModels.count
-            if count == 0 {
-                return .success("Connected. No models installed.")
-            }
-            return .success("Connected. \(count) model(s) installed.")
+            return count == 0 ? .success("Connected. No models found.") : .success("Connected. \(count) model(s).")
         case .failed(let message):
             return .failure(message)
         }
@@ -139,37 +205,25 @@ struct AnalysisSettingsTab: View {
 
     private func fetchModels() async {
         fetchState = .loading
-        guard let url = URL(string: "\(ollamaBaseURL)/api/tags") else {
-            fetchState = .failed("Invalid URL")
-            return
+        let result: ModelFetchResult
+        switch provider {
+        case .ollama: result = await OllamaService().fetchModels()
+        case .anthropic: result = await AnthropicService().fetchModels()
+        case .openAI: result = await OpenAIService().fetchModels()
         }
-        do {
-            var request = URLRequest(url: url, timeoutInterval: 5)
-            request.httpMethod = "GET"
-            let key = ollamaApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !key.isEmpty {
-                request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-            }
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                fetchState = .failed("Ollama returned an error response")
-                return
-            }
-            struct TagsResponse: Decodable {
-                struct Model: Decodable { let name: String }
-                let models: [Model]
-            }
-            let decoded = try JSONDecoder().decode(TagsResponse.self, from: data)
-            availableModels = decoded.models.map(\.name)
-            // Auto-select first if current selection isn't in the list
-            if !availableModels.contains(ollamaModel), let first = availableModels.first {
-                ollamaModel = first
+        switch result {
+        case .models(let models):
+            availableModels = models
+            // Auto-select the first model if the current selection isn't available.
+            let key = provider.modelDefaultsKey
+            let current = UserDefaults.standard.string(forKey: key) ?? ""
+            if !models.contains(current), let first = models.first {
+                UserDefaults.standard.set(first, forKey: key)
             }
             fetchState = .loaded
-        } catch let error as URLError where error.code == .cannotConnectToHost || error.code == .timedOut {
-            fetchState = .failed("Cannot connect — is Ollama running? Try: ollama serve")
-        } catch {
-            fetchState = .failed(error.localizedDescription)
+        case .failure(let message):
+            availableModels = []
+            fetchState = .failed(message)
         }
     }
 }

@@ -18,7 +18,7 @@ Analysis runs locally. Update and app-link checks use public vendor endpoints wh
 | macOS 14+ | Required OS | — |
 | [Ollama](https://ollama.ai) | Local AI analysis provider | `brew install ollama` |
 | A pulled Ollama model | LLM for analysis | `ollama pull llama3.2` |
-| ollama.com API key | Optional — to use cloud models instead of a local server | — |
+| Cloud API key | Optional — use a hosted provider instead of a local server: an ollama.com, Anthropic, or OpenAI key | — |
 | `create-dmg` | Polished release DMG builder | `brew install create-dmg` |
 
 ---
@@ -144,10 +144,12 @@ Both are preserved across re-analyses.
 ## Settings (`⌘,`)
 
 ### Models Tab
-- **Base URL** — default `http://localhost:11434`
-- **API Key** — optional. Leave blank for a local Ollama server. To use **ollama.com cloud models**, set the Base URL to `https://ollama.com` and paste your ollama.com API key; it is sent as a `Bearer` token. Stored in app preferences.
-- **Model picker** — fetches installed models live from `/api/tags`
-- **Test connection** — verifies Ollama is reachable
+- **Provider** — choose **Ollama**, **Anthropic**, or **OpenAI**.
+- **Ollama** — Base URL (default `http://localhost:11434`), optional API Key (for ollama.com cloud models — set the Base URL to `https://ollama.com`), and a model picker fetched from `/api/tags`.
+- **Anthropic / OpenAI** — paste your API key; the model list is **fetched** from the provider (`/v1/models`) and shown in a picker. Keys are stored in app preferences.
+- The refresh button next to the key/URL tests the connection and fetches models.
+
+All providers use the same analysis prompt and structured-output parser; only the transport differs.
 
 ### Profile Tab
 - **Workflow profile** — local text used by the selected analysis provider when scoring relevance
@@ -164,6 +166,7 @@ Both are preserved across re-analyses.
 | Shortcut | Action |
 |---|---|
 | `⌘R` | Rescan apps |
+| `⇧⌘L` | Open License Vault |
 | `⌘,` | Open Settings |
 | `↑↓` | Navigate app list |
 

@@ -37,6 +37,11 @@ struct AppAuditApp: App {
                     Task { await viewModel.runFullScan() }
                 }
                 .keyboardShortcut("R", modifiers: .command)
+
+                Button("License Vault…") {
+                    viewModel.showingVault = true
+                }
+                .keyboardShortcut("L", modifiers: [.command, .shift])
             }
         }
 

@@ -56,6 +56,24 @@ export), 6 (lower enrichment concurrency 4→2), 7 (detail-panel redesign, Optio
 Last-Used sort, side-build isolation, Ollama API key). **Remaining:** none —
 ready for release (version bump + signed/notarized DMG + GitHub release).
 
+### Item 15 — Cloud providers: Anthropic + OpenAI (shipped 2026-06-06)
+- `AnalysisProviderKind` re-expanded to `.ollama / .anthropic / .openAI`. Per-provider
+  model + API-key UserDefaults keys; model identifier is `provider:model`.
+- `AnalysisService` protocol + shared `AnalysisResult` / `ModelFetchResult`.
+  `OllamaService` conforms (and gained `fetchModels()`); new `AnthropicService`
+  (Messages API, `x-api-key`) and `OpenAIService` (Chat Completions, `Bearer`).
+  All share the prompt and `OllamaService.parseAnalysis`.
+- `enrichSingle` routes to the selected provider's service.
+- Settings → Models: provider picker + per-provider config. Cloud providers show an
+  API-key field and a **fetched** model picker (`GET /v1/models`). Keys live in app
+  preferences (per the decision — avoids the side-build's Keychain prompts).
+- OpenRouter was offered but not included this round.
+
+### Item 16 — License Vault in the menu bar (shipped 2026-06-06)
+`showingVault` moved onto the view model (app-wide). Presented by `AppListView`;
+openable from the toolbar ⋯ menu **and** the menu bar (**File → License Vault…**,
+⇧⌘L). Fixes discoverability — the vault was previously only in the toolbar ⋯.
+
 ### Item 8 — Trims (shipped 2026-06-06)
 - **8a Remove Apple Intelligence.** `AnalysisProviderKind` collapsed to a single
   `.ollama` case (enum kept for stored-pref/cache-id stability);
