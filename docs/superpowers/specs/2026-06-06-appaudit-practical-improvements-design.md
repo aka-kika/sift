@@ -50,10 +50,27 @@ after the app feels right — not as a gating concern up front.
 ## Status (2026-06-06)
 
 **Shipped:** items 1 (no auto-wipe on model change + drift banner), 2 (bulk
-re-analyze), 6 (lower enrichment concurrency 4→2), and 9–12 (subscription marker,
-de-hedged prompt, Settings size, Last-Used sort). **Remaining:** items 3
-(license hardening), 4 (License Vault), 5 (CSV export), 7 (detail redesign),
-8 (trims).
+re-analyze), 6 (lower enrichment concurrency 4→2), 7 (detail-panel redesign,
+Option A), and 9–13 (subscription marker, de-hedged prompt, Settings size,
+Last-Used sort, side-build isolation). **Remaining:** items 3 (license
+hardening), 4 (License Vault), 5 (CSV export), 8 (trims).
+
+### Item 7 — Detail-panel redesign (shipped 2026-06-06)
+Reworked `AppDetailView` to the approved Option A layout:
+- **Header:** icon, name · version inline, small tag badges (favorite/My App/
+  subscription/lock), bundle ID, and a compact **update pill** ("Update to X" +
+  quiet "Mark done"). A single **⋯ overflow menu** replaces the scattered buttons.
+- **Recommendation first:** score dots + label, best-use headline, then reason —
+  above the explanation (previously buried below it).
+- **What is this?:** explanation (and the user's custom description card when set).
+- **Calm utility rows:** Notes, License, App Link — unchanged behavior, quieter chrome.
+- The **⋯ menu** consolidates Re-analyze, Lock/Unlock, Customize/Remove description,
+  and now also Favorite / My App / **Subscription** toggles (the item-9 follow-up),
+  plus Show in Finder / Open App / Copy Bundle ID. Sheets moved to the top level.
+- App-link approval was kept intact for now; fully dropping it remains item 8b.
+- *Follow-up (deferred, lower risk than splitting now): extract utility rows into a
+  separate view file to shrink `AppDetailView`. The redesign was kept in one
+  cohesive file to avoid risky state-plumbing during the layout change.*
 
 ## Work Items
 

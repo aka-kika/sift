@@ -26,10 +26,12 @@ struct AppDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 headerSection
                 Divider()
-                aiSection
+                recommendationSection
+                whatIsThisSection
+                Divider()
                 utilitySection
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -40,13 +42,50 @@ struct AppDetailView: View {
             loadRecord()
             loadLicenseKey()
         }
+        .sheet(isPresented: $editingDescription) {
+            EditDescriptionSheet(appName: app.name, draft: $draftDescription) { saved in
+                if saved {
+                    let trimmed = draftDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ensureRecord().userDescription = trimmed.isEmpty ? nil : trimmed
+                    saveRecord()
+                }
+                editingDescription = false
+            }
+        }
+        .sheet(isPresented: $editingLicenseKey) {
+            DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
+                if saved {
+                    let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let ensuredRecord = ensureRecord()
+                    licenseKeyStore.save(trimmed, bundleID: app.bundleID)
+                    currentLicenseKey = trimmed.isEmpty ? nil : trimmed
+                    ensuredRecord.licenseKey = nil
+                    saveRecord()
+                }
+                editingLicenseKey = false
+            }
+        }
+        .sheet(isPresented: $editingURL) {
+            EditURLSheet(appName: app.name, draft: $draftURL) { saved in
+                if saved {
+                    let trimmed = draftURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let ensuredRecord = ensureRecord()
+                    let previousURL = ensuredRecord.appURL
+                    ensuredRecord.appURL = trimmed.isEmpty ? nil : trimmed
+                    if !trimmed.isEmpty {
+                        ensuredRecord.suggestedAppURL = nil
+                    }
+                    saveRecord()
+                    if !trimmed.isEmpty, trimmed != previousURL {
+                        viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
+                    }
+                }
+                editingURL = false
+            }
+        }
         .alert("Update with Homebrew?", isPresented: $confirmingHomebrewUpdate) {
-            Button("Run Update") {
-                Task { await runHomebrewUpdate() }
-            }
-            Button("Copy Command") {
-                copyHomebrewUpdateCommand()
-            }
+            Button("Run Update") { Task { await runHomebrewUpdate() } }
+            Button("Copy Command") { copyHomebrewUpdateCommand() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(app.homebrewUpdateCommand ?? "brew upgrade --cask <token>")
@@ -67,7 +106,7 @@ struct AppDetailView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        HStack(spacing: 16) {
+        HStack(alignment: .top, spacing: 16) {
             #if canImport(AppKit)
             if let icon = app.icon {
                 Image(nsImage: icon.image)
@@ -76,248 +115,297 @@ struct AppDetailView: View {
                     .cornerRadius(16)
             }
             #endif
-            VStack(alignment: .leading, spacing: 4) {
-                Text(app.name).font(.title2.weight(.medium))
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(app.name).font(.title2.weight(.medium))
+                    if !app.version.isEmpty {
+                        Text(app.version)
+                            .font(.callout.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    tagBadges
+                }
                 Text(app.bundleID)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                if !app.version.isEmpty {
-                    Text("Version \(app.version)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                updateStatusView
+                updatePill
             }
-            Spacer()
+            Spacer(minLength: 8)
+            overflowMenu
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
-    private var updateStatusView: some View {
+    private var tagBadges: some View {
+        if app.isFavorite {
+            Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow)
+        }
+        if app.isMyApp {
+            Image(systemName: "hammer.fill").font(.caption).foregroundStyle(.purple)
+        }
+        if app.isSubscribed {
+            Image(systemName: "creditcard.fill").font(.caption).foregroundStyle(.teal)
+        }
+        if app.isAnalysisLocked {
+            Image(systemName: "lock.fill").font(.caption).foregroundStyle(.orange)
+        }
+    }
+
+    @ViewBuilder
+    private var updatePill: some View {
         switch app.updateState {
         case .checking:
-            Label("Checking for updates...", systemImage: "arrow.triangle.2.circlepath")
-                .font(.callout)
+            Label("Checking for updates…", systemImage: "arrow.triangle.2.circlepath")
+                .font(.caption)
                 .foregroundStyle(.secondary)
+                .padding(.top, 2)
         case .upToDate(let source):
-            Label("Up to date via \(source.rawValue)", systemImage: "checkmark.circle.fill")
-                .font(.callout)
+            Label("Up to date · \(source.rawValue)", systemImage: "checkmark.circle.fill")
+                .font(.caption)
                 .foregroundStyle(.green)
+                .padding(.top, 2)
         case .updateAvailable(let latestVersion, let source, _):
-            VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
                 Button {
                     performUpdateAction(source: source)
                 } label: {
-                    Label(updateActionTitle(latestVersion: latestVersion, source: source), systemImage: updateActionIcon(source: source))
-                        .font(.callout)
-                        .foregroundStyle(.orange)
+                    Label(updateActionTitle(latestVersion: latestVersion, source: source),
+                          systemImage: updateActionIcon(source: source))
+                        .font(.caption.weight(.medium))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .tint(.orange)
                 .disabled(runningHomebrewUpdate)
                 .help(updateActionHelp(latestVersion: latestVersion, source: source))
                 .accessibilityLabel(updateActionAccessibilityLabel(latestVersion: latestVersion, source: source))
 
-                if runningHomebrewUpdate {
-                    ProgressView("Running Homebrew update...")
-                        .font(.callout)
-                        .controlSize(.small)
-                }
-
-                Button {
+                Button("Mark done") {
                     viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
-                } label: {
-                    Label("Mark Updated", systemImage: "checkmark.circle")
-                        .font(.callout)
                 }
                 .buttonStyle(.borderless)
+                .controlSize(.small)
                 .foregroundStyle(.secondary)
+
+                if runningHomebrewUpdate {
+                    ProgressView().controlSize(.small)
+                }
             }
+            .padding(.top, 3)
         case .unknown, .unavailable:
             EmptyView()
         }
     }
 
-    // MARK: - AI / Description section
-
-    private var aiSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // What is this?
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Label("What is this?", systemImage: "info.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Button {
-                        toggleAnalysisLock()
-                    } label: {
-                        Label(app.isAnalysisLocked ? "Unlock" : "Lock",
-                              systemImage: app.isAnalysisLocked ? "lock.fill" : "lock.open")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(app.isAnalysisLocked ? .orange : .secondary)
-                    Button {
-                        draftDescription = record?.userDescription ?? ""
-                        editingDescription = true
-                    } label: {
-                        Label(record?.userDescription != nil ? "Edit" : "Customize",
-                              systemImage: record?.userDescription != nil ? "pencil" : "plus.circle")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
+    private var overflowMenu: some View {
+        Menu {
+            if case .loaded = app.aiState {
+                Button {
+                    Task { await viewModel.reanalyze(bundleID: app.bundleID) }
+                } label: {
+                    Label("Re-analyze", systemImage: "arrow.clockwise")
                 }
-
-                // User description (if any) shown first
-                if let userDesc = record?.userDescription, !userDesc.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            Text("Your description")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        Text(userDesc)
-                            .font(.body)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
-                }
-
-                // AI explanation
-                switch app.aiState {
-                case .pending:
-                    ProgressView("Waiting to analyze…").frame(maxWidth: .infinity)
-
-                case .loading:
-                    VStack(spacing: 8) {
-                        ProgressView("Analyzing with \(AnalysisProviderKind.current().displayName)...")
-                        Text("Using local AI. This may take a moment.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }.frame(maxWidth: .infinity)
-
-                case .loaded(let explanation, _, _, _):
-                    VStack(alignment: .leading, spacing: 4) {
-                        if record?.userDescription != nil {
-                            Text("AI explanation")
-                                .font(.caption2).foregroundStyle(.secondary)
-                        }
-                        Text(explanation)
-                            .font(.body)
-                            .foregroundStyle(record?.userDescription != nil ? .secondary : .primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                case .unavailable(let msg):
-                    ContentUnavailableView {
-                        Label("AI Unavailable", systemImage: "brain.slash")
-                    } description: {
-                        Text(msg)
-                    } actions: {
-                        Button("Retry") {
-                            Task { await viewModel.reanalyze(bundleID: app.bundleID) }
-                        }
-                    }
+                .disabled(app.isAnalysisLocked)
+            }
+            Button {
+                toggleAnalysisLock()
+            } label: {
+                Label(app.isAnalysisLocked ? "Unlock Analysis" : "Lock Analysis",
+                      systemImage: app.isAnalysisLocked ? "lock.open" : "lock.fill")
+            }
+            Button {
+                draftDescription = record?.userDescription ?? ""
+                editingDescription = true
+            } label: {
+                Label(userDescription != nil ? "Edit Description" : "Customize Description",
+                      systemImage: "pencil")
+            }
+            if userDescription != nil {
+                Button(role: .destructive) {
+                    record?.userDescription = nil
+                    saveRecord()
+                } label: {
+                    Label("Remove Custom Description", systemImage: "person.fill.xmark")
                 }
             }
 
-            // Best use and relevance
-            if case .loaded(_, let score, let reason, let bestUse) = app.aiState {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Best use and ranking for your needs", systemImage: "checkmark.seal.fill")
+            Divider()
+
+            Button {
+                toggleFavorite()
+            } label: {
+                Label(app.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                      systemImage: app.isFavorite ? "star.slash" : "star")
+            }
+            Button {
+                toggleMyApp()
+            } label: {
+                Label(app.isMyApp ? "Unmark as My App" : "Mark as My App",
+                      systemImage: app.isMyApp ? "hammer.slash" : "hammer.fill")
+            }
+            Button {
+                toggleSubscription()
+            } label: {
+                Label(app.isSubscribed ? "Unmark Subscription" : "Mark as Subscription",
+                      systemImage: "creditcard")
+            }
+
+            Divider()
+
+            Button {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.path)])
+            } label: {
+                Label("Show in Finder", systemImage: "folder")
+            }
+            Button {
+                NSWorkspace.shared.open(URL(fileURLWithPath: app.path))
+            } label: {
+                Label("Open App", systemImage: "arrow.up.right.square")
+            }
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(app.bundleID, forType: .string)
+            } label: {
+                Label("Copy Bundle ID", systemImage: "doc.on.doc")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("More actions")
+    }
+
+    // MARK: - Recommendation (ranking first)
+
+    @ViewBuilder
+    private var recommendationSection: some View {
+        switch app.aiState {
+        case .loaded(_, let score, let reason, let bestUse):
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(1...5, id: \.self) { i in
+                        Circle()
+                            .fill(i <= score ? colorForScore(score) : Color.secondary.opacity(0.2))
+                            .frame(width: 16, height: 16)
+                    }
+                    Text(scoreLabel(score))
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(colorForScore(score))
+                }
 
-                    if !bestUse.isEmpty {
-                        Text(bestUse)
-                            .font(.body)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    HStack(spacing: 8) {
-                        ForEach(1...5, id: \.self) { i in
-                            Circle()
-                                .fill(i <= score ? colorForScore(score) : Color.secondary.opacity(0.2))
-                                .frame(width: 16, height: 16)
-                        }
-                        Text(scoreLabel(score))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(colorForScore(score))
-                    }
-
-                    Text(reason)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
+                if !bestUse.isEmpty {
+                    Text(bestUse)
+                        .font(.body.weight(.medium))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
 
-            // Actions
-            HStack(spacing: 8) {
-                if case .loaded(_, _, _, _) = app.aiState {
-                    Button {
-                        Task { await viewModel.reanalyze(bundleID: app.bundleID) }
-                    } label: {
-                        Label(app.isAnalysisLocked ? "Locked" : "Re-analyze",
-                              systemImage: app.isAnalysisLocked ? "lock.fill" : "arrow.clockwise")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(app.isAnalysisLocked)
-                    if app.isAnalysisLocked {
-                        Text("Locked analysis will not be regenerated automatically.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                if let _ = record?.userDescription {
-                    Button(role: .destructive) {
-                        record?.userDescription = nil
-                        saveRecord()
-                    } label: {
-                        Label("Remove custom description", systemImage: "person.fill.xmark")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
+                Text(reason)
+                    .font(.body)
                     .foregroundStyle(.secondary)
-                }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $editingDescription) {
-            EditDescriptionSheet(
-                appName: app.name,
-                draft: $draftDescription
-            ) { saved in
-                if saved {
-                    let trimmed = draftDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-                    record?.userDescription = trimmed.isEmpty ? nil : trimmed
-                    saveRecord()
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+        case .pending:
+            ProgressView("Waiting to analyze…")
+                .frame(maxWidth: .infinity, alignment: .center)
+
+        case .loading:
+            VStack(spacing: 8) {
+                ProgressView("Analyzing with \(AnalysisProviderKind.current().displayName)…")
+                Text("Using local AI. This may take a moment.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+
+        case .unavailable(let msg):
+            ContentUnavailableView {
+                Label("AI Unavailable", systemImage: "brain.slash")
+            } description: {
+                Text(msg)
+            } actions: {
+                Button("Retry") {
+                    Task { await viewModel.reanalyze(bundleID: app.bundleID) }
                 }
-                editingDescription = false
             }
         }
     }
 
-    // MARK: - Utility section
+    // MARK: - What is this?
+
+    @ViewBuilder
+    private var whatIsThisSection: some View {
+        let explanation: String? = {
+            if case .loaded(let value, _, _, _) = app.aiState { return value }
+            return nil
+        }()
+
+        if explanation != nil || userDescription != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("What is this?", systemImage: "info.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+
+                if let userDescription {
+                    userDescriptionCard(userDescription)
+                }
+
+                if let explanation {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if userDescription != nil {
+                            Text("AI explanation")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(explanation)
+                            .font(.body)
+                            .foregroundStyle(userDescription != nil ? .secondary : .primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func userDescriptionCard(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "person.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("Your description")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Text(text)
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Utility rows
 
     private var utilitySection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Divider()
             notesSection
             DetailRowDivider()
             licenseKeySection
@@ -327,14 +415,12 @@ struct AppDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Notes section
-
     private var notesSection: some View {
         DisclosureGroup(isExpanded: $notesExpanded) {
             NotesEditor(
                 text: Binding(
                     get: { record?.notes ?? "" },
-                    set: { record?.notes = $0.isEmpty ? nil : $0; saveRecord() }
+                    set: { ensureRecord().notes = $0.isEmpty ? nil : $0; saveRecord() }
                 )
             )
             .padding(.top, 6)
@@ -357,158 +443,119 @@ struct AppDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - License Key section
-
     private var licenseKeySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Label("License Key", systemImage: "key.horizontal")
-                    .font(.subheadline.weight(.semibold))
-                if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
-                    Text(maskedLicenseKey(licenseKey))
-                        .font(.body.monospaced())
-                        .lineLimit(1)
-                        .textSelection(.enabled)
-                } else {
-                    Text("None")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                Spacer()
-                if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
-                    Button {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(licenseKey, forType: .string)
-                    } label: {
-                        Image(systemName: "doc.on.doc")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .help("Copy license key")
-                }
+        HStack(spacing: 8) {
+            Label("License Key", systemImage: "key.horizontal")
+                .font(.subheadline.weight(.semibold))
+            if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
+                Text(maskedLicenseKey(licenseKey))
+                    .font(.body.monospaced())
+                    .lineLimit(1)
+                    .textSelection(.enabled)
+            } else {
+                Text("None")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
+            if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
                 Button {
-                    draftLicenseKey = currentLicenseKey ?? ""
-                    editingLicenseKey = true
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(licenseKey, forType: .string)
                 } label: {
-                    Image(systemName: currentLicenseKey != nil ? "pencil" : "plus.circle")
+                    Image(systemName: "doc.on.doc")
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-                .help(currentLicenseKey != nil ? "Edit license key" : "Add license key")
+                .help("Copy license key")
+            }
+            Button {
+                draftLicenseKey = currentLicenseKey ?? ""
+                editingLicenseKey = true
+            } label: {
+                Image(systemName: currentLicenseKey != nil ? "pencil" : "plus.circle")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help(currentLicenseKey != nil ? "Edit license key" : "Add license key")
 
-                if currentLicenseKey != nil {
-                    Button(role: .destructive) {
-                        licenseKeyStore.delete(bundleID: app.bundleID)
-                        currentLicenseKey = nil
-                        record?.licenseKey = nil
-                        saveRecord()
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .help("Remove license key")
+            if currentLicenseKey != nil {
+                Button(role: .destructive) {
+                    licenseKeyStore.delete(bundleID: app.bundleID)
+                    currentLicenseKey = nil
+                    record?.licenseKey = nil
+                    saveRecord()
+                } label: {
+                    Image(systemName: "trash")
                 }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Remove license key")
             }
         }
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $editingLicenseKey) {
-            DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
-                if saved {
-                    let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let ensuredRecord = ensureRecord()
-                    licenseKeyStore.save(trimmed, bundleID: app.bundleID)
-                    currentLicenseKey = trimmed.isEmpty ? nil : trimmed
-                    ensuredRecord.licenseKey = nil
-                    saveRecord()
-                }
-                editingLicenseKey = false
-            }
-        }
     }
 
-    // MARK: - URL section
-
     private var urlSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Label("App Link", systemImage: "link")
-                    .font(.subheadline.weight(.semibold))
-                if let urlString = record?.appURL, !urlString.isEmpty,
-                   let url = URL(string: urlString) {
-                    Link(urlString, destination: url)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                } else if let suggestedURLString = record?.suggestedAppURL, !suggestedURLString.isEmpty,
-                          let suggestedURL = URL(string: suggestedURLString) {
-                    Link("Suggested: \(suggestedURLString)", destination: suggestedURL)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                } else {
-                    Text("None")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                Spacer()
-                if record?.appURL == nil,
-                   let suggestedURL = record?.suggestedAppURL,
-                   !suggestedURL.isEmpty {
-                    Button {
-                        approveSuggestedAppURL(suggestedURL)
-                    } label: {
-                        Image(systemName: "checkmark.circle")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.green)
-                    .help("Use suggested app link")
-                }
+        HStack(spacing: 8) {
+            Label("App Link", systemImage: "link")
+                .font(.subheadline.weight(.semibold))
+            if let urlString = record?.appURL, !urlString.isEmpty,
+               let url = URL(string: urlString) {
+                Link(urlString, destination: url)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else if let suggestedURLString = record?.suggestedAppURL, !suggestedURLString.isEmpty,
+                      let suggestedURL = URL(string: suggestedURLString) {
+                Link("Suggested: \(suggestedURLString)", destination: suggestedURL)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } else {
+                Text("None")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
+            if record?.appURL == nil,
+               let suggestedURL = record?.suggestedAppURL,
+               !suggestedURL.isEmpty {
                 Button {
-                    draftURL = record?.appURL ?? ""
-                    editingURL = true
+                    approveSuggestedAppURL(suggestedURL)
                 } label: {
-                    Image(systemName: record?.appURL != nil ? "pencil" : "plus.circle")
+                    Image(systemName: "checkmark.circle")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.green)
+                .help("Use suggested app link")
+            }
+            Button {
+                draftURL = record?.appURL ?? ""
+                editingURL = true
+            } label: {
+                Image(systemName: record?.appURL != nil ? "pencil" : "plus.circle")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help(record?.appURL != nil ? "Edit app link" : "Add app link")
+            if record?.appURL != nil {
+                Button(role: .destructive) {
+                    record?.appURL = nil
+                    saveRecord()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption)
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-                .help(record?.appURL != nil ? "Edit app link" : "Add app link")
-                if record?.appURL != nil {
-                    Button(role: .destructive) {
-                        record?.appURL = nil
-                        saveRecord()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Remove app link")
-                }
+                .help("Remove app link")
             }
         }
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $editingURL) {
-            EditURLSheet(appName: app.name, draft: $draftURL) { saved in
-                if saved {
-                    let trimmed = draftURL.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let ensuredRecord = ensureRecord()
-                    let previousURL = ensuredRecord.appURL
-                    ensuredRecord.appURL = trimmed.isEmpty ? nil : trimmed
-                    if !trimmed.isEmpty {
-                        ensuredRecord.suggestedAppURL = nil
-                    }
-                    saveRecord()
-                    if !trimmed.isEmpty, trimmed != previousURL {
-                        viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
-                    }
-                }
-                editingURL = false
-            }
-        }
     }
 
     private func approveSuggestedAppURL(_ suggestedURL: String) {
@@ -526,7 +573,12 @@ struct AppDetailView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Record helpers
+
+    private var userDescription: String? {
+        guard let value = record?.userDescription, !value.isEmpty else { return nil }
+        return value
+    }
 
     private func loadRecord() {
         let id = app.bundleID
@@ -551,6 +603,27 @@ struct AppDetailView: View {
         let ensuredRecord = ensureRecord()
         ensuredRecord.isAnalysisLocked.toggle()
         viewModel.setAnalysisLocked(bundleID: app.bundleID, value: ensuredRecord.isAnalysisLocked)
+        saveRecord()
+    }
+
+    private func toggleFavorite() {
+        let ensuredRecord = ensureRecord()
+        ensuredRecord.isFavorite.toggle()
+        viewModel.setFavorite(bundleID: app.bundleID, value: ensuredRecord.isFavorite)
+        saveRecord()
+    }
+
+    private func toggleMyApp() {
+        let ensuredRecord = ensureRecord()
+        ensuredRecord.isMyApp.toggle()
+        viewModel.setMyApp(bundleID: app.bundleID, value: ensuredRecord.isMyApp)
+        saveRecord()
+    }
+
+    private func toggleSubscription() {
+        let ensuredRecord = ensureRecord()
+        ensuredRecord.hasSubscription.toggle()
+        viewModel.setSubscription(bundleID: app.bundleID, value: ensuredRecord.hasSubscription)
         saveRecord()
     }
 
@@ -579,6 +652,8 @@ struct AppDetailView: View {
         return "\(trimmed.prefix(4))••••\(trimmed.suffix(4))"
     }
 
+    // MARK: - Score helpers
+
     private func scoreLabel(_ score: Int) -> String {
         switch score {
         case 1: return "Not needed"
@@ -601,47 +676,37 @@ struct AppDetailView: View {
         }
     }
 
+    // MARK: - Update helpers
+
     private func updateActionTitle(latestVersion: String, source: AppInfo.UpdateSource) -> String {
         switch source {
-        case .appStore:
-            return "Open in App Store: \(latestVersion)"
-        case .sparkle:
-            return "Open Download: \(latestVersion)"
-        case .homebrew:
-            return "Update with Homebrew: \(latestVersion)"
+        case .appStore: return "Update to \(latestVersion)"
+        case .sparkle: return "Update to \(latestVersion)"
+        case .homebrew: return "Update to \(latestVersion)"
         }
     }
 
     private func updateActionHelp(latestVersion: String, source: AppInfo.UpdateSource) -> String {
         switch source {
-        case .appStore:
-            return "Open \(app.name) in the App Store to update to \(latestVersion)."
-        case .sparkle:
-            return "Open \(app.name)'s download page for \(latestVersion)."
-        case .homebrew:
-            return "Run or copy \(app.homebrewUpdateCommand ?? "brew upgrade --cask ...")"
+        case .appStore: return "Open \(app.name) in the App Store to update to \(latestVersion)."
+        case .sparkle: return "Open \(app.name)'s download page for \(latestVersion)."
+        case .homebrew: return "Run or copy \(app.homebrewUpdateCommand ?? "brew upgrade --cask ...")"
         }
     }
 
     private func updateActionAccessibilityLabel(latestVersion: String, source: AppInfo.UpdateSource) -> String {
         switch source {
-        case .appStore:
-            return "Open \(app.name) in App Store, version \(latestVersion)"
-        case .sparkle:
-            return "Open \(app.name) download, version \(latestVersion)"
-        case .homebrew:
-            return "Open Homebrew update options for \(app.name), version \(latestVersion)"
+        case .appStore: return "Open \(app.name) in App Store, version \(latestVersion)"
+        case .sparkle: return "Open \(app.name) download, version \(latestVersion)"
+        case .homebrew: return "Open Homebrew update options for \(app.name), version \(latestVersion)"
         }
     }
 
     private func updateActionIcon(source: AppInfo.UpdateSource) -> String {
         switch source {
-        case .appStore:
-            return "bag.fill"
-        case .sparkle:
-            return "sparkles"
-        case .homebrew:
-            return "terminal.fill"
+        case .appStore: return "bag.fill"
+        case .sparkle: return "sparkles"
+        case .homebrew: return "terminal.fill"
         }
     }
 
