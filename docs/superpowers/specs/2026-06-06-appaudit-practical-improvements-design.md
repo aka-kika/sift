@@ -50,10 +50,28 @@ after the app feels right — not as a gating concern up front.
 ## Status (2026-06-06)
 
 **Shipped:** items 1 (no auto-wipe on model change + drift banner), 2 (bulk
-re-analyze), 4 (License Vault), 6 (lower enrichment concurrency 4→2), 7
-(detail-panel redesign, Option A), and 9–14 (subscription marker, de-hedged
-prompt, Settings size, Last-Used sort, side-build isolation, Ollama API key).
-**Remaining:** items 3 (license hardening), 5 (CSV export), 8 (trims).
+re-analyze), 3 (license hardening), 4 (License Vault), 5 (CSV export), 6 (lower
+enrichment concurrency 4→2), 7 (detail-panel redesign, Option A), and 9–14
+(subscription marker, de-hedged prompt, Settings size, Last-Used sort, side-build
+isolation, Ollama API key). **Remaining:** item 8 (trims: remove Apple
+Intelligence, drop link-approval step, fold My Apps/Favorites into filters).
+
+### Item 5 — CSV export (shipped 2026-06-06)
+`CSVExporter` (pure, RFC-4180 quoting, CRLF) + `AppListViewModel.exportCSV()` build
+the full audit (Name, Bundle ID, Version, Score, Recommendation, Explanation,
+Update Status, My App, Favorite, Subscription, Notes) sorted by name —
+**no license keys**. Sidebar ⋯ menu → "Export to CSV…" opens an `NSSavePanel`
+(default `AppAudit-YYYY-MM-DD.csv`). Unit-tested quoting + structure.
+
+### Item 3 — License-key hardening (shipped 2026-06-06)
+- Keychain writes now set `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`
+  (device-bound, not iCloud-synced).
+- `LicenseKeyStore.migrateLegacyKey(_:bundleID:)` moves a legacy plaintext value
+  into the Keychain only when no secure key exists (never overwrites).
+- `AppListViewModel.migrateLegacyLicenseKeys()` runs a one-time launch sweep
+  (UserDefaults-gated) over all records, purging any lingering plaintext into the
+  Keychain and nulling `AppRecord.licenseKey`. Reads the owning app's own items,
+  so it does not prompt. Unit-tested migration behavior.
 
 ### Item 4 — License Vault (shipped 2026-06-06)
 - `AppRecord.hasLicenseKey` (additive) tracks whether a key is stored, set on

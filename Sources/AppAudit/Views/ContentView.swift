@@ -36,6 +36,7 @@ struct ContentView: View {
         }
         .task {
             viewModel.cacheService = CacheService(context: modelContext)
+            viewModel.migrateLegacyLicenseKeys()
             viewModel.syncLicenseFlags()
             await viewModel.runFullScan()
         }

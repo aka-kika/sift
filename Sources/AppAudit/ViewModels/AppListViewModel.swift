@@ -394,6 +394,75 @@ final class AppListViewModel {
         if changed { cache.persist() }
     }
 
+    /// One-time sweep: move any lingering plaintext license keys out of the
+    /// SwiftData store and into the Keychain, then null the legacy field. Runs once
+    /// (guarded by a UserDefaults flag). Reads the owning app's own Keychain items,
+    /// so it does not prompt.
+    func migrateLegacyLicenseKeys() {
+        let flagKey = "didMigrateLegacyLicenseKeys"
+        guard !UserDefaults.standard.bool(forKey: flagKey) else { return }
+        guard let cache = cacheService else { return }
+
+        let store = LicenseKeyStore.shared
+        var changed = false
+        for record in cache.allRecords() {
+            guard let legacy = record.licenseKey, !legacy.isEmpty else { continue }
+            let present = store.migrateLegacyKey(legacy, bundleID: record.bundleID)
+            record.licenseKey = nil
+            record.hasLicenseKey = present
+            changed = true
+        }
+        if changed { cache.persist() }
+        UserDefaults.standard.set(true, forKey: flagKey)
+    }
+
+    /// Full-audit CSV of every scanned app. Never includes license keys.
+    func exportCSV() -> String {
+        let header = [
+            "Name", "Bundle ID", "Version", "Score", "Recommendation",
+            "Explanation", "Update Status", "My App", "Favorite", "Subscription", "Notes"
+        ]
+        let sorted = apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        let rows: [[String]] = sorted.map { app in
+            let record = cacheService?.load(bundleID: app.bundleID)
+            var score = ""
+            var bestUse = ""
+            var explanation = ""
+            if case .loaded(let e, let s, _, let b) = app.aiState {
+                explanation = e
+                score = String(s)
+                bestUse = b
+            }
+            return [
+                app.name,
+                app.bundleID,
+                app.version,
+                score,
+                bestUse,
+                explanation,
+                updateStatusText(app.updateState),
+                app.isMyApp ? "yes" : "no",
+                app.isFavorite ? "yes" : "no",
+                app.isSubscribed ? "yes" : "no",
+                record?.notes ?? ""
+            ]
+        }
+        return CSVExporter.make(header: header, rows: rows)
+    }
+
+    private func updateStatusText(_ state: AppInfo.UpdateState) -> String {
+        switch state {
+        case .updateAvailable(let latestVersion, let source, _):
+            return "Update available: \(latestVersion) (\(source.rawValue))"
+        case .upToDate(let source):
+            return "Up to date (\(source.rawValue))"
+        case .checking:
+            return "Checking"
+        case .unknown, .unavailable:
+            return "Unknown"
+        }
+    }
+
     func setAnalysisLocked(bundleID: String, value: Bool) {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         apps[idx].isAnalysisLocked = value

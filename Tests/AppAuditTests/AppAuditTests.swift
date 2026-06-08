@@ -472,6 +472,46 @@ struct LicenseKeyStoreTests {
         store.delete(bundleID: "com.example.app")
         #expect(!store.hasKey(bundleID: "com.example.app"))
     }
+
+    @Test("Legacy plaintext key migrates only when no secure key exists")
+    func migrateLegacyKeyBehavior() {
+        let backend = MemorySecretStoreBackend()
+        let store = LicenseKeyStore(backend: backend)
+
+        // No existing key: legacy value is moved into secure storage.
+        #expect(store.migrateLegacyKey("  LEGACY  ", bundleID: "com.example.app"))
+        #expect(backend.read(account: "com.example.app") == "LEGACY")
+
+        // Existing secure key is never overwritten by a legacy value.
+        store.save("SECURE", bundleID: "com.example.other")
+        #expect(store.migrateLegacyKey("LEGACY", bundleID: "com.example.other"))
+        #expect(backend.read(account: "com.example.other") == "SECURE")
+
+        // Empty legacy value with no stored key: nothing to migrate.
+        #expect(!store.migrateLegacyKey("   ", bundleID: "com.example.empty"))
+        #expect(!store.hasKey(bundleID: "com.example.empty"))
+    }
+}
+
+@Suite("CSVExporter Tests")
+struct CSVExporterTests {
+
+    @Test("Fields are quoted only when they contain special characters")
+    func fieldQuoting() {
+        #expect(CSVExporter.field("plain") == "plain")
+        #expect(CSVExporter.field("has,comma") == "\"has,comma\"")
+        #expect(CSVExporter.field("has \"quote\"") == "\"has \"\"quote\"\"\"")
+        #expect(CSVExporter.field("line1\nline2") == "\"line1\nline2\"")
+    }
+
+    @Test("CSV joins header and rows with CRLF and a trailing newline")
+    func makeStructure() {
+        let csv = CSVExporter.make(
+            header: ["Name", "Notes"],
+            rows: [["Mole", "great, app"], ["Eagle", "plain"]]
+        )
+        #expect(csv == "Name,Notes\r\nMole,\"great, app\"\r\nEagle,plain\r\n")
+    }
 }
 
 @Suite("UpdateChecker Tests")

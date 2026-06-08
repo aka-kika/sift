@@ -1,4 +1,9 @@
 import SwiftUI
+import UniformTypeIdentifiers
+
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct AppListView: View {
     @Environment(AppListViewModel.self) private var viewModel
@@ -69,6 +74,13 @@ struct AppListView: View {
                     }
                     .disabled(viewModel.apps.isEmpty)
 
+                    Button {
+                        exportCSV()
+                    } label: {
+                        Label("Export to CSV…", systemImage: "tablecells")
+                    }
+                    .disabled(viewModel.apps.isEmpty)
+
                     Divider()
 
                     Button {
@@ -85,6 +97,22 @@ struct AppListView: View {
         .sheet(isPresented: $showingVault) {
             LicenseVaultView(installedBundleIDs: Set(viewModel.apps.map(\.bundleID)))
         }
+    }
+
+    private func exportCSV() {
+        #if canImport(AppKit)
+        let csv = viewModel.exportCSV()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "AppAudit-\(formatter.string(from: Date())).csv"
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.canCreateDirectories = true
+        panel.title = "Export Audit to CSV"
+        if panel.runModal() == .OK, let url = panel.url {
+            try? Data(csv.utf8).write(to: url)
+        }
+        #endif
     }
 
     private var refreshButtonTitle: String {

@@ -102,6 +102,9 @@ When you approve, add, or change an app link, AppAudit immediately re-analyzes t
 ### License Keys
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
 
+### Export to CSV
+Sidebar **⋯ menu → "Export to CSV…"** writes the full audit (name, bundle ID, version, score, recommendation, explanation, update status, My App, Favorite, Subscription, notes) to a CSV you can open in Numbers/Excel. **License keys are never included.**
+
 ### License Vault
 Open from the sidebar **⋯ menu → "License Vault…"**. It keeps the license keys of apps you've **uninstalled** so you can still copy them later — useful when you remove an app but might reinstall it. Records persist after an app is removed; the Vault lists those that still hold a key, with **Copy Key** (reads the secret on demand) and **Delete**. Currently-installed apps don't appear here (manage their keys from the app's detail pane).
 
@@ -250,6 +253,7 @@ Apple Intelligence uses Foundation Models structured generation and is availabil
 | `isMyApp` | `Bool` | Tagged as user-built |
 | `isFavorite` | `Bool` | Tagged as a favorite |
 | `hasSubscription` | `Bool` | Flagged as a recurring/subscription cost |
+| `hasLicenseKey` | `Bool` | A license key is stored in Keychain (powers the License Vault) |
 | `isAnalysisLocked` | `Bool` | Prevents accidental regeneration |
 | `appURL` | `String?` | User-approved app link used as analysis context |
 | `suggestedAppURL` | `String?` | Automatically found link awaiting user approval |
@@ -257,7 +261,7 @@ Apple Intelligence uses Foundation Models structured generation and is availabil
 | `acknowledgedUpdateVersion` | `String?` | Latest version the user marked handled |
 | `generatedAt` | `Date` | When last analyzed |
 
-License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftData. The Keychain service name is derived from the bundle identifier, so side-builds (e.g. `AppAudit2`) use an isolated service and never read or prompt for the primary app's keys.
+License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftData, with device-bound accessibility (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — not iCloud-synced). A one-time launch sweep migrates any legacy plaintext key out of the store and into the Keychain. The Keychain service name is derived from the bundle identifier, so side-builds (e.g. `AppAudit2`) use an isolated service and never read or prompt for the primary app's keys.
 
 `lastUsedDate` (most-recent-use, from Spotlight) is read fresh at scan time and lives on the in-memory `AppInfo`, not in SwiftData.
 

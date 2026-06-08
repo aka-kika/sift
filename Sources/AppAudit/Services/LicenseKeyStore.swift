@@ -51,11 +51,17 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
             kSecAttrAccount as String: account
         ]
 
-        let attributes: [String: Any] = [kSecValueData as String: data]
+        // Device-bound: not synced to iCloud Keychain, only available while unlocked.
+        let accessibility = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        let attributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: accessibility
+        ]
         let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if status == errSecItemNotFound {
             var createQuery = query
             createQuery[kSecValueData as String] = data
+            createQuery[kSecAttrAccessible as String] = accessibility
             SecItemAdd(createQuery as CFDictionary, nil)
         }
     }
@@ -116,5 +122,17 @@ final class LicenseKeyStore: @unchecked Sendable {
     func hasKey(bundleID: String) -> Bool {
         guard let value = backend.read(account: bundleID) else { return false }
         return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Moves a legacy plaintext value into secure storage if no key exists yet.
+    /// Returns whether a key is present afterwards, so the caller can clear the
+    /// legacy field.
+    @discardableResult
+    func migrateLegacyKey(_ legacyValue: String?, bundleID: String) -> Bool {
+        let trimmed = legacyValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !hasKey(bundleID: bundleID), !trimmed.isEmpty {
+            save(trimmed, bundleID: bundleID)
+        }
+        return hasKey(bundleID: bundleID)
     }
 }
