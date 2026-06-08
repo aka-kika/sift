@@ -51,10 +51,13 @@ final class AppListViewModel {
         case relevance = "Relevance"
         case updates = "Updates"
         case lastUsed = "Last Used"
-        case myApps = "My Apps"
         case name = "Name"
-        case favorites = "Favorites"
     }
+
+    /// Filter toggles applied on top of the current sort. (My Apps and Favorites
+    /// used to be sort modes; they are now filters.)
+    var filterMyApps = false
+    var filterFavorites = false
 
     enum SidebarEmptyState: Equatable {
         case noApps
@@ -68,19 +71,18 @@ final class AppListViewModel {
         var base = searchText.isEmpty ? apps : apps.filter {
             $0.name.localizedCaseInsensitiveContains(searchText)
         }
-        switch sortOrder {
-        case .updates:
+        if filterMyApps {
+            base = base.filter(\.isMyApp)
+        }
+        if filterFavorites {
+            base = base.filter(\.isFavorite)
+        }
+        if sortOrder == .updates {
             base = base.filter { $0.updateState.belongsInUpdatesList }
-        case .myApps:
-            base = base.filter { $0.isMyApp }
-        case .favorites:
-            base = base.filter { $0.isFavorite }
-        default:
-            break
         }
         return base.sorted { a, b in
             switch sortOrder {
-            case .name, .myApps, .favorites:
+            case .name:
                 return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
             case .updates:
                 return updateSortKey(a).localizedCaseInsensitiveCompare(updateSortKey(b)) == .orderedAscending
@@ -114,17 +116,10 @@ final class AppListViewModel {
         guard filteredApps.isEmpty else { return nil }
         if apps.isEmpty { return .noApps }
         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return .noResults }
-
-        switch sortOrder {
-        case .updates:
-            return .noUpdates
-        case .myApps:
-            return .noMyApps
-        case .favorites:
-            return .noFavorites
-        case .relevance, .name, .lastUsed:
-            return .noApps
-        }
+        if sortOrder == .updates { return .noUpdates }
+        if filterFavorites { return .noFavorites }
+        if filterMyApps { return .noMyApps }
+        return .noApps
     }
 
     private func updateSortKey(_ app: AppInfo) -> String {
@@ -147,6 +142,22 @@ final class AppListViewModel {
 
     func setSortOrder(_ order: SortOrder) {
         sortOrder = order
+        reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
+    }
+
+    func setFilterMyApps(_ value: Bool) {
+        filterMyApps = value
+        reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
+    }
+
+    func setFilterFavorites(_ value: Bool) {
+        filterFavorites = value
+        reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
+    }
+
+    func clearFilters() {
+        filterMyApps = false
+        filterFavorites = false
         reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
     }
 
@@ -188,7 +199,6 @@ final class AppListViewModel {
 
     private let scanner = AppScanner()
     private let ollama = OllamaService()
-    private let appleIntelligence = AppleIntelligenceService()
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     var cacheService: CacheService?
@@ -336,13 +346,7 @@ final class AppListViewModel {
         provider: AnalysisProviderKind,
         appURL: String? = nil
     ) async -> (String, AppInfo.AIState) {
-        let result: OllamaService.OllamaResult
-        switch provider {
-        case .ollama:
-            result = await ollama.analyze(app: app, profile: profile, appURL: appURL)
-        case .appleIntelligence:
-            result = await appleIntelligence.analyze(app: app, profile: profile, appURL: appURL)
-        }
+        let result = await ollama.analyze(app: app, profile: profile, appURL: appURL)
 
         switch result {
         case .unavailable(let msg):

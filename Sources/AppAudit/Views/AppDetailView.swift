@@ -509,40 +509,28 @@ struct AppDetailView: View {
                     .font(.caption)
                     .lineLimit(1)
                     .truncationMode(.middle)
-            } else if let suggestedURLString = record?.suggestedAppURL, !suggestedURLString.isEmpty,
-                      let suggestedURL = URL(string: suggestedURLString) {
-                Link("Suggested: \(suggestedURLString)", destination: suggestedURL)
+            } else if hasSuggestedLink {
+                Text("None")
                     .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Text("· suggestion available")
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
             } else {
                 Text("None")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
             Spacer()
-            if record?.appURL == nil,
-               let suggestedURL = record?.suggestedAppURL,
-               !suggestedURL.isEmpty {
-                Button {
-                    approveSuggestedAppURL(suggestedURL)
-                } label: {
-                    Image(systemName: "checkmark.circle")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.green)
-                .help("Use suggested app link")
-            }
             Button {
-                draftURL = record?.appURL ?? ""
+                draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
                 editingURL = true
             } label: {
                 Image(systemName: record?.appURL != nil ? "pencil" : "plus.circle")
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            .help(record?.appURL != nil ? "Edit app link" : "Add app link")
+            .help(record?.appURL != nil ? "Edit app link" : (hasSuggestedLink ? "Add app link (a suggestion is prefilled)" : "Add app link"))
             if record?.appURL != nil {
                 Button(role: .destructive) {
                     record?.appURL = nil
@@ -560,19 +548,9 @@ struct AppDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func approveSuggestedAppURL(_ suggestedURL: String) {
-        let ensuredRecord = ensureRecord()
-        let trimmed = suggestedURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        let previousURL = ensuredRecord.appURL
-        ensuredRecord.appURL = trimmed
-        ensuredRecord.suggestedAppURL = nil
-        saveRecord()
-
-        if trimmed != previousURL {
-            viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
-        }
+    private var hasSuggestedLink: Bool {
+        guard let suggested = record?.suggestedAppURL else { return false }
+        return !suggested.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // MARK: - Record helpers

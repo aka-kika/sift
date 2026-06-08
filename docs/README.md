@@ -16,9 +16,9 @@ Analysis runs locally. Update and app-link checks use public vendor endpoints wh
 | Dependency | Purpose | Install |
 |---|---|---|
 | macOS 14+ | Required OS | — |
-| [Ollama](https://ollama.ai) | Default local AI analysis provider | `brew install ollama` |
-| A pulled Ollama model | Default LLM for analysis | `ollama pull llama3.2` |
-| Apple Intelligence | Optional on-device provider | macOS 26+ with Apple Intelligence enabled |
+| [Ollama](https://ollama.ai) | Local AI analysis provider | `brew install ollama` |
+| A pulled Ollama model | LLM for analysis | `ollama pull llama3.2` |
+| ollama.com API key | Optional — to use cloud models instead of a local server | — |
 | `create-dmg` | Polished release DMG builder | `brew install create-dmg` |
 
 ---
@@ -36,14 +36,14 @@ ollama pull llama3.2
 # 4. Launch AppAudit
 ```
 
-AppAudit scans `/Applications` and `~/Applications` on launch and begins analyzing each app with the selected local provider. Ollama is the default. Apple Intelligence can be selected in Settings when available. Results are cached — subsequent launches are instant.
+AppAudit scans `/Applications` and `~/Applications` on launch and begins analyzing each app with Ollama (a local server by default, or ollama.com cloud models with an API key). Results are cached — subsequent launches are instant.
 
 ---
 
 ## Features
 
 ### App Analysis
-Each app is analyzed with the selected local provider and returns:
+Each app is analyzed with Ollama and returns:
 - **Explanation** — 1–2 short sentences: what it does and who uses it
 - **Relevance score** — 1 (safe to uninstall) → 5 (essential)
 - **Score reason** — why this score fits your workflow
@@ -79,13 +79,14 @@ Right-click any app → **Mark as My App** to tag apps you built yourself. Tagge
 ### Subscriptions
 Right-click any app → **Mark as Subscription** to flag apps you pay a recurring fee for. Flagged apps show a teal 💳 badge so you can spot ongoing costs at a glance.
 
-### Sorting
+### Sorting & Filtering
 The toolbar **Sort** menu offers:
 - **Relevance** — highest score first
 - **Updates** — apps with an available update
 - **Last Used** — most recently used first (from Spotlight's `kMDItemLastUsedDate`); apps macOS has no usage record for sort last as "Never used". While this sort is active each row shows a relative "Used N ago".
-- **My Apps** / **Favorites** — filter to tagged apps
 - **Name** — alphabetical
+
+The toolbar **Filter** menu adds toggles for **My Apps** and **Favorites**, applied on top of the current sort.
 
 ### Updates
 For App Store apps and apps with a Sparkle appcast URL, AppAudit checks whether a newer version is available. Right-click an app or use the detail pane to open the update target or mark the update as handled.
@@ -95,9 +96,9 @@ AppAudit automatically suggests missing app links when it can resolve them:
 - App Store apps use Apple's lookup API by bundle ID
 - Sparkle apps use the appcast website link or feed host
 
-Suggested links are not used for analysis until you approve them. Manual links are never overwritten.
+A suggested link is **prefilled into the editable App Link field** — it is used only after you save it (just like a manual link). There is no separate approval step.
 
-When you approve, add, or change an app link, AppAudit immediately re-analyzes that app with the link as context unless the analysis is locked.
+When you add or change an app link, AppAudit re-analyzes that app with the link as context unless the analysis is locked.
 
 ### License Keys
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
@@ -142,13 +143,11 @@ Both are preserved across re-analyses.
 
 ## Settings (`⌘,`)
 
-### Analysis Tab
-- **Provider** — Ollama or Apple Intelligence
+### Models Tab
 - **Base URL** — default `http://localhost:11434`
 - **API Key** — optional. Leave blank for a local Ollama server. To use **ollama.com cloud models**, set the Base URL to `https://ollama.com` and paste your ollama.com API key; it is sent as a `Bearer` token. Stored in app preferences.
 - **Model picker** — fetches installed models live from `/api/tags`
 - **Test connection** — verifies Ollama is reachable
-- **Check availability** — verifies whether Apple Intelligence can use Foundation Models on this Mac
 
 ### Profile Tab
 - **Workflow profile** — local text used by the selected analysis provider when scoring relevance
@@ -203,7 +202,7 @@ See [Release Checklist](RELEASE.md) before Developer ID signing or notarization.
 
 ```
 Presentation   SwiftUI Views + @Observable ViewModel
-Business       Services (AppScanner, OllamaService, AppleIntelligenceService)
+Business       Services (AppScanner, OllamaService, UpdateChecker, AppLinkResolver)
 Data           SwiftData (AppRecord) + UserDefaults (Settings)
 ```
 
@@ -214,7 +213,8 @@ Data           SwiftData (AppRecord) + UserDefaults (Settings)
 | `AppListViewModel.swift` | Orchestrates scan → cache → AI enrichment |
 | `AnalysisProviderKind.swift` | Provider selection and cache identifier |
 | `OllamaService.swift` | Ollama analysis with strict structured text output |
-| `AppleIntelligenceService.swift` | Apple Foundation Models analysis with availability gating |
+| `LicenseVaultView.swift` | Keys for uninstalled apps |
+| `CSVExporter.swift` | RFC-4180 CSV of the audit (no keys) |
 | `AppLinkResolver.swift` | App Store and Sparkle app link discovery |
 | `AppScanner.swift` | FileManager + Info.plist enumeration |
 | `WorkflowProfile.swift` | Local workflow profile text used for relevance scoring |
@@ -232,7 +232,7 @@ REASON: ...
 BEST_USE: ...
 ```
 
-Apple Intelligence uses Foundation Models structured generation and is availability-checked before use. A system prompt sets the analyst persona for both providers.
+A system prompt sets the analyst persona and instructs the model to answer directly (no "appears to be" hedging).
 
 ---
 
@@ -273,7 +273,7 @@ License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftDat
 Switching the Ollama model no longer auto-wipes analyses. AppAudit keeps the old results and shows a banner offering to re-analyze the affected apps — click **Re-analyze** in the banner, or use **Re-analyze All Apps** in the toolbar ⋯ menu.
 
 **"AI Unavailable" in detail panel**
-For Ollama, start it with `ollama serve`. For Apple Intelligence, check Settings → Analysis → Check Availability.
+Start Ollama with `ollama serve` (local), or check the Base URL / API Key in Settings → Models if you're using ollama.com cloud models.
 
 **Crash on launch**
 Delete the SwiftData store to reset:

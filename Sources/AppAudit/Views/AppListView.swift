@@ -52,6 +52,22 @@ struct AppListView: View {
                 .pickerStyle(.menu)
             }
             ToolbarItem(placement: .automatic) {
+                Menu {
+                    Toggle("My Apps", isOn: Binding(
+                        get: { viewModel.filterMyApps },
+                        set: { viewModel.setFilterMyApps($0) }
+                    ))
+                    Toggle("Favorites", isOn: Binding(
+                        get: { viewModel.filterFavorites },
+                        set: { viewModel.setFilterFavorites($0) }
+                    ))
+                } label: {
+                    Label("Filter", systemImage: (viewModel.filterMyApps || viewModel.filterFavorites)
+                          ? "line.3.horizontal.decrease.circle.fill"
+                          : "line.3.horizontal.decrease.circle")
+                }
+            }
+            ToolbarItem(placement: .automatic) {
                 Button {
                     Task {
                         if viewModel.sortOrder == .updates {
@@ -157,7 +173,7 @@ struct AppListView: View {
             .disabled(viewModel.isRefreshingUpdates)
         case .noMyApps, .noFavorites:
             Button("Show All Apps") {
-                viewModel.setSortOrder(.relevance)
+                viewModel.clearFilters()
             }
         case .noApps:
             Button {

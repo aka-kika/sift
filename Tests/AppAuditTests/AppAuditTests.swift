@@ -91,7 +91,7 @@ struct AnalysisProviderKindTests {
         #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
     }
 
-    @Test("Builds stable cache identifiers for each provider")
+    @Test("Builds stable cache identifiers from the Ollama model")
     func modelIdentifiers() {
         let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.models")!
         defaults.removeObject(forKey: "ollamaModel")
@@ -99,7 +99,6 @@ struct AnalysisProviderKindTests {
 
         defaults.set("mistral", forKey: "ollamaModel")
         #expect(AnalysisProviderKind.ollama.modelIdentifier(userDefaults: defaults) == "ollama:mistral")
-        #expect(AnalysisProviderKind.appleIntelligence.modelIdentifier(userDefaults: defaults) == "apple-intelligence:foundation-models")
     }
 }
 

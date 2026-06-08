@@ -49,12 +49,27 @@ after the app feels right — not as a gating concern up front.
 
 ## Status (2026-06-06)
 
-**Shipped:** items 1 (no auto-wipe on model change + drift banner), 2 (bulk
-re-analyze), 3 (license hardening), 4 (License Vault), 5 (CSV export), 6 (lower
-enrichment concurrency 4→2), 7 (detail-panel redesign, Option A), and 9–14
-(subscription marker, de-hedged prompt, Settings size, Last-Used sort, side-build
-isolation, Ollama API key). **Remaining:** item 8 (trims: remove Apple
-Intelligence, drop link-approval step, fold My Apps/Favorites into filters).
+**Shipped: all spec items (1–14).** Items 1 (no auto-wipe on model change + drift
+banner), 2 (bulk re-analyze), 3 (license hardening), 4 (License Vault), 5 (CSV
+export), 6 (lower enrichment concurrency 4→2), 7 (detail-panel redesign, Option A),
+8 (trims), and 9–14 (subscription marker, de-hedged prompt, Settings size,
+Last-Used sort, side-build isolation, Ollama API key). **Remaining:** none —
+ready for release (version bump + signed/notarized DMG + GitHub release).
+
+### Item 8 — Trims (shipped 2026-06-06)
+- **8a Remove Apple Intelligence.** `AnalysisProviderKind` collapsed to a single
+  `.ollama` case (enum kept for stored-pref/cache-id stability);
+  `AppleIntelligenceService.swift` deleted; the provider branch removed from
+  `enrichSingle`; the Settings provider picker + availability check removed (the
+  Models tab is now Ollama-only).
+- **8b Drop the link-approval flow.** The App Link is a plain editable field. A
+  resolved suggestion (still stored in `suggestedAppURL`) only **pre-fills the
+  editor** and takes effect when the user saves — no green-check approve button, no
+  "Suggested:" pseudo-link, no silent auto-commit. The row shows a quiet
+  "suggestion available" hint when one exists.
+- **8c My Apps / Favorites → filters.** `SortOrder` is now Relevance / Updates /
+  Last Used / Name. My Apps and Favorites are filter toggles (toolbar filter menu)
+  applied on top of the sort, via `filterMyApps` / `filterFavorites`.
 
 ### Item 5 — CSV export (shipped 2026-06-06)
 `CSVExporter` (pure, RFC-4180 quoting, CRLF) + `AppListViewModel.exportCSV()` build

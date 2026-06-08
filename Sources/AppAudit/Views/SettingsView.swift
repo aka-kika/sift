@@ -20,14 +20,12 @@ struct SettingsView: View {
 // MARK: - Analysis Tab
 
 struct AnalysisSettingsTab: View {
-    @AppStorage(AnalysisProviderKind.storageKey) private var analysisProviderKind = AnalysisProviderKind.ollama.rawValue
     @AppStorage("ollamaBaseURL") private var ollamaBaseURL = "http://localhost:11434"
     @AppStorage("ollamaModel") private var ollamaModel = "llama3.2"
     @AppStorage("ollamaApiKey") private var ollamaApiKey = ""
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
-    @State private var appleIntelligenceStatus: ProviderTestStatus = .idle("Not checked")
 
     enum FetchState { case idle, loading, loaded, failed(String) }
 
@@ -38,122 +36,79 @@ struct AnalysisSettingsTab: View {
         case failure(String)
     }
 
-    private var selectedProvider: AnalysisProviderKind {
-        AnalysisProviderKind(rawValue: analysisProviderKind) ?? .ollama
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SettingsSectionTitle("Provider")
+            SettingsSectionTitle("Ollama")
             SettingsCard {
                 HStack {
-                    Text("Engine")
+                    Text("Base URL")
                         .frame(width: 64, alignment: .leading)
-                    Spacer()
-                    Picker("", selection: $analysisProviderKind) {
-                        ForEach(AnalysisProviderKind.allCases) { provider in
-                            Text(provider.displayName).tag(provider.rawValue)
+                    TextField("Base URL", text: $ollamaBaseURL)
+                        .textFieldStyle(.roundedBorder)
+                        .controlSize(.small)
+                    Button {
+                        Task { await fetchModels() }
+                    } label: {
+                        switch fetchState {
+                        case .loading:
+                            ProgressView().scaleEffect(0.7).frame(width: 16, height: 16)
+                        case .loaded:
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                        case .failed:
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                        case .idle:
+                            Image(systemName: "arrow.clockwise")
                         }
                     }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: 190)
+                    .buttonStyle(.borderless)
+                    .help("Test connection and fetch models")
                 }
 
                 Divider()
 
-                SettingsFooter(providerStatusText)
-            }
+                HStack {
+                    Text("API Key")
+                        .frame(width: 64, alignment: .leading)
+                    SecureField("Optional — for ollama.com cloud models", text: $ollamaApiKey)
+                        .textFieldStyle(.roundedBorder)
+                        .controlSize(.small)
+                }
 
-            SettingsSectionTitle(selectedProvider.displayName)
-                .padding(.top, 2)
+                SettingsFooter("Leave blank for a local Ollama server. Add an ollama.com key (and set the Base URL to https://ollama.com) to use cloud models.")
 
-            SettingsCard {
-                if selectedProvider == .ollama {
+                Divider()
+
+                ProviderStatusView(status: ollamaProviderStatus)
+
+                Divider()
+
+                if availableModels.isEmpty {
                     HStack {
-                        Text("Base URL")
+                        Text("Model")
                             .frame(width: 64, alignment: .leading)
-                        TextField("Base URL", text: $ollamaBaseURL)
+                        TextField("Model name", text: $ollamaModel)
                             .textFieldStyle(.roundedBorder)
                             .controlSize(.small)
-                        Button {
+                        Button("Fetch") {
                             Task { await fetchModels() }
-                        } label: {
-                            switch fetchState {
-                            case .loading:
-                                ProgressView().scaleEffect(0.7).frame(width: 16, height: 16)
-                            case .loaded:
-                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                            case .failed:
-                                Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-                            case .idle:
-                                Image(systemName: "arrow.clockwise")
-                            }
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Test connection and fetch models")
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Text("API Key")
-                            .frame(width: 64, alignment: .leading)
-                        SecureField("Optional — for ollama.com cloud models", text: $ollamaApiKey)
-                            .textFieldStyle(.roundedBorder)
-                            .controlSize(.small)
-                    }
-
-                    SettingsFooter("Leave blank for a local Ollama server. Add an ollama.com key (and set the Base URL to https://ollama.com) to use cloud models.")
-
-                    Divider()
-
-                    ProviderStatusView(status: ollamaProviderStatus)
-
-                    Divider()
-
-                    if availableModels.isEmpty {
-                        HStack {
-                            Text("Model")
-                                .frame(width: 64, alignment: .leading)
-                            TextField("Model name", text: $ollamaModel)
-                                .textFieldStyle(.roundedBorder)
-                                .controlSize(.small)
-                            Button("Fetch") {
-                                Task { await fetchModels() }
-                            }
-                            .controlSize(.small)
-                            .buttonStyle(.bordered)
-                        }
-                    } else {
-                        HStack {
-                            Text("Model")
-                                .frame(width: 64, alignment: .leading)
-                            Spacer()
-                            Picker("", selection: $ollamaModel) {
-                                ForEach(availableModels, id: \.self) { model in
-                                    Text(model).tag(model)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: 220)
-                        }
-                    }
-                } else {
-                    HStack {
-                        ProviderStatusView(status: appleIntelligenceStatus)
-                        Spacer()
-                        Button("Check Availability") {
-                            Task { await checkAppleIntelligence() }
                         }
                         .controlSize(.small)
                         .buttonStyle(.bordered)
                     }
-
-                    Divider()
-
-                    SettingsFooter("On-device Foundation Models. No API key or network connection.")
+                } else {
+                    HStack {
+                        Text("Model")
+                            .frame(width: 64, alignment: .leading)
+                        Spacer()
+                        Picker("", selection: $ollamaModel) {
+                            ForEach(availableModels, id: \.self) { model in
+                                Text(model).tag(model)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 220)
+                    }
                 }
             }
         }
@@ -161,20 +116,7 @@ struct AnalysisSettingsTab: View {
         .padding(.vertical, 12)
         .controlSize(.small)
         .task {
-            if selectedProvider == .ollama {
-                await fetchModels()
-            } else {
-                await checkAppleIntelligence()
-            }
-        }
-    }
-
-    private var providerStatusText: String {
-        switch selectedProvider {
-        case .ollama:
-            return "Local Ollama server. Best for controllable local models."
-        case .appleIntelligence:
-            return "On-device Apple Foundation Models. Requires Apple Intelligence availability."
+            await fetchModels()
         }
     }
 
@@ -228,16 +170,6 @@ struct AnalysisSettingsTab: View {
             fetchState = .failed("Cannot connect — is Ollama running? Try: ollama serve")
         } catch {
             fetchState = .failed(error.localizedDescription)
-        }
-    }
-
-    private func checkAppleIntelligence() async {
-        appleIntelligenceStatus = .testing("Checking Apple Intelligence...")
-        let service = AppleIntelligenceService()
-        if let message = await service.availabilityMessage() {
-            appleIntelligenceStatus = .failure(message)
-        } else {
-            appleIntelligenceStatus = .success("Available on this Mac")
         }
     }
 }
