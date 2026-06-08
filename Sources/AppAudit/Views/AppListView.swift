@@ -30,7 +30,7 @@ struct AppListView: View {
                 ContentUnavailableView("Scan Failed", systemImage: "xmark.circle", description: Text(msg))
             }
         }
-        .navigationTitle("AppAudit")
+        .navigationTitle("Sift")
         .searchable(
             text: Binding(
                 get: { viewModel.searchText },

@@ -1,6 +1,6 @@
-# AppAudit Project Map
+# Sift Project Map
 
-AppAudit is a native SwiftUI macOS app built with Swift Package Manager.
+Sift is a native SwiftUI macOS app built with Swift Package Manager.
 
 ## Top Level
 
@@ -15,7 +15,7 @@ AppAudit is a native SwiftUI macOS app built with Swift Package Manager.
 | `AppIcon.iconset` | Icon source slices |
 | `version.env` | Marketing version and build number |
 
-Generated files such as `.build/`, `AppAudit.app/`, and `AppAudit-*.dmg` are ignored.
+Generated files such as `.build/`, `Sift.app/`, and `Sift-*.dmg` are ignored.
 
 ## Source Layout
 
@@ -34,15 +34,15 @@ swift build
 swift test
 bash Scripts/compile_and_run.sh
 bash Scripts/make_dmg.sh
-bash Scripts/build_appaudit2.sh   # isolated AppAudit2 side-build for testing
+bash Scripts/build_sift2.sh   # isolated Sift2 side-build for testing
 ```
 
-## Side-build (AppAudit2)
+## Side-build (Sift2)
 
-`Scripts/build_appaudit2.sh` installs a parallel `AppAudit2.app` with bundle ID
-`com.kikaapp.appaudit2`. The SwiftData store folder and Keychain service derive from
+`Scripts/build_sift2.sh` installs a parallel `Sift2.app` with bundle ID
+`com.kikaapp.sift2`. The SwiftData store folder and Keychain service derive from
 the bundle identifier (`AppAuditApp.dataFolderName`, `KeychainSecretStoreBackend.defaultService`),
-so the side-build uses an isolated store (`~/Library/Application Support/AppAudit2`)
+so the side-build uses an isolated store (`~/Library/Application Support/Sift2`)
 and Keychain service and never touches the primary app's data or license keys.
 
 ## Release Docs

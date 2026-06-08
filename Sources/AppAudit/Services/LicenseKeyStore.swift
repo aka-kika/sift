@@ -19,7 +19,7 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
     /// keys. The primary app keeps the historical service name.
     static var defaultService: String {
         switch Bundle.main.bundleIdentifier {
-        case "com.kikaapp.appaudit2": return "com.kikaapp.appaudit2.licensekeys"
+        case "com.kikaapp.sift2": return "com.kikaapp.sift2.licensekeys"
         default: return "com.kikaapp.appaudit.licensekeys"
         }
     }

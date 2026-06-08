@@ -11,8 +11,9 @@
 │         AppListViewModel                │  Business Logic
 │         @Observable @MainActor          │
 ├──────────────┬──────────────┬───────────┤
-│ AppScanner │ Local AI Providers │ Update/App Links │ Services
-│ FileManager│ Ollama/Foundation  │ App Store/Sparkle
+│ AppScanner │ AI Providers       │ Update/App Links │ Services
+│ FileManager│ Ollama/Anthropic/  │ App Store/Sparkle
+│            │ OpenAI             │ /Homebrew
 ├─────────────────────────────────────────┤
 │  CacheService  +  AppRecord (@Model)    │  Data
 │         SwiftData store                 │
@@ -32,10 +33,10 @@ App Launch
   │     HIT + fresh  → inject cached AIState → display immediately
   │     MISS / stale → enqueue for enrichment
   │
-  └── enrichConcurrently() [max 4 concurrent]
+  └── enrichConcurrently() [max 2 concurrent]
         │
         └── selected provider analyzes app + profile
-              → Ollama structured text or Apple Foundation Models structured output
+              → structured text (Ollama / Anthropic / OpenAI, same prompt)
               → parseAnalysis() → AIState.loaded(...)
               → CacheService.save()
               → ViewModel updates app in place → SwiftUI re-renders row
@@ -55,27 +56,29 @@ idle → scanning → enriching(completed, total) → done
 
 ## Cache Invalidation
 
-Cache is invalidated when the selected analysis provider, model, or approved app link changes. The provider/model identifier is stored in the legacy-named `AppRecord.ollamaModel` field.
+Cache is invalidated only when the **approved app link** used for the analysis changes. A **model change no longer invalidates** analyses — the provider/model identifier (`provider:model`, stored in the legacy-named `AppRecord.ollamaModel` field) is compared read-only via `wasAnalyzedWithDifferentModel`, which drives a dismissible "model changed" banner offering an opt-in re-analyze.
 
 Locked analyses opt out of invalidation and overwrite. `CacheService.save` refuses to update locked records, background enrichment skips locked apps, and manual re-analysis is disabled while locked.
 
 ## Concurrency
 
-- AI enrichment uses `withTaskGroup` capped at 4 concurrent provider requests
+- AI enrichment uses `withTaskGroup` capped at 2 concurrent provider requests (low peak memory/CPU)
 - All ViewModel mutations happen on `@MainActor`
-- Services are `actor`-isolated (AppScanner, OllamaService, AppleIntelligenceService)
+- Services are `actor`-isolated (AppScanner, OllamaService, AnthropicService, OpenAIService)
 
 ## Persistence
 
-SwiftData store: `~/Library/Application Support/AppAudit/AppAudit.store`
+SwiftData store: `~/Library/Application Support/AppAudit/AppAudit.store`. The folder
+is derived from the bundle identifier; the primary app keeps the historical `AppAudit/`
+folder so data carries across the Sift rename, and the `Sift2` side-build uses `Sift2/`.
 
 `AppRecord` stores AI results + user edits. Fields added after initial release use `= default` values for zero-migration-plan schema evolution.
 
-License keys are stored in macOS Keychain via `LicenseKeyStore`. SwiftData keeps only a migration bridge field for older local stores.
+License keys are stored in macOS Keychain via `LicenseKeyStore` with device-bound accessibility, under a bundle-ID-derived service name. SwiftData keeps a migration bridge field; a one-time launch sweep purges any legacy plaintext into the Keychain. `AppRecord.hasLicenseKey` powers the License Vault.
 
-Manual `appURL` values are preserved. Automatic link discovery writes `suggestedAppURL`, which the user must approve before it becomes analysis context.
+Manual `appURL` values are preserved. Automatic link discovery writes `suggestedAppURL`, which only **prefills the editable link field** — it becomes analysis context when the user saves it (no separate approval step).
 
-Approved or manually changed links trigger app re-analysis with the stored `appURL` as prompt context unless the record is locked.
+Saved or manually changed links trigger app re-analysis with the stored `appURL` as prompt context unless the record is locked.
 
 ## AI Prompt
 
@@ -95,4 +98,4 @@ Single structured provider request per app:
 
 Parser: line-by-line prefix matching on `EXPLANATION:`, `SCORE:`, `REASON:`, `BEST_USE:`.
 
-Apple Intelligence is optional and gated by `SystemLanguageModel.default.availability`. When available, `AppleIntelligenceService` asks Foundation Models for structured `@Generable` output, then converts it into the same parser format used by the rest of the app.
+All providers (Ollama, Anthropic, OpenAI) share this one prompt and parser via the `AnalysisService` protocol; only the HTTP transport differs. The system prompt instructs the model to answer directly, banning "appears to be" hedging.

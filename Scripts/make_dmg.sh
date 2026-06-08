@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-APP_NAME="AppAudit"
+APP_NAME="Sift"
 VERSION=$(source version.env && echo "$MARKETING_VERSION")
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 DMG_SOURCE=".dmg-source"

@@ -1,8 +1,8 @@
-# AppAudit
+# Sift
 
 A native macOS app that audits your installed applications using local AI.
 
-For every app on your Mac, AppAudit answers three questions:
+For every app on your Mac, Sift answers three questions:
 - **What is this?** — plain-English explanation
 - **Best use for you** — one actionable tip based on your actual workflow
 - **Do you need this?** — a 1–5 relevance score
@@ -32,11 +32,11 @@ ollama serve
 # 2. Pull a model (first time only)
 ollama pull llama3.2
 
-# 3. Open AppAudit.dmg and drag to /Applications
-# 4. Launch AppAudit
+# 3. Open Sift.dmg and drag to /Applications
+# 4. Launch Sift
 ```
 
-AppAudit scans `/Applications` and `~/Applications` on launch and begins analyzing each app with Ollama (a local server by default, or ollama.com cloud models with an API key). Results are cached — subsequent launches are instant.
+Sift scans `/Applications` and `~/Applications` on launch and begins analyzing each app with Ollama (a local server by default, or ollama.com cloud models with an API key). Results are cached — subsequent launches are instant.
 
 ---
 
@@ -50,7 +50,7 @@ Each app is analyzed with Ollama and returns:
 - **Best use** — one concise action tip for your stack
 
 ### Workflow Context
-AppAudit scores apps against an editable local workflow profile. The default profile is focused on native app development, web development, terminal tooling, Codex, Ollama, packaging, and local-first software work.
+Sift scores apps against an editable local workflow profile. The default profile is focused on native app development, web development, terminal tooling, Codex, Ollama, packaging, and local-first software work.
 
 ### Persistent Memory
 Results are stored in SwiftData at:
@@ -59,9 +59,9 @@ Results are stored in SwiftData at:
 ```
 Cached results are used on every launch — AI is only called for new apps or when you click **Re-analyze**.
 
-Cache is invalidated only when the **approved app link** used for the analysis changes. Switching the Ollama model no longer wipes your analyses — instead AppAudit keeps them and shows a dismissible banner offering to re-analyze the affected apps (see **Re-analyze**).
+Cache is invalidated only when the **approved app link** used for the analysis changes. Switching the Ollama model no longer wipes your analyses — instead Sift keeps them and shows a dismissible banner offering to re-analyze the affected apps (see **Re-analyze**).
 
-Side-builds (e.g. the `AppAudit2` test app) use a store folder derived from the bundle identifier, so they never touch the primary app's data.
+Side-builds (e.g. the `Sift2` test app) use a store folder derived from the bundle identifier, so they never touch the primary app's data.
 
 Profile edits are used the next time an app is analyzed. Click **Re-analyze** on an app to refresh its score with the current profile.
 
@@ -74,7 +74,7 @@ Profile edits are used the next time an app is analyzed. Click **Re-analyze** on
 Lock an app's analysis from the detail pane or row context menu to prevent accidental regeneration. Locked analyses are preserved across rescans, provider changes, model changes, and manual Re-analyze clicks until you unlock them.
 
 ### My Apps
-Right-click any app → **Mark as My App** to tag apps you built yourself. Tagged apps show a 🔨 badge and purple score ring. Use the **My Apps** sort option to filter to just your apps.
+Right-click any app → **Mark as My App** to tag apps you built yourself. Tagged apps show a 🔨 badge and purple score ring. Use the toolbar **Filter** menu → **My Apps** to show just your apps.
 
 ### Subscriptions
 Right-click any app → **Mark as Subscription** to flag apps you pay a recurring fee for. Flagged apps show a teal 💳 badge so you can spot ongoing costs at a glance.
@@ -89,16 +89,16 @@ The toolbar **Sort** menu offers:
 The toolbar **Filter** menu adds toggles for **My Apps** and **Favorites**, applied on top of the current sort.
 
 ### Updates
-For App Store apps and apps with a Sparkle appcast URL, AppAudit checks whether a newer version is available. Right-click an app or use the detail pane to open the update target or mark the update as handled.
+For App Store apps and apps with a Sparkle appcast URL, Sift checks whether a newer version is available. Right-click an app or use the detail pane to open the update target or mark the update as handled.
 
 ### App Links
-AppAudit automatically suggests missing app links when it can resolve them:
+Sift automatically suggests missing app links when it can resolve them:
 - App Store apps use Apple's lookup API by bundle ID
 - Sparkle apps use the appcast website link or feed host
 
 A suggested link is **prefilled into the editable App Link field** — it is used only after you save it (just like a manual link). There is no separate approval step.
 
-When you add or change an app link, AppAudit re-analyzes that app with the link as context unless the analysis is locked.
+When you add or change an app link, Sift re-analyzes that app with the link as context unless the analysis is locked.
 
 ### License Keys
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
@@ -153,7 +153,7 @@ All providers use the same analysis prompt and structured-output parser; only th
 
 ### Profile Tab
 - **Workflow profile** — local text used by the selected analysis provider when scoring relevance
-- **Restore Default Profile** — resets the profile to AppAudit's built-in developer workflow
+- **Restore Default Profile** — resets the profile to Sift's built-in developer workflow
 
 ### Scanning Tab
 - **Include Apple system apps** — off by default (adds noise)
@@ -195,7 +195,7 @@ bash Scripts/make_dmg.sh
 | `Scripts/compile_and_run.sh` | Kill → build release → package → launch |
 | `Scripts/package_app.sh` | Create signed `.app` bundle from binary |
 | `Scripts/make_dmg.sh` | Build the app and create a polished `create-dmg` drag-to-install DMG |
-| `Scripts/build_appaudit2.sh` | Build/sign/install the `AppAudit2` side-build (isolated store + Keychain) for testing alongside the primary app |
+| `Scripts/build_sift2.sh` | Build/sign/install the `Sift2` side-build (isolated store + Keychain) for testing alongside the primary app |
 
 See [Release Checklist](RELEASE.md) before Developer ID signing or notarization.
 
@@ -264,7 +264,7 @@ A system prompt sets the analyst persona and instructs the model to answer direc
 | `acknowledgedUpdateVersion` | `String?` | Latest version the user marked handled |
 | `generatedAt` | `Date` | When last analyzed |
 
-License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftData, with device-bound accessibility (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — not iCloud-synced). A one-time launch sweep migrates any legacy plaintext key out of the store and into the Keychain. The Keychain service name is derived from the bundle identifier, so side-builds (e.g. `AppAudit2`) use an isolated service and never read or prompt for the primary app's keys.
+License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftData, with device-bound accessibility (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — not iCloud-synced). A one-time launch sweep migrates any legacy plaintext key out of the store and into the Keychain. The Keychain service name is derived from the bundle identifier, so side-builds (e.g. `Sift2`) use an isolated service and never read or prompt for the primary app's keys.
 
 `lastUsedDate` (most-recent-use, from Spotlight) is read fresh at scan time and lives on the in-memory `AppInfo`, not in SwiftData.
 
@@ -273,7 +273,7 @@ License keys are stored in macOS Keychain via `LicenseKeyStore`, not in SwiftDat
 ## Troubleshooting
 
 **Analyses look out of date after switching models**
-Switching the Ollama model no longer auto-wipes analyses. AppAudit keeps the old results and shows a banner offering to re-analyze the affected apps — click **Re-analyze** in the banner, or use **Re-analyze All Apps** in the toolbar ⋯ menu.
+Switching the Ollama model no longer auto-wipes analyses. Sift keeps the old results and shows a banner offering to re-analyze the affected apps — click **Re-analyze** in the banner, or use **Re-analyze All Apps** in the toolbar ⋯ menu.
 
 **"AI Unavailable" in detail panel**
 Start Ollama with `ollama serve` (local), or check the Base URL / API Key in Settings → Models if you're using ollama.com cloud models.

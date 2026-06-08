@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import SwiftData
-@testable import AppAudit
+@testable import Sift
 
 @Suite("WorkflowProfile Tests")
 struct WorkflowProfileTests {

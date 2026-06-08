@@ -56,6 +56,15 @@ export), 6 (lower enrichment concurrency 4→2), 7 (detail-panel redesign, Optio
 Last-Used sort, side-build isolation, Ollama API key). **Remaining:** none —
 ready for release (version bump + signed/notarized DMG + GitHub release).
 
+### Item 17 — Rebrand to Sift (2026-06-06)
+The product is renamed **AppAudit → Sift** (version bumped to 1.1.0, build 2). The
+Swift module/product is now `Sift` (sources stay under `Sources/AppAudit/`), the UI
+title and build artifacts (`Sift.app`, `Sift-1.1.0.dmg`) are Sift, and the side-build
+is `Sift2` (`com.kikaapp.sift2`, `Scripts/build_sift2.sh`). The **bundle identifier
+stays `com.kikaapp.appaudit`** and the store folder stays `AppAudit/` so existing user
+data and Keychain license keys carry over. Docs (README, FEATURES.md, docs/*) updated.
+Notarization + GitHub release: next round.
+
 ### Item 15 — Cloud providers: Anthropic + OpenAI (shipped 2026-06-06)
 - `AnalysisProviderKind` re-expanded to `.ollama / .anthropic / .openAI`. Per-provider
   model + API-key UserDefaults keys; model identifier is `provider:model`.

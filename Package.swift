@@ -2,20 +2,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "AppAudit",
+    name: "Sift",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "AppAudit", targets: ["AppAudit"])
+        .executable(name: "Sift", targets: ["Sift"])
     ],
     targets: [
         .executableTarget(
-            name: "AppAudit",
+            name: "Sift",
             path: "Sources/AppAudit",
             exclude: ["AppAudit.entitlements"]
         ),
         .testTarget(
-            name: "AppAuditTests",
-            dependencies: ["AppAudit"],
+            name: "SiftTests",
+            dependencies: ["Sift"],
             path: "Tests/AppAuditTests"
         )
     ]

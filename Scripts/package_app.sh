@@ -5,7 +5,9 @@ CONF=${1:-release}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
-APP_NAME=${APP_NAME:-AppAudit}
+APP_NAME=${APP_NAME:-Sift}
+# Bundle ID intentionally unchanged across the AppAudit -> Sift rename so existing
+# user data (SwiftData store + Keychain license keys) carries over.
 BUNDLE_ID=${BUNDLE_ID:-com.kikaapp.appaudit}
 MACOS_MIN_VERSION=${MACOS_MIN_VERSION:-14.0}
 SIGNING_MODE=${SIGNING_MODE:-adhoc}

@@ -13,12 +13,13 @@ struct AppAuditApp: App {
         return try! ModelContainer(for: AppRecord.self, configurations: config)
     }()
 
-    /// Folder under Application Support for this build's SwiftData store. Side-builds
-    /// (e.g. the AppAudit2 test app) get an isolated folder so they never touch the
-    /// primary app's data; the primary app keeps the historical "AppAudit" folder.
+    /// Folder under Application Support for this build's SwiftData store. The side-build
+    /// (Sift2 test app) gets an isolated folder so it never touches the primary app's
+    /// data; the primary app keeps the historical "AppAudit" folder so existing data
+    /// carries across the rename to Sift.
     private static var dataFolderName: String {
         switch Bundle.main.bundleIdentifier {
-        case "com.kikaapp.appaudit2": return "AppAudit2"
+        case "com.kikaapp.sift2": return "Sift2"
         default: return "AppAudit"
         }
     }

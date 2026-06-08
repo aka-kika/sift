@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
-# Builds and installs the AppAudit2 side-build: a parallel copy with its own
-# bundle ID (com.kikaapp.appaudit2). Because the store folder and Keychain service
-# derive from the bundle ID, AppAudit2 uses an isolated SwiftData store
-# (~/Library/Application Support/AppAudit2) and an isolated Keychain service, so it
-# never touches — or prompts for — the primary AppAudit's data and license keys.
+# Builds and installs the Sift2 side-build: a parallel copy with its own bundle ID
+# (com.kikaapp.sift2). Because the store folder and Keychain service derive from the
+# bundle ID, Sift2 uses an isolated SwiftData store (~/Library/Application Support/Sift2)
+# and an isolated Keychain service, so it never touches — or prompts for — the primary
+# Sift app's data and license keys.
 #
-# Usage: bash Scripts/build_appaudit2.sh
+# Usage: bash Scripts/build_sift2.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 ARCH="$(uname -m)"
-APP_NAME="AppAudit2"
-BUNDLE_ID="com.kikaapp.appaudit2"
+APP_NAME="Sift2"
+BUNDLE_ID="com.kikaapp.sift2"
+PRODUCT="Sift"   # Swift package product/binary name
 
 if [[ -f version.env ]]; then source version.env; fi
 MARKETING_VERSION="${MARKETING_VERSION:-1.0.0}"
@@ -22,7 +23,7 @@ BUILD_NUMBER="${BUILD_NUMBER:-1}"
 echo "==> Building (release, $ARCH)"
 swift build -c release --arch "$ARCH"
 
-SRCBIN="$ROOT/.build/${ARCH}-apple-macosx/release/AppAudit"
+SRCBIN="$ROOT/.build/${ARCH}-apple-macosx/release/${PRODUCT}"
 [[ -f "$SRCBIN" ]] || { echo "ERROR: missing build product at $SRCBIN" >&2; exit 1; }
 
 APP="$ROOT/${APP_NAME}.app"
