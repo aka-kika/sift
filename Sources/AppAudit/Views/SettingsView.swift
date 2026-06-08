@@ -23,6 +23,7 @@ struct AnalysisSettingsTab: View {
     @AppStorage(AnalysisProviderKind.storageKey) private var analysisProviderKind = AnalysisProviderKind.ollama.rawValue
     @AppStorage("ollamaBaseURL") private var ollamaBaseURL = "http://localhost:11434"
     @AppStorage("ollamaModel") private var ollamaModel = "llama3.2"
+    @AppStorage("ollamaApiKey") private var ollamaApiKey = ""
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -92,6 +93,18 @@ struct AnalysisSettingsTab: View {
                         .buttonStyle(.borderless)
                         .help("Test connection and fetch models")
                     }
+
+                    Divider()
+
+                    HStack {
+                        Text("API Key")
+                            .frame(width: 64, alignment: .leading)
+                        SecureField("Optional — for ollama.com cloud models", text: $ollamaApiKey)
+                            .textFieldStyle(.roundedBorder)
+                            .controlSize(.small)
+                    }
+
+                    SettingsFooter("Leave blank for a local Ollama server. Add an ollama.com key (and set the Base URL to https://ollama.com) to use cloud models.")
 
                     Divider()
 
@@ -191,6 +204,10 @@ struct AnalysisSettingsTab: View {
         do {
             var request = URLRequest(url: url, timeoutInterval: 5)
             request.httpMethod = "GET"
+            let key = ollamaApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !key.isEmpty {
+                request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            }
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 fetchState = .failed("Ollama returned an error response")

@@ -60,6 +60,7 @@ struct AppDetailView: View {
                     licenseKeyStore.save(trimmed, bundleID: app.bundleID)
                     currentLicenseKey = trimmed.isEmpty ? nil : trimmed
                     ensuredRecord.licenseKey = nil
+                    ensuredRecord.hasLicenseKey = !trimmed.isEmpty
                     saveRecord()
                 }
                 editingLicenseKey = false
@@ -484,6 +485,7 @@ struct AppDetailView: View {
                     licenseKeyStore.delete(bundleID: app.bundleID)
                     currentLicenseKey = nil
                     record?.licenseKey = nil
+                    record?.hasLicenseKey = false
                     saveRecord()
                 } label: {
                     Image(systemName: "trash")

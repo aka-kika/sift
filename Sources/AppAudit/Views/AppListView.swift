@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppListView: View {
     @Environment(AppListViewModel.self) private var viewModel
+    @State private var showingVault = false
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -67,11 +68,22 @@ struct AppListView: View {
                         Label("Re-analyze All Apps", systemImage: "arrow.clockwise.circle")
                     }
                     .disabled(viewModel.apps.isEmpty)
+
+                    Divider()
+
+                    Button {
+                        showingVault = true
+                    } label: {
+                        Label("License Vault…", systemImage: "key.horizontal")
+                    }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle")
                 }
                 .disabled(viewModel.scanState == .scanning)
             }
+        }
+        .sheet(isPresented: $showingVault) {
+            LicenseVaultView(installedBundleIDs: Set(viewModel.apps.map(\.bundleID)))
         }
     }
 

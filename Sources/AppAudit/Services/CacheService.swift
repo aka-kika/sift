@@ -16,6 +16,10 @@ final class CacheService {
         return try? context.fetch(descriptor).first
     }
 
+    func allRecords() -> [AppRecord] {
+        (try? context.fetch(FetchDescriptor<AppRecord>())) ?? []
+    }
+
     func isStale(_ record: AppRecord, currentModel: String, currentAppURL: String? = nil) -> Bool {
         if record.isAnalysisLocked {
             return false

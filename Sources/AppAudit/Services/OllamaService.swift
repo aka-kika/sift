@@ -33,6 +33,13 @@ actor OllamaService {
         UserDefaults.standard.string(forKey: "ollamaModel") ?? "llama3.2"
     }
 
+    /// Optional API key. When set, sent as a Bearer token so cloud models
+    /// (e.g. via https://ollama.com) authenticate. Ignored by a local server.
+    private var apiKey: String {
+        (UserDefaults.standard.string(forKey: "ollamaApiKey") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private let systemPrompt = AppAnalysisPrompt.system + "\nAlways respond in the exact structured format requested. No extra commentary before or after."
 
     private func chat(messages: [OllamaRequest.Message]) async -> OllamaResult {
@@ -46,6 +53,10 @@ actor OllamaService {
         var request = URLRequest(url: url, timeoutInterval: 90)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let key = apiKey
+        if !key.isEmpty {
+            request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        }
 
         do {
             request.httpBody = try JSONEncoder().encode(requestBody)

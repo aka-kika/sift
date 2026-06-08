@@ -377,6 +377,23 @@ final class AppListViewModel {
         apps[idx].isSubscribed = value
     }
 
+    /// Reconcile each record's `hasLicenseKey` flag with the Keychain. Runs at
+    /// launch so the License Vault is accurate without reading secrets at render
+    /// time. For the app that owns the Keychain items this does not prompt.
+    func syncLicenseFlags() {
+        guard let cache = cacheService else { return }
+        let store = LicenseKeyStore.shared
+        var changed = false
+        for record in cache.allRecords() {
+            let has = store.hasKey(bundleID: record.bundleID)
+            if record.hasLicenseKey != has {
+                record.hasLicenseKey = has
+                changed = true
+            }
+        }
+        if changed { cache.persist() }
+    }
+
     func setAnalysisLocked(bundleID: String, value: Bool) {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         apps[idx].isAnalysisLocked = value

@@ -458,6 +458,20 @@ struct LicenseKeyStoreTests {
         #expect(resolution.didMigrateLegacyValue)
         #expect(backend.read(account: "com.example.app") == "OLD-KEY")
     }
+
+    @Test("hasKey reflects stored keys for the License Vault")
+    func hasKeyReflectsStoredKeys() {
+        let backend = MemorySecretStoreBackend()
+        let store = LicenseKeyStore(backend: backend)
+
+        #expect(!store.hasKey(bundleID: "com.example.app"))
+
+        store.save("ABC-123", bundleID: "com.example.app")
+        #expect(store.hasKey(bundleID: "com.example.app"))
+
+        store.delete(bundleID: "com.example.app")
+        #expect(!store.hasKey(bundleID: "com.example.app"))
+    }
 }
 
 @Suite("UpdateChecker Tests")

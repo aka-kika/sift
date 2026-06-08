@@ -329,6 +329,7 @@ struct AppRow: View {
 
         licenseKeyStore.save(trimmed, bundleID: app.bundleID)
         record.licenseKey = nil
+        record.hasLicenseKey = !trimmed.isEmpty
         try? modelContext.save()
     }
 
@@ -336,6 +337,7 @@ struct AppRow: View {
         licenseKeyStore.delete(bundleID: app.bundleID)
         if let record = fetchRecord(for: app.bundleID) {
             record.licenseKey = nil
+            record.hasLicenseKey = false
             try? modelContext.save()
         }
     }

@@ -50,10 +50,28 @@ after the app feels right — not as a gating concern up front.
 ## Status (2026-06-06)
 
 **Shipped:** items 1 (no auto-wipe on model change + drift banner), 2 (bulk
-re-analyze), 6 (lower enrichment concurrency 4→2), 7 (detail-panel redesign,
-Option A), and 9–13 (subscription marker, de-hedged prompt, Settings size,
-Last-Used sort, side-build isolation). **Remaining:** items 3 (license
-hardening), 4 (License Vault), 5 (CSV export), 8 (trims).
+re-analyze), 4 (License Vault), 6 (lower enrichment concurrency 4→2), 7
+(detail-panel redesign, Option A), and 9–14 (subscription marker, de-hedged
+prompt, Settings size, Last-Used sort, side-build isolation, Ollama API key).
+**Remaining:** items 3 (license hardening), 5 (CSV export), 8 (trims).
+
+### Item 4 — License Vault (shipped 2026-06-06)
+- `AppRecord.hasLicenseKey` (additive) tracks whether a key is stored, set on
+  save/delete and reconciled at launch via `AppListViewModel.syncLicenseFlags()`
+  (reads the owning app's own Keychain items — no prompts).
+- `LicenseKeyStore.hasKey(bundleID:)` and `CacheService.allRecords()` support it.
+- `LicenseVaultView` (sheet from the sidebar ⋯ menu → "License Vault…") lists
+  records with a key whose app is **not currently installed**: app name, bundle ID,
+  **Copy Key** (reads the secret on demand), and **Delete** (removes the Keychain
+  item + clears the flag). Records already survive uninstalls, so no data plumbing
+  was needed beyond the flag.
+
+### Item 14 — Ollama API key for cloud models (shipped 2026-06-06)
+Settings → Models gains an **API Key** field (`@AppStorage "ollamaApiKey"`). When
+set, `OllamaService` and the model-fetch call send it as `Authorization: Bearer`,
+enabling ollama.com cloud models (set Base URL to `https://ollama.com`). Blank = a
+local server as before. Stored in app preferences (not Keychain) to avoid the
+ad-hoc side-build's Keychain prompts.
 
 ### Item 7 — Detail-panel redesign (shipped 2026-06-06)
 Reworked `AppDetailView` to the approved Option A layout:

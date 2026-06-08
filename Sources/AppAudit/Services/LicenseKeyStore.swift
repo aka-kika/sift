@@ -110,4 +110,11 @@ final class LicenseKeyStore: @unchecked Sendable {
     func delete(bundleID: String) {
         backend.delete(account: bundleID)
     }
+
+    /// True when a non-empty key is stored for this bundle ID. Reads the Keychain
+    /// item; for the app that owns the items this does not prompt.
+    func hasKey(bundleID: String) -> Bool {
+        guard let value = backend.read(account: bundleID) else { return false }
+        return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 }
