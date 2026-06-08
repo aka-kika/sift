@@ -102,6 +102,9 @@ When you approve, add, or change an app link, AppAudit immediately re-analyzes t
 ### License Keys
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
 
+### License Vault
+Open from the sidebar **⋯ menu → "License Vault…"**. It keeps the license keys of apps you've **uninstalled** so you can still copy them later — useful when you remove an app but might reinstall it. Records persist after an app is removed; the Vault lists those that still hold a key, with **Copy Key** (reads the secret on demand) and **Delete**. Currently-installed apps don't appear here (manage their keys from the app's detail pane).
+
 ### Detail Panel
 The detail panel is **recommendation-first**: the relevance score, best-use tip, and
 reason appear at the top, followed by the "What is this?" explanation, then calm
@@ -139,6 +142,7 @@ Both are preserved across re-analyses.
 ### Analysis Tab
 - **Provider** — Ollama or Apple Intelligence
 - **Base URL** — default `http://localhost:11434`
+- **API Key** — optional. Leave blank for a local Ollama server. To use **ollama.com cloud models**, set the Base URL to `https://ollama.com` and paste your ollama.com API key; it is sent as a `Bearer` token. Stored in app preferences.
 - **Model picker** — fetches installed models live from `/api/tags`
 - **Test connection** — verifies Ollama is reachable
 - **Check availability** — verifies whether Apple Intelligence can use Foundation Models on this Mac
