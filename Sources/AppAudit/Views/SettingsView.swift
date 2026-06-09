@@ -28,6 +28,7 @@ struct AnalysisSettingsTab: View {
     @AppStorage("anthropicModel") private var anthropicModel = "claude-3-5-haiku-latest"
     @AppStorage("openAIApiKey") private var openAIApiKey = ""
     @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
+    @AppStorage("appleIntelligenceModel") private var appleIntelligenceModel = "system-language-model"
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -78,7 +79,7 @@ struct AnalysisSettingsTab: View {
                     cloudConfig(apiKey: $openAIApiKey, model: $openAIModel,
                                 hint: "OpenAI API key (platform.openai.com). Stored in app preferences.")
                 case .appleIntelligence:
-                    SettingsFooter("Apple Intelligence configuration lands in Task 4.")
+                    appleIntelligenceConfig
                 }
             }
         }
@@ -140,6 +141,22 @@ struct AnalysisSettingsTab: View {
         modelRow(model: model)
     }
 
+    @ViewBuilder
+    private var appleIntelligenceConfig: some View {
+        HStack {
+            Text("Status")
+                .frame(width: 64, alignment: .leading)
+            ProviderStatusView(status: providerStatus)
+            Spacer()
+            fetchButton
+        }
+
+        SettingsFooter("On-device Foundation Models. No API key — analysis never leaves this Mac. Requires macOS 26+ with Apple Intelligence enabled.")
+
+        Divider()
+        modelRow(model: $appleIntelligenceModel)
+    }
+
     private var fetchButton: some View {
         Button {
             Task { await fetchModels() }
@@ -198,6 +215,9 @@ struct AnalysisSettingsTab: View {
         case .loading:
             return .testing("Testing \(provider.displayName)…")
         case .loaded:
+            if provider == .appleIntelligence {
+                return .success("Available on this Mac")
+            }
             let count = availableModels.count
             return count == 0 ? .success("Connected. No models found.") : .success("Connected. \(count) model(s).")
         case .failed(let message):
@@ -212,7 +232,7 @@ struct AnalysisSettingsTab: View {
         case .ollama: result = await OllamaService().fetchModels()
         case .anthropic: result = await AnthropicService().fetchModels()
         case .openAI: result = await OpenAIService().fetchModels()
-        case .appleIntelligence: result = .failure("Not wired yet.")
+        case .appleIntelligence: result = await AppleIntelligenceService().fetchModels()
         }
         switch result {
         case .models(let models):
