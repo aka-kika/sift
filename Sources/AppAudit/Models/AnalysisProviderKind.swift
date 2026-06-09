@@ -45,7 +45,7 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "llama3.2"
         case .anthropic: return "claude-3-5-haiku-latest"
         case .openAI: return "gpt-4o-mini"
-        case .appleIntelligence: return "system-language-model"
+        case .appleIntelligence: return "system-language-model" // informational; modelIdentifier() is pinned for this case
         }
     }
 

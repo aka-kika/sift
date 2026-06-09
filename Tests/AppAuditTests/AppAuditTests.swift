@@ -100,6 +100,7 @@ struct AnalysisProviderKindTests {
         #expect(AnalysisProviderKind.appleIntelligence.modelIdentifier(userDefaults: defaults) == "apple-intelligence:foundation-models")
         #expect(AnalysisProviderKind.allCases.count == 4)
         #expect(AnalysisProviderKind.appleIntelligence.displayName == "Apple Intelligence")
+        defaults.removeObject(forKey: "appleIntelligenceModel")
     }
 
     @Test("Builds stable cache identifiers per provider and model")
