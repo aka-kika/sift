@@ -205,6 +205,7 @@ final class AppListViewModel {
     private let ollama = OllamaService()
     private let anthropic = AnthropicService()
     private let openAI = OpenAIService()
+    private let appleIntelligence = AppleIntelligenceService()
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     var cacheService: CacheService?
@@ -361,7 +362,7 @@ final class AppListViewModel {
         case .openAI:
             result = await openAI.analyze(app: app, profile: profile, appURL: appURL)
         case .appleIntelligence:
-            result = .unavailable("Apple Intelligence wiring lands in Task 3.")
+            result = await appleIntelligence.analyze(app: app, profile: profile, appURL: appURL)
         }
 
         switch result {
