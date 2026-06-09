@@ -15,7 +15,7 @@ private struct AppleIntelligenceAppAnalysis {
     @Guide(description: "One sentence explaining why this score fits the workflow.")
     var reason: String
 
-    @Guide(description: "One actionable sentence describing the best use for this developer. If irrelevant, say not applicable.")
+    @Guide(description: "One actionable sentence describing the best use for this developer. Start with a specific verb other than \"Use\". If irrelevant or unclear, say: Not applicable to your workflow.")
     var bestUse: String
 }
 #endif
@@ -27,8 +27,25 @@ actor AppleIntelligenceService: AnalysisService {
     private let compactInstructions = """
     You are a macOS app analyst helping a developer decide what to keep.
     Be direct and factual. State what the app is, grounded only in the facts given.
-    If the facts don't identify the app, say its purpose is unclear. Never guess from the name alone.
+    If the facts don't identify the app, say its purpose is unclear and keep the score low. Never guess from the name alone.
+    Never begin bestUse with the word "Use" — start with a varied, specific verb.
+
+    Example for a file-automation app:
+    explanation: Hazel watches folders and runs user-defined rules to move, rename, or clean up files automatically.
+    score: 4
+    reason: Automated file cleanup directly supports this developer's project-hygiene workflow.
+    bestUse: Automate Downloads cleanup with rules that file disk images and installers as they arrive.
+
+    Example for an app whose facts are insufficient:
+    explanation: The available facts do not identify what this app does; its purpose is unclear.
+    score: 2
+    reason: Unidentified apps cannot be matched to the workflow, so the score stays conservative.
+    bestUse: Not applicable to your workflow.
     """
+
+    /// Set after the first failed Private Cloud Compute call so a long scan
+    /// doesn't pay a doomed network round-trip per app. Resets on relaunch.
+    private var privateCloudComputeFailedThisSession = false
 
     /// Prefer Apple's Private Cloud Compute model (macOS 27+) when the user has it
     /// enabled — much higher quality than the on-device model, still private.
@@ -69,7 +86,7 @@ actor AppleIntelligenceService: AnalysisService {
 
         // Private Cloud Compute first (macOS 27+, opt-out in Settings): a far larger
         // model, still private. Any failure falls through to the on-device model.
-        if #available(macOS 27.0, *), usePrivateCloudCompute {
+        if #available(macOS 27.0, *), usePrivateCloudCompute, !privateCloudComputeFailedThisSession {
             let cloudModel = PrivateCloudComputeLanguageModel()
             if case .available = cloudModel.availability {
                 do {
@@ -81,7 +98,8 @@ actor AppleIntelligenceService: AnalysisService {
                     )
                     return .success(Self.structuredText(from: response.content))
                 } catch {
-                    // Quota, network, or service failure — use the on-device model instead.
+                    // Quota, network, or service failure — remember and use the on-device model instead.
+                    privateCloudComputeFailedThisSession = true
                 }
             }
         }
@@ -111,6 +129,35 @@ actor AppleIntelligenceService: AnalysisService {
             return .failure(message)
         }
         return .models(["system-language-model"])
+    }
+
+    /// One real round-trip to Private Cloud Compute. `.availability` lies on some
+    /// betas (reports available while every call fails), so only an actual respond
+    /// proves it works.
+    func probePrivateCloudCompute() async -> String {
+        #if canImport(FoundationModels)
+        guard #available(macOS 27.0, *) else {
+            return "Private Cloud Compute requires macOS 27."
+        }
+        let cloudModel = PrivateCloudComputeLanguageModel()
+        guard case .available = cloudModel.availability else {
+            return "Private Cloud Compute: not available on this Mac."
+        }
+        do {
+            let session = LanguageModelSession(model: cloudModel, instructions: "Reply with the single word OK.")
+            _ = try await session.respond(
+                to: "OK?",
+                options: GenerationOptions(maximumResponseTokens: 4)
+            )
+            privateCloudComputeFailedThisSession = false
+            return "Private Cloud Compute: working — analyses use Apple's larger private server model."
+        } catch {
+            privateCloudComputeFailedThisSession = true
+            return "Private Cloud Compute: not responding (beta) — analyses use the on-device model."
+        }
+        #else
+        return "Private Cloud Compute requires an SDK with Foundation Models."
+        #endif
     }
 
     #if canImport(FoundationModels)

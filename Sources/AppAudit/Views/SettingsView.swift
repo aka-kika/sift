@@ -51,6 +51,7 @@ struct AnalysisSettingsTab: View {
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
+    @State private var pccStatus: String? = nil
 
     enum FetchState { case idle, loading, loaded, failed(String) }
 
@@ -177,6 +178,10 @@ struct AnalysisSettingsTab: View {
 
         SettingsFooter("macOS 27+: runs analysis on Apple's private servers for much higher quality. Falls back to the on-device model when offline or over quota.")
 
+        if appleIntelligenceUsePCC, let pccStatus {
+            SettingsFooter(pccStatus)
+        }
+
         Divider()
         modelRow(model: $appleIntelligenceModel)
     }
@@ -271,6 +276,12 @@ struct AnalysisSettingsTab: View {
         case .failure(let message):
             availableModels = []
             fetchState = .failed(message)
+        }
+
+        if provider == .appleIntelligence {
+            pccStatus = appleIntelligenceUsePCC ? await AppleIntelligenceService().probePrivateCloudCompute() : nil
+        } else {
+            pccStatus = nil
         }
     }
 }
