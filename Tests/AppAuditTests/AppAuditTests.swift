@@ -91,6 +91,17 @@ struct AnalysisProviderKindTests {
         #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
     }
 
+    @Test("Apple Intelligence keeps its historical cache identifier")
+    func appleIntelligenceIdentifier() {
+        let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.ai")!
+        // Even if a model name is stored, the identifier stays pinned so analyses
+        // cached before the 1.1.0 trims revalidate as non-drifted.
+        defaults.set("anything-else", forKey: "appleIntelligenceModel")
+        #expect(AnalysisProviderKind.appleIntelligence.modelIdentifier(userDefaults: defaults) == "apple-intelligence:foundation-models")
+        #expect(AnalysisProviderKind.allCases.count == 4)
+        #expect(AnalysisProviderKind.appleIntelligence.displayName == "Apple Intelligence")
+    }
+
     @Test("Builds stable cache identifiers per provider and model")
     func modelIdentifiers() {
         let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.models")!

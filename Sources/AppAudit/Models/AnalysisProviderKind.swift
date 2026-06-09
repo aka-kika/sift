@@ -7,6 +7,7 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
     case ollama
     case anthropic
     case openAI
+    case appleIntelligence
 
     var id: String { rawValue }
 
@@ -15,6 +16,7 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "Ollama"
         case .anthropic: return "Anthropic"
         case .openAI: return "OpenAI"
+        case .appleIntelligence: return "Apple Intelligence"
         }
     }
 
@@ -24,6 +26,7 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "ollamaModel"
         case .anthropic: return "anthropicModel"
         case .openAI: return "openAIModel"
+        case .appleIntelligence: return "appleIntelligenceModel"
         }
     }
 
@@ -33,6 +36,7 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "ollamaApiKey"
         case .anthropic: return "anthropicApiKey"
         case .openAI: return "openAIApiKey"
+        case .appleIntelligence: return "appleIntelligenceApiKey" // unused; no key needed
         }
     }
 
@@ -41,6 +45,7 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "llama3.2"
         case .anthropic: return "claude-3-5-haiku-latest"
         case .openAI: return "gpt-4o-mini"
+        case .appleIntelligence: return "system-language-model"
         }
     }
 
@@ -49,6 +54,11 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
     }
 
     func modelIdentifier(userDefaults: UserDefaults = .standard) -> String {
+        // Pinned to the pre-1.1.0 identifier so old cached analyses stay valid.
+        // There is exactly one on-device system model, so it never varies.
+        if self == .appleIntelligence {
+            return "apple-intelligence:foundation-models"
+        }
         let model = userDefaults.string(forKey: modelDefaultsKey) ?? defaultModel
         return "\(rawValue):\(model)"
     }

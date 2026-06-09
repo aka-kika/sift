@@ -360,6 +360,8 @@ final class AppListViewModel {
             result = await anthropic.analyze(app: app, profile: profile, appURL: appURL)
         case .openAI:
             result = await openAI.analyze(app: app, profile: profile, appURL: appURL)
+        case .appleIntelligence:
+            result = .unavailable("Apple Intelligence wiring lands in Task 3.")
         }
 
         switch result {

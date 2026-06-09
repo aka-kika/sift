@@ -77,6 +77,8 @@ struct AnalysisSettingsTab: View {
                 case .openAI:
                     cloudConfig(apiKey: $openAIApiKey, model: $openAIModel,
                                 hint: "OpenAI API key (platform.openai.com). Stored in app preferences.")
+                case .appleIntelligence:
+                    SettingsFooter("Apple Intelligence configuration lands in Task 4.")
                 }
             }
         }
@@ -210,6 +212,7 @@ struct AnalysisSettingsTab: View {
         case .ollama: result = await OllamaService().fetchModels()
         case .anthropic: result = await AnthropicService().fetchModels()
         case .openAI: result = await OpenAIService().fetchModels()
+        case .appleIntelligence: result = .failure("Not wired yet.")
         }
         switch result {
         case .models(let models):
