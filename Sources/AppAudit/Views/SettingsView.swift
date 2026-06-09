@@ -12,7 +12,7 @@ struct SettingsView: View {
             ScanningSettingsTab()
                 .tabItem { Label("Scanning", systemImage: "folder.badge.gearshape") }
         }
-        .frame(width: 480, height: 340)
+        .frame(width: 480, height: 360)
         .fixedSize()
     }
 }
@@ -147,7 +147,6 @@ struct AnalysisSettingsTab: View {
             Text("Status")
                 .frame(width: 64, alignment: .leading)
             ProviderStatusView(status: providerStatus)
-            Spacer()
             fetchButton
         }
 
