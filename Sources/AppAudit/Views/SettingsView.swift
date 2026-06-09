@@ -28,7 +28,7 @@ struct SettingsView: View {
     /// Each tab sized to its content; the window follows on tab switch.
     private var tabHeight: CGFloat {
         switch selectedTab {
-        case .models: return 360
+        case .models: return 430
         case .profile: return 250
         case .general: return 230
         }
@@ -48,6 +48,7 @@ struct AnalysisSettingsTab: View {
     @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
     @AppStorage("appleIntelligenceModel") private var appleIntelligenceModel = "system-language-model"
     @AppStorage("appleIntelligenceUsePCC") private var appleIntelligenceUsePCC = true
+    @AppStorage("appleIntelligenceStyleNotes") private var appleIntelligenceStyleNotes = ""
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -184,6 +185,19 @@ struct AnalysisSettingsTab: View {
 
         Divider()
         modelRow(model: $appleIntelligenceModel)
+
+        Divider()
+
+        HStack(alignment: .top) {
+            Text("Style")
+                .frame(width: 64, alignment: .leading)
+            TextField("e.g. Mention alternatives. Keep best-use under 12 words.", text: $appleIntelligenceStyleNotes, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...4)
+                .controlSize(.small)
+        }
+
+        SettingsFooter("Appended to the analysis instructions. Experiment freely — applies to the next re-analyze.")
     }
 
     private var fetchButton: some View {

@@ -43,6 +43,19 @@ actor AppleIntelligenceService: AnalysisService {
     bestUse: Not applicable to your workflow.
     """
 
+    /// Optional user-authored style notes from Settings, appended to the
+    /// instructions so the owner can tune phrasing without a rebuild.
+    private var styleNotes: String {
+        (UserDefaults.standard.string(forKey: "appleIntelligenceStyleNotes") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var instructionsText: String {
+        let notes = styleNotes
+        guard !notes.isEmpty else { return compactInstructions }
+        return compactInstructions + "\n\nAdditional style notes from the user (follow them):\n" + notes
+    }
+
     /// Set after the first failed Private Cloud Compute call so a long scan
     /// doesn't pay a doomed network round-trip per app. Resets on relaunch.
     private var privateCloudComputeFailedThisSession = false
@@ -82,7 +95,19 @@ actor AppleIntelligenceService: AnalysisService {
         }
 
         let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: profile, appURL: appURL)
-        let options = GenerationOptions(samplingMode: .greedy, temperature: 0, maximumResponseTokens: 220)
+        // Lab-validated: few-shot + seeded nucleus sampling removes the "Use it…"
+        // monotony that greedy decoding produces, while a fixed seed keeps results
+        // reproducible run-to-run.
+        let options = GenerationOptions(
+            samplingMode: .random(probabilityThreshold: 0.9, seed: 42),
+            temperature: 0.7,
+            maximumResponseTokens: 220
+        )
+        let retryOptions = GenerationOptions(
+            samplingMode: .random(probabilityThreshold: 0.9, seed: 137),
+            temperature: 0.7,
+            maximumResponseTokens: 220
+        )
 
         // Private Cloud Compute first (macOS 27+, opt-out in Settings): a far larger
         // model, still private. Any failure falls through to the on-device model.
@@ -90,13 +115,21 @@ actor AppleIntelligenceService: AnalysisService {
             let cloudModel = PrivateCloudComputeLanguageModel()
             if case .available = cloudModel.availability {
                 do {
-                    let session = LanguageModelSession(model: cloudModel, instructions: compactInstructions)
-                    let response = try await session.respond(
+                    let session = LanguageModelSession(model: cloudModel, instructions: instructionsText)
+                    var analysis = try await session.respond(
                         to: prompt,
                         generating: AppleIntelligenceAppAnalysis.self,
                         options: options
-                    )
-                    return .success(Self.structuredText(from: response.content))
+                    ).content
+                    if Self.soundsMonotonous(analysis) {
+                        let retrySession = LanguageModelSession(model: cloudModel, instructions: instructionsText)
+                        analysis = try await retrySession.respond(
+                            to: prompt,
+                            generating: AppleIntelligenceAppAnalysis.self,
+                            options: retryOptions
+                        ).content
+                    }
+                    return .success(Self.structuredText(from: analysis))
                 } catch {
                     // Quota, network, or service failure — remember and use the on-device model instead.
                     privateCloudComputeFailedThisSession = true
@@ -106,14 +139,24 @@ actor AppleIntelligenceService: AnalysisService {
 
         do {
             let session = LanguageModelSession {
-                compactInstructions
+                instructionsText
             }
-            let response = try await session.respond(
+            var analysis = try await session.respond(
                 to: prompt,
                 generating: AppleIntelligenceAppAnalysis.self,
                 options: options
-            )
-            return .success(Self.structuredText(from: response.content))
+            ).content
+            if Self.soundsMonotonous(analysis) {
+                let retrySession = LanguageModelSession {
+                    instructionsText
+                }
+                analysis = try await retrySession.respond(
+                    to: prompt,
+                    generating: AppleIntelligenceAppAnalysis.self,
+                    options: retryOptions
+                ).content
+            }
+            return .success(Self.structuredText(from: analysis))
         } catch {
             return .unavailable("Apple Intelligence error: \(error.localizedDescription)")
         }
@@ -169,6 +212,13 @@ actor AppleIntelligenceService: AnalysisService {
         REASON: \(analysis.reason)
         BEST_USE: \(analysis.bestUse)
         """
+    }
+
+    /// One retry with a different seed when the canned "Use …" opener slips
+    /// through; the second draw almost always phrases differently.
+    @available(macOS 26.0, *)
+    private static func soundsMonotonous(_ analysis: AppleIntelligenceAppAnalysis) -> Bool {
+        analysis.bestUse.hasPrefix("Use ") || analysis.bestUse.hasPrefix("Use it")
     }
 
     @available(macOS 26.0, *)
