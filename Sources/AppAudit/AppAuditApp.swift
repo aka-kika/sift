@@ -4,6 +4,15 @@ import SwiftData
 @main
 struct AppAuditApp: App {
     @State private var viewModel = AppListViewModel()
+    @AppStorage("appearancePreference") private var appearancePreference = "system"
+
+    private var preferredScheme: ColorScheme? {
+        switch appearancePreference {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
     private static let container: ModelContainer = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let storeDir = appSupport.appendingPathComponent(Self.dataFolderName, isDirectory: true)
@@ -29,6 +38,7 @@ struct AppAuditApp: App {
             ContentView()
                 .environment(viewModel)
                 .frame(minWidth: 780, minHeight: 520)
+                .preferredColorScheme(preferredScheme)
         }
         .windowResizability(.contentMinSize)
         .modelContainer(Self.container)
@@ -48,6 +58,7 @@ struct AppAuditApp: App {
 
         Settings {
             SettingsView()
+                .preferredColorScheme(preferredScheme)
         }
         .windowResizability(.contentSize)
     }

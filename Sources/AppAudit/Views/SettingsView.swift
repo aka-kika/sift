@@ -10,7 +10,7 @@ struct SettingsView: View {
                 .tabItem { Label("Profile", systemImage: "person.text.rectangle") }
 
             ScanningSettingsTab()
-                .tabItem { Label("Scanning", systemImage: "folder.badge.gearshape") }
+                .tabItem { Label("General", systemImage: "gearshape") }
         }
         .frame(width: 480, height: 360)
         .fixedSize()
@@ -284,9 +284,20 @@ struct ProfileSettingsTab: View {
 struct ScanningSettingsTab: View {
     @AppStorage("includeAppleApps") private var includeAppleApps = false
     @AppStorage("includeUtilityApps") private var includeUtilityApps = true
+    @AppStorage("appearancePreference") private var appearancePreference = "system"
 
     var body: some View {
         Form {
+            Section("Appearance") {
+                Picker("Appearance", selection: $appearancePreference) {
+                    Text("System").tag("system")
+                    Text("Light").tag("light")
+                    Text("Dark").tag("dark")
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+
             Section("Directories") {
                 Toggle("Include /Applications/Utilities", isOn: $includeUtilityApps)
                 Toggle("Include Apple system apps (com.apple.*)", isOn: $includeAppleApps)
