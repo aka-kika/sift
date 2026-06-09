@@ -1,19 +1,37 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @State private var selectedTab = SettingsTab.models
+
+    enum SettingsTab: Hashable {
+        case models, profile, general
+    }
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             AnalysisSettingsTab()
                 .tabItem { Label("Models", systemImage: "brain") }
+                .tag(SettingsTab.models)
 
             ProfileSettingsTab()
                 .tabItem { Label("Profile", systemImage: "person.text.rectangle") }
+                .tag(SettingsTab.profile)
 
             ScanningSettingsTab()
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
         }
-        .frame(width: 480, height: 360)
+        .frame(width: 480, height: tabHeight)
         .fixedSize()
+    }
+
+    /// Each tab sized to its content; the window follows on tab switch.
+    private var tabHeight: CGFloat {
+        switch selectedTab {
+        case .models: return 360
+        case .profile: return 250
+        case .general: return 230
+        }
     }
 }
 
