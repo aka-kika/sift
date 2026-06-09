@@ -54,6 +54,7 @@ struct ContentView: View {
             }
             .glassProminentButtonStyle()
             .controlSize(.small)
+            .tint(.orange)
             Button("Dismiss") {
                 viewModel.dismissModelChangeBanner()
             }
@@ -62,7 +63,8 @@ struct ContentView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(.orange.opacity(0.12))
+        .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     private var modelChangedMessage: String {
