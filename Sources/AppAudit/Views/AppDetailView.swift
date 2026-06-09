@@ -232,46 +232,6 @@ struct AppDetailView: View {
                     Label("Remove Custom Description", systemImage: "person.fill.xmark")
                 }
             }
-
-            Divider()
-
-            Button {
-                toggleFavorite()
-            } label: {
-                Label(app.isFavorite ? "Remove from Favorites" : "Add to Favorites",
-                      systemImage: app.isFavorite ? "star.slash" : "star")
-            }
-            Button {
-                toggleMyApp()
-            } label: {
-                Label(app.isMyApp ? "Unmark as My App" : "Mark as My App",
-                      systemImage: app.isMyApp ? "hammer.slash" : "hammer.fill")
-            }
-            Button {
-                toggleSubscription()
-            } label: {
-                Label(app.isSubscribed ? "Unmark Subscription" : "Mark as Subscription",
-                      systemImage: "creditcard")
-            }
-
-            Divider()
-
-            Button {
-                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.path)])
-            } label: {
-                Label("Show in Finder", systemImage: "folder")
-            }
-            Button {
-                NSWorkspace.shared.open(URL(fileURLWithPath: app.path))
-            } label: {
-                Label("Open App", systemImage: "arrow.up.right.square")
-            }
-            Button {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(app.bundleID, forType: .string)
-            } label: {
-                Label("Copy Bundle ID", systemImage: "doc.on.doc")
-            }
         } label: {
             Image(systemName: "ellipsis.circle")
                 .font(.title3)
@@ -584,27 +544,6 @@ struct AppDetailView: View {
         let ensuredRecord = ensureRecord()
         ensuredRecord.isAnalysisLocked.toggle()
         viewModel.setAnalysisLocked(bundleID: app.bundleID, value: ensuredRecord.isAnalysisLocked)
-        saveRecord()
-    }
-
-    private func toggleFavorite() {
-        let ensuredRecord = ensureRecord()
-        ensuredRecord.isFavorite.toggle()
-        viewModel.setFavorite(bundleID: app.bundleID, value: ensuredRecord.isFavorite)
-        saveRecord()
-    }
-
-    private func toggleMyApp() {
-        let ensuredRecord = ensureRecord()
-        ensuredRecord.isMyApp.toggle()
-        viewModel.setMyApp(bundleID: app.bundleID, value: ensuredRecord.isMyApp)
-        saveRecord()
-    }
-
-    private func toggleSubscription() {
-        let ensuredRecord = ensureRecord()
-        ensuredRecord.hasSubscription.toggle()
-        viewModel.setSubscription(bundleID: app.bundleID, value: ensuredRecord.hasSubscription)
         saveRecord()
     }
 
