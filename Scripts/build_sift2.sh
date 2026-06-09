@@ -23,7 +23,12 @@ BUILD_NUMBER="${BUILD_NUMBER:-1}"
 echo "==> Building (release, $ARCH)"
 swift build -c release --arch "$ARCH"
 
+# Older SwiftPM writes per-arch dirs; the Xcode 27 toolchain writes .build/release
+# even when --arch is passed. Prefer whichever actually exists.
 SRCBIN="$ROOT/.build/${ARCH}-apple-macosx/release/${PRODUCT}"
+if [[ ! -f "$SRCBIN" ]]; then
+  SRCBIN="$ROOT/.build/release/${PRODUCT}"
+fi
 [[ -f "$SRCBIN" ]] || { echo "ERROR: missing build product at $SRCBIN" >&2; exit 1; }
 
 APP="$ROOT/${APP_NAME}.app"
