@@ -24,7 +24,7 @@ actor AppleIntelligenceService: AnalysisService {
 
     private let systemPrompt = AppAnalysisPrompt.system
 
-    func availabilityMessage() -> String? {
+    private func availabilityMessage() -> String? {
         #if canImport(FoundationModels)
         if #available(macOS 26.0, *) {
             switch SystemLanguageModel.default.availability {
@@ -56,6 +56,7 @@ actor AppleIntelligenceService: AnalysisService {
             app: app,
             profile: profile,
             appURL: appURL,
+            // @Generable provides structured output; the text format instructions are not needed.
             includeResponseFormat: false
         )
 
