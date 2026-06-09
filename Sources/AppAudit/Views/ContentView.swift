@@ -52,7 +52,7 @@ struct ContentView: View {
             Button("Re-analyze \(viewModel.staleModelCount)") {
                 Task { await viewModel.reanalyzeAll(scope: .modelChangedUnlocked) }
             }
-            .buttonStyle(.borderedProminent)
+            .glassProminentButtonStyle()
             .controlSize(.small)
             Button("Dismiss") {
                 viewModel.dismissModelChangeBanner()

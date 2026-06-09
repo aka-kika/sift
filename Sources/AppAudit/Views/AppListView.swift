@@ -25,6 +25,7 @@ struct AppListView: View {
                             .tag(app.id)
                     }
                     .listStyle(.sidebar)
+                    .softTopScrollEdge()
                 }
             case .error(let msg):
                 ContentUnavailableView("Scan Failed", systemImage: "xmark.circle", description: Text(msg))
@@ -66,6 +67,9 @@ struct AppListView: View {
                           : "line.3.horizontal.decrease.circle")
                 }
             }
+            if #available(macOS 26.0, *) {
+                ToolbarSpacer(.fixed)
+            }
             ToolbarItem(placement: .automatic) {
                 Button {
                     Task {
@@ -79,6 +83,9 @@ struct AppListView: View {
                     Label(refreshButtonTitle, systemImage: "arrow.clockwise")
                 }
                 .disabled(isRefreshButtonDisabled)
+            }
+            if #available(macOS 26.0, *) {
+                ToolbarSpacer(.fixed)
             }
             ToolbarItem(placement: .automatic) {
                 Menu {

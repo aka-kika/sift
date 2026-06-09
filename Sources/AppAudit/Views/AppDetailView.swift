@@ -37,6 +37,7 @@ struct AppDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
         }
+        .softTopScrollEdge()
         .navigationTitle(app.name)
         .task(id: app.bundleID) {
             loadRecord()
@@ -176,7 +177,7 @@ struct AppDetailView: View {
                           systemImage: updateActionIcon(source: source))
                         .font(.caption.weight(.medium))
                 }
-                .buttonStyle(.borderedProminent)
+                .glassProminentButtonStyle()
                 .controlSize(.small)
                 .tint(.orange)
                 .disabled(runningHomebrewUpdate)
