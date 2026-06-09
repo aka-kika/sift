@@ -62,10 +62,15 @@ PLIST
 build_product_path() {
   local name="$1"
   local arch="$2"
-  case "$arch" in
-    arm64|x86_64) echo ".build/${arch}-apple-macosx/$CONF/$name" ;;
-    *) echo ".build/$CONF/$name" ;;
-  esac
+  # Older SwiftPM writes per-arch dirs; the Xcode 27 toolchain writes .build/<conf>
+  # even when --arch is passed. Prefer whichever actually exists.
+  local arch_path=".build/${arch}-apple-macosx/$CONF/$name"
+  local flat_path=".build/$CONF/$name"
+  if [[ -f "$arch_path" ]]; then
+    echo "$arch_path"
+  else
+    echo "$flat_path"
+  fi
 }
 
 install_binary() {
