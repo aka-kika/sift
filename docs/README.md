@@ -37,14 +37,14 @@ ollama pull llama3.2
 # 4. Launch Sift
 ```
 
-Sift scans `/Applications` and `~/Applications` on launch and begins analyzing each app with Ollama (a local server by default, or ollama.com cloud models with an API key). Results are cached — subsequent launches are instant.
+Sift scans `/Applications` and `~/Applications` on launch and begins analyzing each app with the selected provider — Ollama by default (local server or ollama.com cloud), with Anthropic, OpenAI, and on-device Apple Intelligence as alternatives. Results are cached — subsequent launches are instant.
 
 ---
 
 ## Features
 
 ### App Analysis
-Each app is analyzed with Ollama and returns:
+Each app is analyzed with the selected provider and returns:
 - **Explanation** — 1–2 short sentences: what it does and who uses it
 - **Relevance score** — 1 (safe to uninstall) → 5 (essential)
 - **Score reason** — why this score fits your workflow
@@ -145,7 +145,7 @@ Both are preserved across re-analyses.
 ## Settings (`⌘,`)
 
 ### Models Tab
-- **Provider** — choose **Ollama**, **Anthropic**, or **OpenAI**.
+- **Provider** — choose **Ollama**, **Anthropic**, **OpenAI**, or **Apple Intelligence**.
 - **Ollama** — Base URL (default `http://localhost:11434`), optional API Key (for ollama.com cloud models — set the Base URL to `https://ollama.com`), and a model picker fetched from `/api/tags`.
 - **Anthropic / OpenAI** — paste your API key; the model list is **fetched** from the provider (`/v1/models`) and shown in a picker. Keys are stored in app preferences.
 - **Apple Intelligence** — no key or URL; shows an availability status ("Available on this Mac" or the reason it isn't). On-device Foundation Models, macOS 26+.
