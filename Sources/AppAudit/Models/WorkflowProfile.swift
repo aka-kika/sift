@@ -27,6 +27,12 @@ struct WorkflowProfile: Sendable {
     SwiftUI, macOS apps, Ollama, Codex, local-first tools, project cleanup, app packaging, native Apple development, terminal workflows
     """
 
+    /// Used when the user clears their profile: score on general usefulness
+    /// instead of silently resurrecting the built-in personal default.
+    static let neutralProfileText = """
+    A general Mac user with a broad mix of apps and no specific workflow. Judge each app on its general usefulness, popularity of purpose, and upkeep cost.
+    """
+
     static func current(userDefaults: UserDefaults = .standard) -> WorkflowProfile {
         let stored = userDefaults.string(forKey: storageKey)
         return local(text: stored)
@@ -39,7 +45,7 @@ struct WorkflowProfile: Sendable {
             tools: [],
             domains: [],
             projectKeywords: [],
-            customDescription: trimmed.isEmpty ? defaultProfileText : trimmed
+            customDescription: trimmed.isEmpty ? neutralProfileText : trimmed
         )
     }
 

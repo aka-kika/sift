@@ -264,7 +264,7 @@ struct ProfileSettingsTab: View {
                     .scrollContentBackground(.hidden)
                     .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
 
-                SettingsFooter("Used when scoring app relevance. Re-analyze an app to refresh with this profile.")
+                SettingsFooter("Used when scoring app relevance. Leave empty to score on general usefulness instead of a personal workflow. Re-analyze an app to refresh with this profile.")
             }
 
             Section {
