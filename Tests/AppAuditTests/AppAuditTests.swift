@@ -36,10 +36,11 @@ struct WorkflowProfileTests {
         #expect(profile.promptDescription == "SwiftUI, Codex, local-first tools")
     }
 
-    @Test("Blank custom profile falls back to default")
+    @Test("Blank custom profile falls back to neutral (not personal default)")
     func blankCustomProfileFallsBack() {
         let profile = WorkflowProfile.local(text: "   ")
-        #expect(profile.promptDescription == WorkflowProfile.defaultProfileText)
+        #expect(profile.promptDescription == WorkflowProfile.neutralProfileText.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(profile.promptDescription != WorkflowProfile.defaultProfileText)
     }
 }
 
