@@ -438,6 +438,23 @@ struct AppAnalysisPromptTests {
         #expect(prompt.contains("Path context: example-owner / local-agent-tools"))
         #expect(prompt.contains("Slug keywords: example, owner, local, agent, tools"))
     }
+
+    @Test("Compact facts prompt carries evidence without the rule lists")
+    func compactFactsIsCompact() {
+        let app = AppInfo(
+            id: "com.example.tool", name: "Tool", version: "2.0",
+            bundleID: "com.example.tool", path: "/Applications/Tool.app",
+            humanReadableDescription: "A test tool", sparkleFeedURL: nil,
+            isAppStoreInstall: false, icon: nil
+        )
+        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: .generic(), appURL: "https://example.com/tool")
+        #expect(prompt.contains("App: Tool"))
+        #expect(prompt.contains("Bundle ID: com.example.tool"))
+        #expect(prompt.contains("https://example.com/tool"))
+        #expect(prompt.contains("Developer's workflow:"))
+        #expect(!prompt.contains("Evidence rules"))
+        #expect(!prompt.contains("EXPLANATION:"))
+    }
 }
 
 @Suite("LicenseKeyStore Tests")

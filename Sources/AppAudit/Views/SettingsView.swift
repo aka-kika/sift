@@ -47,6 +47,7 @@ struct AnalysisSettingsTab: View {
     @AppStorage("openAIApiKey") private var openAIApiKey = ""
     @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
     @AppStorage("appleIntelligenceModel") private var appleIntelligenceModel = "system-language-model"
+    @AppStorage("appleIntelligenceUsePCC") private var appleIntelligenceUsePCC = true
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -169,6 +170,12 @@ struct AnalysisSettingsTab: View {
         }
 
         SettingsFooter("On-device Foundation Models. No API key — analysis never leaves this Mac. Requires macOS 26+ with Apple Intelligence enabled.")
+
+        Divider()
+
+        Toggle("Use Private Cloud Compute when available", isOn: $appleIntelligenceUsePCC)
+
+        SettingsFooter("macOS 27+: runs analysis on Apple's private servers for much higher quality. Falls back to the on-device model when offline or over quota.")
 
         Divider()
         modelRow(model: $appleIntelligenceModel)

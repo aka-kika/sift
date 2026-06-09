@@ -9,7 +9,7 @@ private struct AppleIntelligenceAppAnalysis {
     @Guide(description: "Two clear sentences explaining what the app does and who uses it.")
     var explanation: String
 
-    @Guide(description: "Relevance score from 1 to 5 for this developer workflow.", .range(1...5))
+    @Guide(description: "Relevance score: 1 = no overlap with this workflow, safe to uninstall; 3 = occasionally useful; 5 = a daily driver this workflow depends on.", .range(1...5))
     var score: Int
 
     @Guide(description: "One sentence explaining why this score fits the workflow.")
@@ -22,7 +22,19 @@ private struct AppleIntelligenceAppAnalysis {
 
 actor AppleIntelligenceService: AnalysisService {
 
-    private let systemPrompt = AppAnalysisPrompt.system
+    /// Short instructions tuned for small models; the long shared system prompt
+    /// overwhelms them and the @Generable schema already carries field guidance.
+    private let compactInstructions = """
+    You are a macOS app analyst helping a developer decide what to keep.
+    Be direct and factual. State what the app is, grounded only in the facts given.
+    If the facts don't identify the app, say its purpose is unclear. Never guess from the name alone.
+    """
+
+    /// Prefer Apple's Private Cloud Compute model (macOS 27+) when the user has it
+    /// enabled — much higher quality than the on-device model, still private.
+    private var usePrivateCloudCompute: Bool {
+        UserDefaults.standard.object(forKey: "appleIntelligenceUsePCC") as? Bool ?? true
+    }
 
     private func availabilityMessage() -> String? {
         #if canImport(FoundationModels)
@@ -52,29 +64,38 @@ actor AppleIntelligenceService: AnalysisService {
             return .unavailable(message)
         }
 
-        let prompt = AppAnalysisPrompt.build(
-            app: app,
-            profile: profile,
-            appURL: appURL,
-            // @Generable provides structured output; the text format instructions are not needed.
-            includeResponseFormat: false
-        )
+        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: profile, appURL: appURL)
+        let options = GenerationOptions(samplingMode: .greedy, temperature: 0, maximumResponseTokens: 220)
+
+        // Private Cloud Compute first (macOS 27+, opt-out in Settings): a far larger
+        // model, still private. Any failure falls through to the on-device model.
+        if #available(macOS 27.0, *), usePrivateCloudCompute {
+            let cloudModel = PrivateCloudComputeLanguageModel()
+            if case .available = cloudModel.availability {
+                do {
+                    let session = LanguageModelSession(model: cloudModel, instructions: compactInstructions)
+                    let response = try await session.respond(
+                        to: prompt,
+                        generating: AppleIntelligenceAppAnalysis.self,
+                        options: options
+                    )
+                    return .success(Self.structuredText(from: response.content))
+                } catch {
+                    // Quota, network, or service failure — use the on-device model instead.
+                }
+            }
+        }
 
         do {
             let session = LanguageModelSession {
-                systemPrompt
+                compactInstructions
             }
             let response = try await session.respond(
                 to: prompt,
-                generating: AppleIntelligenceAppAnalysis.self
+                generating: AppleIntelligenceAppAnalysis.self,
+                options: options
             )
-            let analysis = response.content
-            return .success("""
-            EXPLANATION: \(analysis.explanation)
-            SCORE: \(analysis.score)
-            REASON: \(analysis.reason)
-            BEST_USE: \(analysis.bestUse)
-            """)
+            return .success(Self.structuredText(from: response.content))
         } catch {
             return .unavailable("Apple Intelligence error: \(error.localizedDescription)")
         }
@@ -93,6 +114,16 @@ actor AppleIntelligenceService: AnalysisService {
     }
 
     #if canImport(FoundationModels)
+    @available(macOS 26.0, *)
+    private static func structuredText(from analysis: AppleIntelligenceAppAnalysis) -> String {
+        """
+        EXPLANATION: \(analysis.explanation)
+        SCORE: \(analysis.score)
+        REASON: \(analysis.reason)
+        BEST_USE: \(analysis.bestUse)
+        """
+    }
+
     @available(macOS 26.0, *)
     private static func describeAvailabilityReason(_ reason: SystemLanguageModel.Availability.UnavailableReason) -> String {
         switch reason {
