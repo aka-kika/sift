@@ -71,6 +71,13 @@ spctl --assess --type open --verbose=4 Sift-1.1.0.dmg
 
 ## Notes
 
+- On macOS 27, the standalone Command Line Tools' SwiftPM is broken (missing
+  `BuildServerProtocol.framework`). Build via the Xcode beta toolchain instead:
+  `export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer`
+  (or `sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer` once).
+- Notarization credentials are stored in the login Keychain under the
+  `AC_PASSWORD` profile (`xcrun notarytool store-credentials`).
+
 - `Scripts/package_app.sh` defaults to ad-hoc signing for local builds.
 - Set `SIGNING_MODE=developer` and `APP_IDENTITY` for release signing.
 - The app uses the network client entitlement for Ollama/cloud providers and App Store/Sparkle checks.
