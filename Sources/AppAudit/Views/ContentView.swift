@@ -38,6 +38,7 @@ struct ContentView: View {
             viewModel.cacheService = CacheService(context: modelContext)
             viewModel.migrateLegacyLicenseKeys()
             viewModel.syncLicenseFlags()
+            await viewModel.applyFirstRunProviderDefault()
             await viewModel.runFullScan()
         }
     }

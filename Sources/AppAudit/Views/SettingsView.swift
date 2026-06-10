@@ -29,7 +29,7 @@ struct SettingsView: View {
     private var tabHeight: CGFloat {
         switch selectedTab {
         case .models: return 430
-        case .profile: return 250
+        case .profile: return 300
         case .general: return 230
         }
     }
@@ -303,25 +303,30 @@ struct AnalysisSettingsTab: View {
 // MARK: - Profile Tab
 
 struct ProfileSettingsTab: View {
-    @AppStorage(WorkflowProfile.storageKey) private var profileText = WorkflowProfile.defaultProfileText
+    @AppStorage(WorkflowProfile.storageKey) private var profileText = ""
+    @AppStorage("lastProfileDigest") private var lastProfileDigest = ""
 
     var body: some View {
         Form {
-            Section("Workflow") {
+            Section("Automatic profile") {
+                SettingsFooter(lastProfileDigest.isEmpty
+                    ? "Derived from your installed apps after the first scan — categories, recently used, and open apps."
+                    : lastProfileDigest)
+            }
+
+            Section("Custom override") {
                 TextEditor(text: $profileText)
                     .font(.body)
                     .frame(minHeight: 58)
                     .scrollContentBackground(.hidden)
                     .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
 
-                SettingsFooter("Used when scoring app relevance. Leave empty to score on general usefulness instead of a personal workflow. Re-analyze an app to refresh with this profile.")
+                SettingsFooter("Leave empty to use the automatic profile. Re-analyze an app to apply changes.")
             }
 
             Section {
-                Button("Restore Default Profile") {
-                    profileText = WorkflowProfile.defaultProfileText
-                }
-                .controlSize(.small)
+                Button("Clear Override") { profileText = "" }
+                    .controlSize(.small)
             }
         }
         .formStyle(.grouped)

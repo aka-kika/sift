@@ -35,6 +35,12 @@ struct AppRow: View {
                         .font(.body)
                         .lineLimit(1)
                         .truncationMode(.tail)
+                    if app.isRunning {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 6, height: 6)
+                            .help("Open now")
+                    }
                     if app.isFavorite {
                         Image(systemName: "star.fill")
                             .font(.caption2)

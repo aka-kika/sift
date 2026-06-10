@@ -29,8 +29,8 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 18) {
                 headerSection
                 Divider()
-                recommendationSection
                 whatIsThisSection
+                recommendationSection
                 Divider()
                 utilitySection
             }
@@ -123,6 +123,11 @@ struct AppDetailView: View {
                     if !app.version.isEmpty {
                         Text(app.version)
                             .font(.callout.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    if let categoryName = AppCategory.humanName(for: app.category) {
+                        Text("· \(categoryName)")
+                            .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                     tagBadges

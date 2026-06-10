@@ -1,6 +1,10 @@
 import SwiftUI
 import SwiftData
 
+#if canImport(AppKit)
+import AppKit
+#endif
+
 @MainActor
 @Observable
 final class AppListViewModel {
@@ -217,8 +221,15 @@ final class AppListViewModel {
         staleModelCount = 0
         scanState = .scanning
 
-        let scannedApps = await scanner.scan()
-        workflowProfile = .current()
+        #if canImport(AppKit)
+        let runningIDs = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
+        #else
+        let runningIDs = Set<String>()
+        #endif
+        let scannedApps = await scanner.scan(runningBundleIDs: runningIDs)
+        let digest = WorkflowDigest.build(from: scannedApps)
+        UserDefaults.standard.set(digest, forKey: "lastProfileDigest")
+        workflowProfile = .current(digest: digest)
         apps = scannedApps
         let updateToken = UUID()
         updateScanToken = updateToken
@@ -415,6 +426,18 @@ final class AppListViewModel {
         if changed { cache.persist() }
     }
 
+    /// First launch only (presence check — never overrides a stored choice): start
+    /// new installs on Apple Intelligence when it actually works on this Mac.
+    func applyFirstRunProviderDefault() async {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: AnalysisProviderKind.storageKey) == nil else { return }
+        let available: Bool
+        if case .models = await AppleIntelligenceService().fetchModels() { available = true } else { available = false }
+        if let raw = AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: available) {
+            defaults.set(raw, forKey: AnalysisProviderKind.storageKey)
+        }
+    }
+
     /// One-time sweep: move any lingering plaintext license keys out of the
     /// SwiftData store and into the Keychain, then null the legacy field. Runs once
     /// (guarded by a UserDefaults flag). Reads the owning app's own Keychain items,
@@ -552,7 +575,7 @@ final class AppListViewModel {
             return
         }
         let appURL = overrideAppURL ?? cacheService?.load(bundleID: bundleID)?.appURL
-        workflowProfile = .current()
+        workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
         apps[idx].aiState = .loading
         let provider = AnalysisProviderKind.current()
         let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL)
@@ -595,7 +618,7 @@ final class AppListViewModel {
     func reanalyzeAll(scope: ReanalyzeScope) async {
         guard scanState == .done || scanState == .idle else { return }
 
-        workflowProfile = .current()
+        workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
         let provider = AnalysisProviderKind.current()
         let modelIdentifier = provider.modelIdentifier
 
