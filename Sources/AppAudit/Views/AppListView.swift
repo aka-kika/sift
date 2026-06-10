@@ -127,7 +127,7 @@ struct AppListView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "AppAudit-\(formatter.string(from: Date())).csv"
+        panel.nameFieldStringValue = "Sift-\(formatter.string(from: Date())).csv"
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.canCreateDirectories = true
         panel.title = "Export Audit to CSV"

@@ -80,7 +80,7 @@ struct ContentView: View {
             ContentUnavailableView {
                 Label("Scanning Apps", systemImage: "app.badge")
             } description: {
-                Text("AppAudit is reading your installed apps and update sources.")
+                Text("Sift is reading your installed apps and update sources.")
             } actions: {
                 ProgressView()
                     .controlSize(.small)
