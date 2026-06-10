@@ -51,8 +51,15 @@ The "Best use and ranking" block keeps its content; only position changes.
   deterministically:
   `Installed apps: 98. Categories: Developer Tools (22), Productivity (11),
   Design (9), Utilities (8), other (48). Most recently used: Xcode, Claude,
-  Figma, Ghostty, Hazel, Keyboard Maestro, Eagle, Telegram.`
-  (top 5 categories by count; 8 most-recent apps by `lastUsedDate`.)
+  Figma, Ghostty, Hazel, Keyboard Maestro, Eagle, Telegram. Open right now:
+  Xcode, Ghostty, Telegram.`
+  (top 5 categories by count; 8 most-recent apps by `lastUsedDate`; up to 8
+  currently running apps.)
+- **Running detection** (validated against the Mole clone, which shells out to
+  `pgrep`; we use the native API instead): `AppInfo.isRunning`, populated at
+  scan time from `NSWorkspace.shared.runningApplications` bundle IDs (read on
+  the main actor, passed into the scanner). A small green dot on the app row
+  shows "open now".
 - Profile resolution order in `AppListViewModel.runFullScan` /
   `reanalyze*`: **custom profile text** (non-blank, from the existing storage
   key) → **digest** (computed from the current scan) → neutral text.
