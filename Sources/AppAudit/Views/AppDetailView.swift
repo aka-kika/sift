@@ -239,6 +239,8 @@ struct AppDetailView: View {
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .imageScale(.small)
+        .symbolRenderingMode(.hierarchical)
         .fixedSize()
         .help("More actions")
     }

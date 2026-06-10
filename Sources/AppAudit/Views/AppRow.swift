@@ -103,6 +103,15 @@ struct AppRow: View {
         .padding(.vertical, 2)
         .contextMenu {
             Button {
+                Task { await viewModel.reanalyze(bundleID: app.bundleID) }
+            } label: {
+                Label("Re-analyze", systemImage: "arrow.clockwise")
+            }
+            .disabled(app.isAnalysisLocked)
+
+            Divider()
+
+            Button {
                 toggleFavorite()
             } label: {
                 if app.isFavorite {
