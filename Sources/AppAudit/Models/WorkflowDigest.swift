@@ -27,7 +27,7 @@ enum WorkflowDigest {
 
         let recent = apps
             .compactMap { app in app.lastUsedDate.map { (app.name, $0) } }
-            .sorted { $0.1 > $1.1 }
+            .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }
             .prefix(8)
             .map(\.0)
         let running = apps.filter(\.isRunning).map(\.name).sorted().prefix(8)

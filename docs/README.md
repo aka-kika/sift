@@ -156,8 +156,9 @@ All providers use the same analysis prompt and structured-output parser; only th
 - New installs on macOS 26+ with Apple Intelligence available start on Apple Intelligence automatically; any stored choice is never changed.
 
 ### Profile Tab
-- **Workflow profile** — local text used by the selected analysis provider when scoring relevance
-- **Restore Default Profile** — resets the profile to Sift's built-in developer workflow
+- **Automatic profile** — a read-only preview of the digest derived from your installed apps (categories, recently used, open now).
+- **Custom override** — optional text that replaces the automatic profile entirely; leave empty to stay automatic.
+- **Clear Override** — returns to the automatic profile.
 
 ### Scanning Tab
 - **Include Apple system apps** — off by default (adds noise)

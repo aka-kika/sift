@@ -438,6 +438,19 @@ final class AppListViewModel {
         }
     }
 
+    /// One-time: users upgraded from builds where the personal default profile was
+    /// pre-stored. If the stored profile is exactly that old default, clear it so
+    /// the new automatic digest takes over (a deliberate custom profile differs
+    /// from the default text and is preserved).
+    func migrateDefaultProfileToAutomatic() {
+        let defaults = UserDefaults.standard
+        let stored = (defaults.string(forKey: WorkflowProfile.storageKey) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if stored == WorkflowProfile.defaultProfileText.trimmingCharacters(in: .whitespacesAndNewlines) {
+            defaults.removeObject(forKey: WorkflowProfile.storageKey)
+        }
+    }
+
     /// One-time sweep: move any lingering plaintext license keys out of the
     /// SwiftData store and into the Keychain, then null the legacy field. Runs once
     /// (guarded by a UserDefaults flag). Reads the owning app's own Keychain items,
