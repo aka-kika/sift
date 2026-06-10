@@ -115,9 +115,9 @@ reason appear at the top, followed by the "What is this?" explanation, then calm
 Notes / License / App Link rows. The header shows the app icon, name · version, tag
 badges (⭐ favorite, 🔨 My App, 💳 subscription, 🔒 locked), and a compact update pill.
 
-A single **⋯ overflow menu** (top-right) holds all per-app actions: Re-analyze,
-Lock/Unlock, Customize/Remove description, Favorite / My App / Subscription toggles,
-Show in Finder, Open App, and Copy Bundle ID.
+A single **⋯ overflow menu** (top-right) holds the analysis actions: Re-analyze,
+Lock/Unlock, and Customize/Remove description. Everything else about the app —
+tags, license keys, Finder, Copy Bundle ID — lives in the sidebar right-click menu.
 
 ### Editing
 In the detail panel you can:
@@ -129,6 +129,7 @@ Both are preserved across re-analyses.
 ### Right-click Menu
 | Action | Description |
 |---|---|
+| Re-analyze | Refresh this app's analysis (disabled while locked) |
 | Add / Remove from Favorites | Tag apps for a short review list |
 | Mark / Unmark as My App | Tag apps you built |
 | Mark / Unmark Subscription | Flag apps with a recurring fee |
