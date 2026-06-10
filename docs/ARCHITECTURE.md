@@ -88,7 +88,9 @@ Single structured provider request per app:
 [system] You are an expert macOS app analyst...
 
 [user]  Analyze the macOS app "X" (bundle ID: ...)
-        Developer workflow: [editable local profile text]
+        Path: /Applications/X.app
+        Category: Developer Tools   ← from Info.plist LSApplicationCategoryType (omitted when nil)
+        Developer workflow: [profile text]
 
         EXPLANATION: [1-2 short sentences]
         SCORE: [1-5]
@@ -103,3 +105,14 @@ providers (Ollama, Anthropic, OpenAI) return structured text for the parser;
 Apple Intelligence uses FoundationModels `@Generable` structured generation and
 converts the result into the same parsed format. The system prompt instructs the
 model to answer directly, banning "appears to be" hedging.
+
+## Workflow Profile Resolution
+
+Profile resolution order (applied at scan time and on every re-analyze):
+1. **Custom override** — non-blank text stored by the user in Settings → Profile
+2. **Automatic digest** — deterministic summary of installed apps: category counts, 8 most-recently-used, currently-running apps (`WorkflowDigest.build`)
+3. **Neutral fallback** — `WorkflowProfile.neutralProfileText` (used only before the first scan completes)
+
+The digest from the last scan is persisted to `UserDefaults` (`lastProfileDigest`) and
+shown as a read-only preview in Settings → Profile. Leave the custom override empty to
+stay automatic.

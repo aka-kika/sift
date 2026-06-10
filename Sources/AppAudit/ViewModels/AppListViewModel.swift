@@ -463,7 +463,7 @@ final class AppListViewModel {
     /// Full-audit CSV of every scanned app. Never includes license keys.
     func exportCSV() -> String {
         let header = [
-            "Name", "Bundle ID", "Version", "Score", "Recommendation",
+            "Name", "Bundle ID", "Version", "Category", "Score", "Recommendation",
             "Explanation", "Update Status", "My App", "Favorite", "Subscription", "Notes"
         ]
         let sorted = apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -481,6 +481,7 @@ final class AppListViewModel {
                 app.name,
                 app.bundleID,
                 app.version,
+                AppCategory.humanName(for: app.category) ?? "",
                 score,
                 bestUse,
                 explanation,

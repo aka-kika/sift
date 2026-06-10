@@ -7,13 +7,7 @@
 ## Now
 
 <!-- SF Symbol: circle.fill -->
-- **macOS 27 / Liquid Glass polish (1.2.0)** — link against the new SDK for the
-  system-wide glass appearance, add tasteful glass touches (update pill, banner
-  actions, scroll-edge effects, toolbar grouping), and audit every surface under
-  the new look. First because the OS just changed under the app.
-- **Apple Intelligence provider (1.2.0)** — restore on-device Foundation Models
-  analysis as a fourth engine alongside Ollama, Anthropic, and OpenAI.
-  Availability-gated; Ollama stays the default. No API key, fully private.
+- **Grounded-first analysis** — facts before opinions: auto profile from installed apps, category evidence, zero-setup Apple Intelligence default.
 
 ## Next
 
@@ -35,6 +29,7 @@
 ## Recently shipped
 
 <!-- SF Symbol: checkmark.circle -->
+- **1.2.0 (unreleased)** — Liquid Glass pass for macOS 26/27 and the Apple Intelligence provider with truthful PCC status.
 - **1.1.0** — first notarized release: three AI providers, License Vault,
   Last Used sort, CSV export, recommendation-first detail panel, and the
   AppAudit → Sift rename with full data continuity.

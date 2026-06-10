@@ -1,7 +1,7 @@
 # Sift — Grounded-First Analysis — Design
 
 **Date:** 2026-06-10
-**Status:** Approved design, pending spec review
+**Status:** Implemented (see docs/superpowers/plans/2026-06-10-grounded-first-analysis.md)
 **Branch:** `claude/jolly-poincare-38dcc2`
 
 ## Context

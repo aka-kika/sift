@@ -51,7 +51,7 @@ Each app is analyzed with the selected provider and returns:
 - **Best use** — one concise action tip for your stack
 
 ### Workflow Context
-Sift scores apps against an editable local workflow profile. The default profile is focused on native app development, web development, terminal tooling, Codex, Ollama, packaging, and local-first software work.
+Sift scores apps against an automatic workflow profile derived from your installed apps — category counts, the apps you've used most recently, and what's open right now. Settings → Profile shows the current digest; an optional custom override replaces it entirely. Leave the override empty to stay automatic.
 
 ### Persistent Memory
 Results are stored in SwiftData at:
@@ -105,16 +105,16 @@ When you add or change an app link, Sift re-analyzes that app with the link as c
 Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
 
 ### Export to CSV
-Sidebar **⋯ menu → "Export to CSV…"** writes the full audit (name, bundle ID, version, score, recommendation, explanation, update status, My App, Favorite, Subscription, notes) to a CSV you can open in Numbers/Excel. **License keys are never included.**
+Sidebar **⋯ menu → "Export to CSV…"** writes the full audit (name, bundle ID, version, category, score, recommendation, explanation, update status, My App, Favorite, Subscription, notes) to a CSV you can open in Numbers/Excel. **License keys are never included.**
 
 ### License Vault
 Open from the sidebar **⋯ menu → "License Vault…"**. It keeps the license keys of apps you've **uninstalled** so you can still copy them later — useful when you remove an app but might reinstall it. Records persist after an app is removed; the Vault lists those that still hold a key, with **Copy Key** (reads the secret on demand) and **Delete**. Currently-installed apps don't appear here (manage their keys from the app's detail pane).
 
 ### Detail Panel
-The detail panel is **recommendation-first**: the relevance score, best-use tip, and
-reason appear at the top, followed by the "What is this?" explanation, then calm
-Notes / License / App Link rows. The header shows the app icon, name · version, tag
-badges (⭐ favorite, 🔨 My App, 💳 subscription, 🔒 locked), and a compact update pill.
+The detail panel is **facts-first**: the "What is this?" explanation comes first,
+followed by the relevance score, best-use tip, and reason, then calm Notes / License /
+App Link rows. The header shows the app icon, name · version · category, tag badges
+(⭐ favorite, 🔨 My App, 💳 subscription, 🔒 locked), and a compact update pill.
 
 A single **⋯ overflow menu** (top-right) holds the analysis actions: Re-analyze,
 Lock/Unlock, and Customize/Remove description. Everything else about the app —
@@ -153,6 +153,7 @@ Both are preserved across re-analyses.
 - The refresh button next to the key/URL tests the connection and fetches models.
 
 All providers use the same analysis prompt and structured-output parser; only the transport differs.
+- New installs on macOS 26+ with Apple Intelligence available start on Apple Intelligence automatically; any stored choice is never changed.
 
 ### Profile Tab
 - **Workflow profile** — local text used by the selected analysis provider when scoring relevance
