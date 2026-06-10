@@ -1,7 +1,7 @@
 # Sift 1.2.0 — macOS 27 Polish + Apple Intelligence — Design
 
 **Date:** 2026-06-10
-**Status:** Implemented (see docs/superpowers/plans/2026-06-10-macos27-liquid-glass-apple-intelligence.md)
+**Status:** Implemented, then Apple Intelligence removed after owner testing (PCC broken on this beta; on-device quality insufficient). Liquid Glass work retained.
 **Branch:** `claude/jolly-poincare-38dcc2`
 **Prerequisite:** Sift 1.1.0 notarized and published — **done** (tag `v1.1.0`,
 release at github.com/aka-kika/sift).

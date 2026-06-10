@@ -18,8 +18,6 @@ updating, and which licenses and subscriptions you're paying for.
 - **Ollama** — local server (default) or **ollama.com cloud models** via an API key.
 - **Anthropic (Claude)** — Messages API; model list fetched from the provider.
 - **OpenAI** — Chat Completions API; model list fetched from the provider.
-- **Apple Intelligence** — on-device Foundation Models (macOS 26+). No API key;
-  analysis never leaves the Mac. Availability is checked and explained in Settings.
 - One shared prompt and parser across providers; only the transport differs.
 - API keys are stored in app preferences.
 - **No auto-wipe on model change** — switching models keeps your existing analyses and
@@ -70,7 +68,6 @@ updating, and which licenses and subscriptions you're paying for.
 
 ## Privacy & data
 
-- Analysis runs locally by default (Ollama), or fully on-device with Apple
-  Intelligence. Cloud providers are opt-in via API key.
+- Analysis runs locally by default (Ollama). Cloud providers are opt-in via API key.
 - Data is stored locally in SwiftData; license keys live in the Keychain.
 - Update and app-link checks use public vendor endpoints only.

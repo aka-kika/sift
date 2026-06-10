@@ -92,18 +92,6 @@ struct AnalysisProviderKindTests {
         #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
     }
 
-    @Test("Apple Intelligence keeps its historical cache identifier")
-    func appleIntelligenceIdentifier() {
-        let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.ai")!
-        // Even if a model name is stored, the identifier stays pinned so analyses
-        // cached before the 1.1.0 trims revalidate as non-drifted.
-        defaults.set("anything-else", forKey: "appleIntelligenceModel")
-        #expect(AnalysisProviderKind.appleIntelligence.modelIdentifier(userDefaults: defaults) == "apple-intelligence:foundation-models")
-        #expect(AnalysisProviderKind.allCases.count == 4)
-        #expect(AnalysisProviderKind.appleIntelligence.displayName == "Apple Intelligence")
-        defaults.removeObject(forKey: "appleIntelligenceModel")
-    }
-
     @Test("Builds stable cache identifiers per provider and model")
     func modelIdentifiers() {
         let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.models")!
@@ -169,7 +157,7 @@ struct AnalysisLockTests {
 
         context.insert(record)
 
-        #expect(!cache.isStale(record, currentModel: "apple-intelligence:foundation-models", currentAppURL: "https://example.com/locked"))
+        #expect(!cache.isStale(record, currentModel: "anthropic:claude-3-5-haiku-latest", currentAppURL: "https://example.com/locked"))
     }
 
     @Test("Save does not overwrite locked analysis")
@@ -200,7 +188,7 @@ struct AnalysisLockTests {
             score: 1,
             reason: "New reason",
             bestUse: "New use",
-            ollamaModel: "apple-intelligence:foundation-models"
+            ollamaModel: "anthropic:claude-3-5-haiku-latest"
         )
 
         #expect(record.explanation == "Original")
@@ -439,22 +427,6 @@ struct AppAnalysisPromptTests {
         #expect(prompt.contains("Slug keywords: example, owner, local, agent, tools"))
     }
 
-    @Test("Compact facts prompt carries evidence without the rule lists")
-    func compactFactsIsCompact() {
-        let app = AppInfo(
-            id: "com.example.tool", name: "Tool", version: "2.0",
-            bundleID: "com.example.tool", path: "/Applications/Tool.app",
-            humanReadableDescription: "A test tool", sparkleFeedURL: nil,
-            isAppStoreInstall: false, icon: nil
-        )
-        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: .generic(), appURL: "https://example.com/tool")
-        #expect(prompt.contains("App: Tool"))
-        #expect(prompt.contains("Bundle ID: com.example.tool"))
-        #expect(prompt.contains("https://example.com/tool"))
-        #expect(prompt.contains("Developer's workflow:"))
-        #expect(!prompt.contains("Evidence rules"))
-        #expect(!prompt.contains("EXPLANATION:"))
-    }
 }
 
 @Suite("LicenseKeyStore Tests")

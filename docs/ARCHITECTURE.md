@@ -13,7 +13,7 @@
 ├──────────────┬──────────────┬───────────┤
 │ AppScanner │ AI Providers       │ Update/App Links │ Services
 │ FileManager│ Ollama/Anthropic/  │ App Store/Sparkle
-│            │ OpenAI/Apple Intel.│ /Homebrew
+│            │ OpenAI             │ /Homebrew
 ├─────────────────────────────────────────┤
 │  CacheService  +  AppRecord (@Model)    │  Data
 │         SwiftData store                 │
@@ -64,7 +64,7 @@ Locked analyses opt out of invalidation and overwrite. `CacheService.save` refus
 
 - AI enrichment uses `withTaskGroup` capped at 2 concurrent provider requests (low peak memory/CPU)
 - All ViewModel mutations happen on `@MainActor`
-- Services are `actor`-isolated (AppScanner, OllamaService, AnthropicService, OpenAIService, AppleIntelligenceService)
+- Services are `actor`-isolated (AppScanner, OllamaService, AnthropicService, OpenAIService)
 
 ## Persistence
 
@@ -99,7 +99,6 @@ Single structured provider request per app:
 Parser: line-by-line prefix matching on `EXPLANATION:`, `SCORE:`, `REASON:`, `BEST_USE:`.
 
 All providers share this one prompt via the `AnalysisService` protocol. The HTTP
-providers (Ollama, Anthropic, OpenAI) return structured text for the parser;
-Apple Intelligence uses FoundationModels `@Generable` structured generation and
-converts the result into the same parsed format. The system prompt instructs the
-model to answer directly, banning "appears to be" hedging.
+providers (Ollama, Anthropic, OpenAI) return structured text for the parser. The
+system prompt instructs the model to answer directly, banning "appears to be"
+hedging.

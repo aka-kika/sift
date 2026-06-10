@@ -19,7 +19,6 @@ Analysis runs locally. Update and app-link checks use public vendor endpoints wh
 | [Ollama](https://ollama.ai) | Local AI analysis provider | `brew install ollama` |
 | A pulled Ollama model | LLM for analysis | `ollama pull llama3.2` |
 | Cloud API key | Optional — use a hosted provider instead of a local server: an ollama.com, Anthropic, or OpenAI key | — |
-| Apple Intelligence | Optional on-device provider | macOS 26+ with Apple Intelligence enabled |
 | `create-dmg` | Polished release DMG builder | `brew install create-dmg` |
 
 ---
@@ -37,7 +36,7 @@ ollama pull llama3.2
 # 4. Launch Sift
 ```
 
-Sift scans `/Applications` and `~/Applications` on launch and begins analyzing each app with the selected provider — Ollama by default (local server or ollama.com cloud), with Anthropic, OpenAI, and on-device Apple Intelligence as alternatives. Results are cached — subsequent launches are instant.
+Sift scans `/Applications` and `~/Applications` on launch and begins analyzing each app with the selected provider — Ollama by default (local server or ollama.com cloud), with Anthropic and OpenAI as alternatives. Results are cached — subsequent launches are instant.
 
 ---
 
@@ -145,10 +144,9 @@ Both are preserved across re-analyses.
 ## Settings (`⌘,`)
 
 ### Models Tab
-- **Provider** — choose **Ollama**, **Anthropic**, **OpenAI**, or **Apple Intelligence**.
+- **Provider** — choose **Ollama**, **Anthropic**, or **OpenAI**.
 - **Ollama** — Base URL (default `http://localhost:11434`), optional API Key (for ollama.com cloud models — set the Base URL to `https://ollama.com`), and a model picker fetched from `/api/tags`.
 - **Anthropic / OpenAI** — paste your API key; the model list is **fetched** from the provider (`/v1/models`) and shown in a picker. Keys are stored in app preferences.
-- **Apple Intelligence** — no key or URL; shows an availability status ("Available on this Mac" or the reason it isn't). On-device Foundation Models, macOS 26+.
 - The refresh button next to the key/URL tests the connection and fetches models.
 
 All providers use the same analysis prompt and structured-output parser; only the transport differs.

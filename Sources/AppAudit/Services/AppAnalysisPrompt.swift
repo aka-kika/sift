@@ -51,30 +51,6 @@ enum AppAnalysisPrompt {
         """
     }
 
-    /// Compact facts-only prompt for small on-device models (Apple Intelligence).
-    /// Per-field guidance travels with the @Generable schema, so this carries only
-    /// the evidence and the workflow context — long rule lists overwhelm small models.
-    static func compactFacts(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil) -> String {
-        var lines: [String] = [
-            "App: \(app.name)",
-            "Bundle ID: \(app.bundleID)",
-            "Version: \(app.version.isEmpty ? "Unknown" : app.version)",
-            "Path: \(app.path)"
-        ]
-        if let description = app.humanReadableDescription, !description.isEmpty {
-            lines.append("App description: \(description)")
-        }
-        if let url = appURL?.trimmingCharacters(in: .whitespacesAndNewlines), !url.isEmpty {
-            lines.append("Reference URL (you did not open it; judge from the URL text only): \(url)")
-        }
-        lines.append("")
-        lines.append("Developer's workflow:")
-        lines.append(profile.promptDescription)
-        lines.append("")
-        lines.append("Score this app's relevance to that workflow from 1 (safe to uninstall) to 5 (daily driver).")
-        return lines.joined(separator: "\n")
-    }
-
     private static func referenceURLContext(from appURL: String?) -> String {
         guard let rawURL = appURL?.trimmingCharacters(in: .whitespacesAndNewlines),
               !rawURL.isEmpty else {

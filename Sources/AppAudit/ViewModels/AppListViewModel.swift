@@ -205,7 +205,6 @@ final class AppListViewModel {
     private let ollama = OllamaService()
     private let anthropic = AnthropicService()
     private let openAI = OpenAIService()
-    private let appleIntelligence = AppleIntelligenceService()
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     var cacheService: CacheService?
@@ -361,8 +360,6 @@ final class AppListViewModel {
             result = await anthropic.analyze(app: app, profile: profile, appURL: appURL)
         case .openAI:
             result = await openAI.analyze(app: app, profile: profile, appURL: appURL)
-        case .appleIntelligence:
-            result = await appleIntelligence.analyze(app: app, profile: profile, appURL: appURL)
         }
 
         switch result {
