@@ -28,7 +28,7 @@ struct SettingsView: View {
     /// Each tab sized to its content; the window follows on tab switch.
     private var tabHeight: CGFloat {
         switch selectedTab {
-        case .models: return 360
+        case .models: return 430
         case .profile: return 250
         case .general: return 230
         }
@@ -46,8 +46,13 @@ struct AnalysisSettingsTab: View {
     @AppStorage("anthropicModel") private var anthropicModel = "claude-3-5-haiku-latest"
     @AppStorage("openAIApiKey") private var openAIApiKey = ""
     @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
+    @AppStorage("appleIntelligenceModel") private var appleIntelligenceModel = "system-language-model"
+    @AppStorage("appleIntelligenceUsePCC") private var appleIntelligenceUsePCC = true
+    @AppStorage("appleIntelligenceStyleNotes") private var appleIntelligenceStyleNotes = ""
+
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
+    @State private var pccStatus: String? = nil
 
     enum FetchState { case idle, loading, loaded, failed(String) }
 
@@ -94,6 +99,8 @@ struct AnalysisSettingsTab: View {
                 case .openAI:
                     cloudConfig(apiKey: $openAIApiKey, model: $openAIModel,
                                 hint: "OpenAI API key (platform.openai.com). Stored in app preferences.")
+                case .appleIntelligence:
+                    appleIntelligenceConfig
                 }
             }
         }
@@ -155,6 +162,44 @@ struct AnalysisSettingsTab: View {
         modelRow(model: model)
     }
 
+    @ViewBuilder
+    private var appleIntelligenceConfig: some View {
+        HStack {
+            Text("Status")
+                .frame(width: 64, alignment: .leading)
+            ProviderStatusView(status: providerStatus)
+            fetchButton
+        }
+
+        SettingsFooter("On-device Foundation Models. No API key — analysis never leaves this Mac. Requires macOS 26+ with Apple Intelligence enabled.")
+
+        Divider()
+
+        Toggle("Use Private Cloud Compute when available", isOn: $appleIntelligenceUsePCC)
+
+        SettingsFooter("macOS 27+: runs analysis on Apple's private servers for much higher quality. Falls back to the on-device model when offline or over quota.")
+
+        if appleIntelligenceUsePCC, let pccStatus {
+            SettingsFooter(pccStatus)
+        }
+
+        Divider()
+        modelRow(model: $appleIntelligenceModel)
+
+        Divider()
+
+        HStack(alignment: .top) {
+            Text("Style")
+                .frame(width: 64, alignment: .leading)
+            TextField("e.g. Mention alternatives. Keep best-use under 12 words.", text: $appleIntelligenceStyleNotes, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...4)
+                .controlSize(.small)
+        }
+
+        SettingsFooter("Appended to the analysis instructions. Experiment freely — applies to the next re-analyze.")
+    }
+
     private var fetchButton: some View {
         Button {
             Task { await fetchModels() }
@@ -213,6 +258,9 @@ struct AnalysisSettingsTab: View {
         case .loading:
             return .testing("Testing \(provider.displayName)…")
         case .loaded:
+            if provider == .appleIntelligence {
+                return .success("Available on this Mac")
+            }
             let count = availableModels.count
             return count == 0 ? .success("Connected. No models found.") : .success("Connected. \(count) model(s).")
         case .failed(let message):
@@ -227,6 +275,7 @@ struct AnalysisSettingsTab: View {
         case .ollama: result = await OllamaService().fetchModels()
         case .anthropic: result = await AnthropicService().fetchModels()
         case .openAI: result = await OpenAIService().fetchModels()
+        case .appleIntelligence: result = await AppleIntelligenceService().fetchModels()
         }
         switch result {
         case .models(let models):
@@ -241,6 +290,12 @@ struct AnalysisSettingsTab: View {
         case .failure(let message):
             availableModels = []
             fetchState = .failed(message)
+        }
+
+        if provider == .appleIntelligence {
+            pccStatus = appleIntelligenceUsePCC ? await AppleIntelligenceService().probePrivateCloudCompute() : nil
+        } else {
+            pccStatus = nil
         }
     }
 }

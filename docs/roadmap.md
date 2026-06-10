@@ -11,6 +11,9 @@
   system-wide glass appearance, add tasteful glass touches (update pill, banner
   actions, scroll-edge effects, toolbar grouping), and audit every surface under
   the new look. First because the OS just changed under the app.
+- **Apple Intelligence provider (1.2.0)** — restore on-device Foundation Models
+  analysis as a fourth engine alongside Ollama, Anthropic, and OpenAI.
+  Availability-gated; Ollama stays the default. No API key, fully private.
 
 ## Next
 
@@ -45,6 +48,3 @@
   uninstalled apps rather than becoming a general password manager.
 - License keys in CSV export — decided against; keys never leave the Keychain
   except by explicit per-key copy.
-- Apple Intelligence provider — shipped in a 1.2.0 beta build, removed after
-  testing: Private Cloud Compute fails on the macOS 27 beta and the on-device
-  model's quality wasn't worth a fourth engine. Revisit when PCC stabilizes.
