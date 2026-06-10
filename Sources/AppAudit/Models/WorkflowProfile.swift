@@ -33,9 +33,15 @@ struct WorkflowProfile: Sendable {
     A general Mac user with a broad mix of apps and no specific workflow. Judge each app on its general usefulness, popularity of purpose, and upkeep cost.
     """
 
-    static func current(userDefaults: UserDefaults = .standard) -> WorkflowProfile {
-        let stored = userDefaults.string(forKey: storageKey)
-        return local(text: stored)
+    static func current(digest: String? = nil, userDefaults: UserDefaults = .standard) -> WorkflowProfile {
+        let stored = (userDefaults.string(forKey: storageKey) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !stored.isEmpty { return local(text: stored) }
+        if let digest, !digest.isEmpty {
+            return WorkflowProfile(languages: [], tools: [], domains: [],
+                                   projectKeywords: [], customDescription: digest)
+        }
+        return local(text: nil)
     }
 
     static func local(text: String?) -> WorkflowProfile {

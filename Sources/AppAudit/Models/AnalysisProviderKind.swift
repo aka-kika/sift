@@ -65,6 +65,12 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
 
     static let storageKey = "analysisProviderKind"
 
+    /// First-run only: pick Apple Intelligence when it is actually available, else
+    /// leave the preference unset so the Ollama fallback applies. Pure for testing.
+    static func firstRunProviderRawValue(appleIntelligenceAvailable: Bool) -> String? {
+        appleIntelligenceAvailable ? AnalysisProviderKind.appleIntelligence.rawValue : nil
+    }
+
     static func current(userDefaults: UserDefaults = .standard) -> AnalysisProviderKind {
         let rawValue = userDefaults.string(forKey: storageKey) ?? Self.ollama.rawValue
         return AnalysisProviderKind(rawValue: rawValue) ?? .ollama

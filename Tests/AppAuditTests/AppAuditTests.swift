@@ -967,6 +967,69 @@ struct AppLinkResolverTests {
     }
 }
 
+@Suite("Grounded Profile Tests")
+struct GroundedProfileTests {
+
+    private func app(_ name: String, category: String? = nil, lastUsed: Date? = nil, running: Bool = false) -> AppInfo {
+        AppInfo(
+            id: "com.test.\(name)", name: name, version: "1.0",
+            bundleID: "com.test.\(name)", path: "/Applications/\(name).app",
+            humanReadableDescription: nil, sparkleFeedURL: nil,
+            isAppStoreInstall: false, icon: nil,
+            category: category, lastUsedDate: lastUsed, isRunning: running
+        )
+    }
+
+    @Test("Category raw values map to readable names")
+    func categoryNames() {
+        #expect(AppCategory.humanName(for: "public.app-category.developer-tools") == "Developer Tools")
+        #expect(AppCategory.humanName(for: "public.app-category.productivity") == "Productivity")
+        #expect(AppCategory.humanName(for: "com.example.custom") == nil)
+        #expect(AppCategory.humanName(for: nil) == nil)
+    }
+
+    @Test("Digest counts categories, lists recent and running apps")
+    func digestContents() {
+        let now = Date()
+        let apps = [
+            app("Xcode", category: "public.app-category.developer-tools", lastUsed: now, running: true),
+            app("Ghostty", category: "public.app-category.developer-tools", lastUsed: now.addingTimeInterval(-60)),
+            app("Figma", category: "public.app-category.graphics-design", lastUsed: now.addingTimeInterval(-120)),
+            app("Mystery"),
+        ]
+        let digest = WorkflowDigest.build(from: apps)
+        #expect(digest.contains("Installed apps: 4."))
+        #expect(digest.contains("Developer Tools (2)"))
+        #expect(digest.contains("Graphics Design (1)"))
+        #expect(digest.contains("other (1)"))
+        #expect(digest.contains("Most recently used: Xcode, Ghostty, Figma."))
+        #expect(digest.contains("Open right now: Xcode."))
+    }
+
+    @Test("Digest of no apps is empty")
+    func digestEmpty() {
+        #expect(WorkflowDigest.build(from: []) == "")
+    }
+
+    @Test("Profile resolution: custom override beats digest beats neutral")
+    func profileResolution() {
+        let defaults = UserDefaults(suiteName: "AppAuditTests.GroundedProfile")!
+        defaults.set("my custom workflow", forKey: WorkflowProfile.storageKey)
+        #expect(WorkflowProfile.current(digest: "digest text", userDefaults: defaults).promptDescription == "my custom workflow")
+
+        defaults.removeObject(forKey: WorkflowProfile.storageKey)
+        #expect(WorkflowProfile.current(digest: "digest text", userDefaults: defaults).promptDescription == "digest text")
+        #expect(WorkflowProfile.current(digest: "", userDefaults: defaults).promptDescription
+            == WorkflowProfile.neutralProfileText.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    @Test("First-run provider default only when Apple Intelligence is available")
+    func firstRunProvider() {
+        #expect(AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: true) == "appleIntelligence")
+        #expect(AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: false) == nil)
+    }
+}
+
 final class MemorySecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
     private var values: [String: String] = [:]
 

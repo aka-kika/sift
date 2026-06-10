@@ -22,8 +22,10 @@ struct AppInfo: Identifiable {
     let isAppStoreInstall: Bool
     let homebrewCaskToken: String?
     let icon: SendableImage?
+    let category: String?
     let lastUsedDate: Date?
 
+    var isRunning: Bool = false
     var aiState: AIState = .pending
     var updateState: UpdateState = .unknown
     var isMyApp: Bool = false
@@ -42,7 +44,9 @@ struct AppInfo: Identifiable {
         isAppStoreInstall: Bool,
         homebrewCaskToken: String? = nil,
         icon: SendableImage?,
+        category: String? = nil,
         lastUsedDate: Date? = nil,
+        isRunning: Bool = false,
         aiState: AIState = .pending,
         updateState: UpdateState = .unknown,
         isMyApp: Bool = false,
@@ -60,7 +64,9 @@ struct AppInfo: Identifiable {
         self.isAppStoreInstall = isAppStoreInstall
         self.homebrewCaskToken = homebrewCaskToken
         self.icon = icon
+        self.category = category
         self.lastUsedDate = lastUsedDate
+        self.isRunning = isRunning
         self.aiState = aiState
         self.updateState = updateState
         self.isMyApp = isMyApp

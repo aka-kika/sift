@@ -11,7 +11,7 @@ actor AppScanner {
     private let skipPaths = ["/System/", "/Library/Frameworks/", "/private/"]
     private let homebrew = HomebrewService()
 
-    func scan(includeApple: Bool? = nil, includeUtilities: Bool? = nil) async -> [AppInfo] {
+    func scan(includeApple: Bool? = nil, includeUtilities: Bool? = nil, runningBundleIDs: Set<String> = []) async -> [AppInfo] {
         let shouldIncludeApple = includeApple ?? UserDefaults.standard.bool(forKey: "includeAppleApps")
         let shouldIncludeUtilities = includeUtilities ?? (UserDefaults.standard.object(forKey: "includeUtilityApps") as? Bool ?? true)
 
@@ -41,7 +41,8 @@ actor AppScanner {
                 if let appInfo = makeAppInfo(
                     from: fullPath,
                     includeApple: shouldIncludeApple,
-                    installedCasks: installedCasks
+                    installedCasks: installedCasks,
+                    runningBundleIDs: runningBundleIDs
                 ) {
                     apps.append(appInfo)
                 }
@@ -51,7 +52,7 @@ actor AppScanner {
         return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    private func makeAppInfo(from path: String, includeApple: Bool, installedCasks: [String]) -> AppInfo? {
+    private func makeAppInfo(from path: String, includeApple: Bool, installedCasks: [String], runningBundleIDs: Set<String> = []) -> AppInfo? {
         let plistPath = (path as NSString).appendingPathComponent("Contents/Info.plist")
         guard let plist = NSDictionary(contentsOfFile: plistPath),
               let name = plist["CFBundleName"] as? String ?? plist["CFBundleDisplayName"] as? String,
@@ -74,6 +75,8 @@ actor AppScanner {
         icon = nil
 #endif
 
+        let category = plist["LSApplicationCategoryType"] as? String
+
         return AppInfo(
             id: bundleID,
             name: name,
@@ -85,7 +88,9 @@ actor AppScanner {
             isAppStoreInstall: isAppStoreInstall,
             homebrewCaskToken: homebrewCaskToken,
             icon: icon,
-            lastUsedDate: lastUsedDate(forPath: path)
+            category: category,
+            lastUsedDate: lastUsedDate(forPath: path),
+            isRunning: runningBundleIDs.contains(bundleID)
         )
     }
 
