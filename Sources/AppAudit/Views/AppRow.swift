@@ -354,6 +354,9 @@ struct AppRow: View {
         licenseKeyStore.save(trimmed, bundleID: app.bundleID)
         record.licenseKey = nil
         record.hasLicenseKey = !trimmed.isEmpty
+        if !trimmed.isEmpty, record.iconPNG == nil {
+            record.iconPNG = app.icon?.pngData()
+        }
         try? modelContext.save()
     }
 

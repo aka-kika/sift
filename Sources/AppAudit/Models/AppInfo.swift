@@ -11,6 +11,23 @@ struct SendableImage: @unchecked Sendable {
 #endif
 }
 
+#if canImport(AppKit)
+extension SendableImage {
+    /// Small PNG of the app icon, cached on records that hold a license key so
+    /// the Vault can still show the icon after the app is uninstalled.
+    func pngData(side: CGFloat = 64) -> Data? {
+        let target = NSImage(size: NSSize(width: side, height: side))
+        target.lockFocus()
+        image.draw(in: NSRect(x: 0, y: 0, width: side, height: side),
+                   from: .zero, operation: .copy, fraction: 1.0)
+        target.unlockFocus()
+        guard let tiff = target.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        return rep.representation(using: .png, properties: [:])
+    }
+}
+#endif
+
 struct AppInfo: Identifiable {
     let id: String          // bundleID
     let name: String

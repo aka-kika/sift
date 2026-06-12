@@ -17,6 +17,7 @@ final class AppRecord {
     var isFavorite: Bool = false
     var hasSubscription: Bool = false
     var hasLicenseKey: Bool = false
+    var iconPNG: Data? = nil
     var isAnalysisLocked: Bool = false
     var appURL: String? = nil
     var suggestedAppURL: String? = nil
@@ -42,6 +43,7 @@ final class AppRecord {
         self.isFavorite = false
         self.hasSubscription = false
         self.hasLicenseKey = false
+        self.iconPNG = nil
         self.isAnalysisLocked = false
         self.suggestedAppURL = nil
         self.analysisAppURL = nil

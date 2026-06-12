@@ -259,6 +259,9 @@ final class AppListViewModel {
                     apps[i].isFavorite = record.isFavorite
                     apps[i].isSubscribed = record.hasSubscription
                     apps[i].isAnalysisLocked = record.isAnalysisLocked
+                    if record.hasLicenseKey, record.iconPNG == nil {
+                        record.iconPNG = apps[i].icon?.pngData()
+                    }
                     let currentAppURL = record.appURL
                     if !record.explanation.isEmpty,
                        (record.isAnalysisLocked || !cache.isStale(record, currentModel: modelIdentifier, currentAppURL: currentAppURL)) {
@@ -281,6 +284,7 @@ final class AppListViewModel {
         } else {
             toEnrich = apps
         }
+        cacheService?.persist()
 
         scanState = .enriching(completed: apps.count - toEnrich.count, total: apps.count)
 

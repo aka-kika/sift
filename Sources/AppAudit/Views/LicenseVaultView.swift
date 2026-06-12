@@ -62,8 +62,16 @@ struct LicenseVaultView: View {
 
     private func vaultRow(_ record: AppRecord) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: "key.horizontal.fill")
-                .foregroundStyle(.secondary)
+            if let data = record.iconPNG, let icon = NSImage(data: data) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .frame(width: 28, height: 28)
+                    .cornerRadius(6)
+            } else {
+                Image(systemName: "key.horizontal.fill")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(record.appName).font(.body)
                 Text(record.bundleID)

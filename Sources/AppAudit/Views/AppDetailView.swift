@@ -66,6 +66,9 @@ struct AppDetailView: View {
                     currentLicenseKey = trimmed.isEmpty ? nil : trimmed
                     ensuredRecord.licenseKey = nil
                     ensuredRecord.hasLicenseKey = !trimmed.isEmpty
+                    if !trimmed.isEmpty, ensuredRecord.iconPNG == nil {
+                        ensuredRecord.iconPNG = app.icon?.pngData()
+                    }
                     saveRecord()
                 }
                 editingLicenseKey = false
