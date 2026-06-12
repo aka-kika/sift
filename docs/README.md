@@ -108,7 +108,7 @@ Store purchased license keys per app in macOS Keychain. Keys can be added, copie
 Sidebar **⋯ menu → "Export to CSV…"** writes the full audit (name, bundle ID, version, category, score, recommendation, explanation, update status, My App, Favorite, Subscription, notes) to a CSV you can open in Numbers/Excel. **License keys are never included.**
 
 ### License Vault
-Open from the sidebar **⋯ menu → "License Vault…"**. It keeps the license keys of apps you've **uninstalled** so you can still copy them later — useful when you remove an app but might reinstall it. Records persist after an app is removed; the Vault lists those that still hold a key, with **Copy Key** (reads the secret on demand) and **Delete**. Currently-installed apps don't appear here (manage their keys from the app's detail pane).
+Open from the sidebar **⋯ menu → "License Vault…"** (⇧⌘L). It collects **all** your license keys in one place, split into **Installed** and **No longer installed** — so a key never disappears: when you uninstall an app it simply moves sections, and moves back when you reinstall. Copying a key asks for Touch ID (or your password) via the macOS authentication sheet. You can delete a key with the trash button. You can also manage an installed app's key from its detail panel.
 
 ### Detail Panel
 The detail panel is **facts-first**: the "What is this?" explanation comes first,
@@ -223,7 +223,7 @@ Data           SwiftData (AppRecord) + UserDefaults (Settings)
 | `AppListViewModel.swift` | Orchestrates scan → cache → AI enrichment |
 | `AnalysisProviderKind.swift` | Provider selection and cache identifier |
 | `OllamaService.swift` | Ollama analysis with strict structured text output |
-| `LicenseVaultView.swift` | Keys for uninstalled apps |
+| `LicenseVaultView.swift` | All license keys, sectioned Installed / No longer installed |
 | `CSVExporter.swift` | RFC-4180 CSV of the audit (no keys) |
 | `AppLinkResolver.swift` | App Store and Sparkle app link discovery |
 | `AppScanner.swift` | FileManager + Info.plist enumeration |

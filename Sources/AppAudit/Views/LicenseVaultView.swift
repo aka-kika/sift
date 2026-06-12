@@ -5,9 +5,9 @@ import SwiftData
 import AppKit
 #endif
 
-/// Shows license keys for apps that are no longer installed, so the user can still
-/// copy a purchased key after uninstalling the app. Records persist after an app is
-/// removed; this view surfaces the ones that still hold a key.
+/// Shows all license keys in one place, split into Installed and No longer installed.
+/// Records persist after an app is removed; uninstalled apps simply move to the
+/// "No longer installed" section and move back when reinstalled.
 struct LicenseVaultView: View {
     let installedBundleIDs: Set<String>
 
@@ -20,7 +20,11 @@ struct LicenseVaultView: View {
 
     @State private var copiedBundleID: String? = nil
 
-    private var vaultRecords: [AppRecord] {
+    private var installedRecords: [AppRecord] {
+        keyedRecords.filter { installedBundleIDs.contains($0.bundleID) }
+    }
+
+    private var missingRecords: [AppRecord] {
         keyedRecords.filter { !installedBundleIDs.contains($0.bundleID) }
     }
 
@@ -29,7 +33,7 @@ struct LicenseVaultView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("License Vault").font(.headline)
-                    Text("Keys for apps no longer installed")
+                    Text("All your license keys in one place")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -41,23 +45,34 @@ struct LicenseVaultView: View {
 
             Divider()
 
-            if vaultRecords.isEmpty {
+            if keyedRecords.isEmpty {
                 ContentUnavailableView {
-                    Label("Vault Empty", systemImage: "key.horizontal")
+                    Label("No License Keys Yet", systemImage: "key.horizontal")
                 } description: {
-                    Text("When you uninstall an app that has a saved license key, it stays here so you can still copy the key later.")
+                    Text("Save a license key to any app — from its detail panel or right-click menu — and it appears here. Keys for apps you later uninstall stay safe in this vault.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(vaultRecords, id: \.bundleID) { record in
-                        vaultRow(record)
+                    if !installedRecords.isEmpty {
+                        Section("Installed") {
+                            ForEach(installedRecords, id: \.bundleID) { record in
+                                vaultRow(record)
+                            }
+                        }
+                    }
+                    if !missingRecords.isEmpty {
+                        Section("No longer installed") {
+                            ForEach(missingRecords, id: \.bundleID) { record in
+                                vaultRow(record)
+                            }
+                        }
                     }
                 }
                 .listStyle(.inset)
             }
         }
-        .frame(width: 520, height: 420)
+        .frame(width: 520, height: 460)
     }
 
     private func vaultRow(_ record: AppRecord) -> some View {
