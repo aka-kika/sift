@@ -212,6 +212,7 @@ final class AppListViewModel {
     private let appleIntelligence = AppleIntelligenceService()
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
+    private let linkEvidenceService = LinkEvidenceService()
     var cacheService: CacheService?
     private var updateScanToken = UUID()
 
@@ -364,16 +365,17 @@ final class AppListViewModel {
         provider: AnalysisProviderKind,
         appURL: String? = nil
     ) async -> (String, AppInfo.AIState) {
+        let linkEvidence = await linkEvidenceService.evidence(for: appURL)
         let result: AnalysisResult
         switch provider {
         case .ollama:
-            result = await ollama.analyze(app: app, profile: profile, appURL: appURL)
+            result = await ollama.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
         case .anthropic:
-            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL)
+            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
         case .openAI:
-            result = await openAI.analyze(app: app, profile: profile, appURL: appURL)
+            result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
         case .appleIntelligence:
-            result = await appleIntelligence.analyze(app: app, profile: profile, appURL: appURL)
+            result = await appleIntelligence.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
         }
 
         switch result {

@@ -30,8 +30,8 @@ actor AnthropicService: AnalysisService {
         struct Block: Decodable { let type: String; let text: String? }
     }
 
-    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil) async -> AnalysisResult {
-        let prompt = AppAnalysisPrompt.build(app: app, profile: profile, appURL: appURL, includeResponseFormat: true)
+    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil) async -> AnalysisResult {
+        let prompt = AppAnalysisPrompt.build(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, includeResponseFormat: true)
         let key = apiKey
         guard !key.isEmpty else {
             return .unavailable("Add an Anthropic API key in Settings → Models.")

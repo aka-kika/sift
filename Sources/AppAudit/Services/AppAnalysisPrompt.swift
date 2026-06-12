@@ -10,10 +10,10 @@ enum AppAnalysisPrompt {
     Never use the phrase "appears to be" or "seems to be". When evidence is genuinely missing or conflicting, name the most likely purpose plainly and keep the score conservative, or say the purpose is unclear — but do not pad every sentence with hedges.
     """
 
-    static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, includeResponseFormat: Bool) -> String {
+    static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, includeResponseFormat: Bool) -> String {
         let categoryHint = AppCategory.humanName(for: app.category).map { "\nCategory: \($0)" } ?? ""
         let descriptionHint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
-        let linkContext = referenceURLContext(from: appURL)
+        let linkContext = referenceURLContext(from: appURL, fetched: linkEvidence)
         let responseFormat = includeResponseFormat ? """
 
         Respond in EXACTLY this format with no extra text before or after:
@@ -35,8 +35,9 @@ enum AppAnalysisPrompt {
 
         Evidence rules:
         - Prefer bundle ID, reference URL context, app description, and installed path over the display name.
-        - If a reference URL is provided, use its host and path/slug as strong evidence for what the app is. A GitHub repo slug, App Store product slug, vendor domain, docs path, or product page path can identify the app's real purpose.
-        - Do not claim you opened, fetched, read, or verified the URL contents. You only know the URL string and context shown in this prompt.
+        - When "Fetched from the reference URL" content is present, treat it as the primary evidence for what the app is.
+        - The URL string alone (host, slug, TLD) is only a weak hint. Never infer what an app does from a domain name or TLD — a ".fit" domain does not imply fitness.
+        - Do not claim to have browsed beyond what is quoted here.
         - If the URL conflicts with the app name, bundle ID, or path, mention the uncertainty and score conservatively.
         - Do not infer a specific product category from a generic name alone.
         - If you are unsure what the app does, say its purpose is unclear instead of making up details. Do not use the phrase "appears to be".
@@ -55,7 +56,7 @@ enum AppAnalysisPrompt {
     /// Compact facts-only prompt for small on-device models (Apple Intelligence).
     /// Per-field guidance travels with the @Generable schema, so this carries only
     /// the evidence and the workflow context — long rule lists overwhelm small models.
-    static func compactFacts(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil) -> String {
+    static func compactFacts(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil) -> String {
         var lines: [String] = [
             "App: \(app.name)",
             "Bundle ID: \(app.bundleID)",
@@ -69,7 +70,15 @@ enum AppAnalysisPrompt {
             lines.append("App description: \(description)")
         }
         if let url = appURL?.trimmingCharacters(in: .whitespacesAndNewlines), !url.isEmpty {
-            lines.append("Reference URL (you did not open it; judge from the URL text only): \(url)")
+            if let linkEvidence, !linkEvidence.isEmpty {
+                lines.append("Reference URL: \(url)")
+            } else {
+                lines.append("Reference URL (URL string only — a domain name is not evidence): \(url)")
+            }
+        }
+        if let linkEvidence, !linkEvidence.isEmpty {
+            lines.append("From the app's website:")
+            lines.append(linkEvidence)
         }
         lines.append("")
         lines.append("Developer's workflow:")
@@ -79,7 +88,7 @@ enum AppAnalysisPrompt {
         return lines.joined(separator: "\n")
     }
 
-    private static func referenceURLContext(from appURL: String?) -> String {
+    private static func referenceURLContext(from appURL: String?, fetched: String? = nil) -> String {
         guard let rawURL = appURL?.trimmingCharacters(in: .whitespacesAndNewlines),
               !rawURL.isEmpty else {
             return ""
@@ -99,7 +108,7 @@ enum AppAnalysisPrompt {
         let sourceKind = referenceSourceKind(host: host, pathSegments: pathSegments)
         let slugHint = readableSlugHint(from: pathSegments)
 
-        return """
+        var block = """
 
         Reference URL: \(rawURL)
         Reference URL context:
@@ -108,6 +117,16 @@ enum AppAnalysisPrompt {
         - Path context: \(readablePath)
         - Slug keywords: \(slugHint)
         """
+
+        if let fetched, !fetched.isEmpty {
+            block += """
+
+        Fetched from the reference URL (the page's own words — treat as the primary link evidence):
+        \(fetched)
+        """
+        }
+
+        return block
     }
 
     private static func referenceSourceKind(host: String, pathSegments: [String]) -> String {

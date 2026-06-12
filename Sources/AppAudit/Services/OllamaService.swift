@@ -68,11 +68,12 @@ actor OllamaService: AnalysisService {
     }
 
     /// Single request returning explanation, score, reason, and best use — 3x faster than separate calls.
-    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil) async -> OllamaResult {
+    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil) async -> OllamaResult {
         let prompt = AppAnalysisPrompt.build(
             app: app,
             profile: profile,
             appURL: appURL,
+            linkEvidence: linkEvidence,
             includeResponseFormat: true
         )
         return await chat(messages: [.init(role: "user", content: prompt)])
@@ -110,9 +111,9 @@ actor OllamaService: AnalysisService {
     }
 
     // Keep for legacy compatibility
-    func explain(app: AppInfo) async -> OllamaResult { await analyze(app: app, profile: .generic()) }
-    func score(app: AppInfo, profile: WorkflowProfile) async -> OllamaResult { await analyze(app: app, profile: profile) }
-    func bestUse(app: AppInfo, profile: WorkflowProfile) async -> OllamaResult { await analyze(app: app, profile: profile) }
+    func explain(app: AppInfo) async -> OllamaResult { await analyze(app: app, profile: .generic(), linkEvidence: nil) }
+    func score(app: AppInfo, profile: WorkflowProfile) async -> OllamaResult { await analyze(app: app, profile: profile, linkEvidence: nil) }
+    func bestUse(app: AppInfo, profile: WorkflowProfile) async -> OllamaResult { await analyze(app: app, profile: profile, linkEvidence: nil) }
     func parseScore(from response: String) -> (score: Int, reason: String)? {
         if let parsed = parseAnalysis(from: response) {
             return (parsed.score, parsed.reason)

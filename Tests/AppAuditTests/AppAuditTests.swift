@@ -419,7 +419,7 @@ struct AppAnalysisPromptTests {
         #expect(prompt.contains("Prefer bundle ID, reference URL context"))
         #expect(prompt.contains("Host: example.com"))
         #expect(prompt.contains("Slug keywords: linked"))
-        #expect(prompt.contains("Do not claim you opened, fetched, read, or verified the URL contents."))
+        #expect(prompt.contains("Do not claim to have browsed beyond what is quoted here."))
     }
 
     @Test("Prompt identifies GitHub link context")
@@ -1036,6 +1036,37 @@ struct GroundedProfileTests {
     func firstRunProvider() {
         #expect(AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: true) == "appleIntelligence")
         #expect(AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: false) == nil)
+    }
+}
+
+@Suite("LinkEvidence Tests")
+struct LinkEvidenceTests {
+
+    @Test("Extracts title and meta description")
+    func extractsTitleAndDescription() {
+        let html = """
+        <html><head><title>Mole — Clean up your Mac</title>
+        <meta name="description" content="A lightweight Mac cleaner &amp; uninstaller.">
+        </head><body></body></html>
+        """
+        let evidence = LinkEvidence.extract(fromHTML: html)
+        #expect(evidence?.contains("Title: Mole — Clean up your Mac") == true)
+        #expect(evidence?.contains("Description: A lightweight Mac cleaner & uninstaller.") == true)
+    }
+
+    @Test("Falls back to og:description and handles attribute order")
+    func ogDescriptionFallback() {
+        let html = """
+        <head><meta content="Plant trees while you focus." property="og:description"><title>Bloom</title></head>
+        """
+        let evidence = LinkEvidence.extract(fromHTML: html)
+        #expect(evidence?.contains("Title: Bloom") == true)
+        #expect(evidence?.contains("Description: Plant trees while you focus.") == true)
+    }
+
+    @Test("No title or description yields nil")
+    func emptyYieldsNil() {
+        #expect(LinkEvidence.extract(fromHTML: "<html><body>hi</body></html>") == nil)
     }
 }
 

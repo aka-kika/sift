@@ -84,7 +84,7 @@ actor AppleIntelligenceService: AnalysisService {
         #endif
     }
 
-    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil) async -> AnalysisResult {
+    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil) async -> AnalysisResult {
         #if canImport(FoundationModels)
         guard #available(macOS 26.0, *) else {
             return .unavailable("Apple Intelligence requires macOS 26 or later.")
@@ -94,7 +94,7 @@ actor AppleIntelligenceService: AnalysisService {
             return .unavailable(message)
         }
 
-        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: profile, appURL: appURL)
+        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
         // Lab-validated: few-shot + seeded nucleus sampling removes the "Use it…"
         // monotony that greedy decoding produces, while a fixed seed keeps results
         // reproducible run-to-run.
