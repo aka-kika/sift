@@ -1,19 +1,21 @@
 # Sift — Roadmap
 
-**Updated:** 2026-06-10 · **Current version:** 1.1.0
+**Updated:** 2026-06-12 · **Current version:** 1.2.0
 
 > Now = building it · Next = committed, not started · Later = directional, may change
 
 ## Now
 
 <!-- SF Symbol: circle.fill -->
-- **Grounded-first analysis** — facts before opinions: auto profile from installed apps, category evidence, zero-setup Apple Intelligence default.
+- **Subscriptions filter** — the 💳-tag exists; add a filter toggle for it next
+  to My Apps and Favorites so recurring costs are reviewable as a list.
 
 ## Next
 
 <!-- SF Symbol: circle.lefthalf.filled -->
-- **Subscriptions filter** — the 💳-tag exists; add a filter toggle for it next
-  to My Apps and Favorites so recurring costs are reviewable as a list.
+- **App Store sandbox milestone** — security-scoped ~/Applications access,
+  MAS-mode Homebrew degrade, pkg + Transporter pipeline (core scan already
+  proven sandbox-compatible).
 - **Detail-view file split** — extract the utility rows and header from
   `AppDetailView` into focused subviews; behavior-neutral cleanup deferred from
   the redesign.
@@ -29,7 +31,10 @@
 ## Recently shipped
 
 <!-- SF Symbol: checkmark.circle -->
-- **1.2.0 (unreleased)** — Liquid Glass pass for macOS 26/27 and the Apple Intelligence provider with truthful PCC status.
+- **1.2.0** — the grounding release: facts-first analysis with an automatic
+  workflow profile, fetched link evidence, Liquid Glass on macOS 26/27, Apple
+  Intelligence engine, Touch ID-protected license keys with a complete sectioned
+  Vault (icons + registered emails), and the gold magnifier icon.
 - **1.1.0** — first notarized release: three AI providers, License Vault,
   Last Used sort, CSV export, recommendation-first detail panel, and the
   AppAudit → Sift rename with full data continuity.
