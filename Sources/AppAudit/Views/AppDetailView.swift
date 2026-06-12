@@ -34,7 +34,6 @@ struct AppDetailView: View {
                 whatIsThisSection
                 recommendationSection
                 improveAnalysisCallout
-                Divider()
                 utilitySection
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -412,11 +411,13 @@ struct AppDetailView: View {
     private var utilitySection: some View {
         VStack(alignment: .leading, spacing: 0) {
             notesSection
-            DetailRowDivider()
+            UtilityRowDivider()
             licenseKeySection
-            DetailRowDivider()
+            UtilityRowDivider()
             urlSection
         }
+        .padding(.horizontal, 12)
+        .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -431,8 +432,9 @@ struct AppDetailView: View {
             .padding(.top, 6)
         } label: {
             HStack(spacing: 8) {
-                Label("Notes", systemImage: "note.text")
-                    .font(.subheadline.weight(.semibold))
+                utilityChip("note.text", tint: .yellow)
+                Text("Notes")
+                    .font(.subheadline.weight(.medium))
                 if let notes = record?.notes, !notes.isEmpty {
                     Text("Saved")
                         .font(.caption2)
@@ -444,21 +446,22 @@ struct AppDetailView: View {
         .onChange(of: app.bundleID) { _, _ in
             notesExpanded = false
         }
-        .padding(.vertical, 7)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var licenseKeySection: some View {
         HStack(spacing: 8) {
-            Label("License Key", systemImage: "key.horizontal")
-                .font(.subheadline.weight(.semibold))
+            utilityChip("key.horizontal", tint: .indigo)
+            Text("License Key")
+                .font(.subheadline.weight(.medium))
             if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
                 Text(isKeyRevealed ? licenseKey : maskedLicenseKey(licenseKey))
                     .font(.body.monospaced())
                     .lineLimit(1)
                     .textSelection(.enabled)
             } else {
-                Text("None")
+                Text("None yet")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -531,14 +534,15 @@ struct AppDetailView: View {
                 .help("Remove license key")
             }
         }
-        .padding(.vertical, 7)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var urlSection: some View {
         HStack(spacing: 8) {
-            Label("App Link", systemImage: "link")
-                .font(.subheadline.weight(.semibold))
+            utilityChip("link", tint: .blue)
+            Text("App Link")
+                .font(.subheadline.weight(.medium))
             if let urlString = record?.appURL, !urlString.isEmpty,
                let url = URL(string: urlString) {
                 Link(urlString, destination: url)
@@ -546,14 +550,14 @@ struct AppDetailView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             } else if hasSuggestedLink {
-                Text("None")
+                Text("None yet")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                 Text("· suggestion available")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
-                Text("None")
+                Text("None yet")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -580,7 +584,7 @@ struct AppDetailView: View {
                 .help("Remove app link")
             }
         }
-        .padding(.vertical, 7)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -645,6 +649,18 @@ struct AppDetailView: View {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count > 8 else { return trimmed }
         return "\(trimmed.prefix(4))••••\(trimmed.suffix(4))"
+    }
+
+    // MARK: - Utility chip
+
+    /// Tinted icon chip used by the utility rows — the same visual language as
+    /// System Settings list icons.
+    private func utilityChip(_ systemImage: String, tint: Color) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 24, height: 24)
+            .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     // MARK: - Score helpers
@@ -894,9 +910,9 @@ struct NotesEditor: View {
     }
 }
 
-private struct DetailRowDivider: View {
+private struct UtilityRowDivider: View {
     var body: some View {
         Divider()
-            .padding(.leading, 28)
+            .padding(.leading, 36)
     }
 }

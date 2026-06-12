@@ -108,6 +108,7 @@ struct AppRow: View {
         }
         .padding(.vertical, 2)
         .contextMenu {
+            // Group 1: Analysis actions
             Button {
                 Task { await viewModel.reanalyze(bundleID: app.bundleID) }
             } label: {
@@ -115,8 +116,19 @@ struct AppRow: View {
             }
             .disabled(app.isAnalysisLocked)
 
+            Button {
+                toggleAnalysisLock()
+            } label: {
+                if app.isAnalysisLocked {
+                    Label("Unlock Analysis", systemImage: "lock.open")
+                } else {
+                    Label("Lock Analysis", systemImage: "lock.fill")
+                }
+            }
+
             Divider()
 
+            // Group 2: Favorites / My App / Subscription toggles
             Button {
                 toggleFavorite()
             } label: {
@@ -149,18 +161,7 @@ struct AppRow: View {
 
             Divider()
 
-            Button {
-                toggleAnalysisLock()
-            } label: {
-                if app.isAnalysisLocked {
-                    Label("Unlock Analysis", systemImage: "lock.open")
-                } else {
-                    Label("Lock Analysis", systemImage: "lock.fill")
-                }
-            }
-
-            Divider()
-
+            // Group 3: Key items
             if let licenseKey = existingLicenseKey {
                 Button {
                     Task {
@@ -190,12 +191,13 @@ struct AppRow: View {
                     prepareLicenseKeyDraft()
                     editingLicenseKey = true
                 } label: {
-                    Label("Add Key", systemImage: "key.badge.plus")
+                    Label("Add Key", systemImage: "key.horizontal")
                 }
             }
 
             Divider()
 
+            // Group 4: Show in Finder, Open App, update items
             Button {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.path)])
             } label: {
@@ -219,7 +221,10 @@ struct AppRow: View {
                     Label("Mark Updated", systemImage: "checkmark.circle")
                 }
             }
+
             Divider()
+
+            // Group 5: Copy Bundle ID
             Button {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(app.bundleID, forType: .string)
