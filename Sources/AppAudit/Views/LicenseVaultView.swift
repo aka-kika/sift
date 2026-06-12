@@ -96,14 +96,15 @@ struct LicenseVaultView: View {
     }
 
     private func copyKey(for bundleID: String) {
-        let resolution = licenseKeyStore.resolveKey(bundleID: bundleID, legacyValue: nil)
-        guard let key = resolution.value, !key.isEmpty else { return }
-        #if canImport(AppKit)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(key, forType: .string)
-        #endif
-        copiedBundleID = bundleID
         Task {
+            guard await LicenseKeyGuard.authenticate(reason: "copy a license key from the vault") else { return }
+            let resolution = licenseKeyStore.resolveKey(bundleID: bundleID, legacyValue: nil)
+            guard let key = resolution.value, !key.isEmpty else { return }
+            #if canImport(AppKit)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(key, forType: .string)
+            #endif
+            await MainActor.run { copiedBundleID = bundleID }
             try? await Task.sleep(for: .seconds(1.5))
             await MainActor.run {
                 if copiedBundleID == bundleID { copiedBundleID = nil }

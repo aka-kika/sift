@@ -163,8 +163,12 @@ struct AppRow: View {
 
             if let licenseKey = existingLicenseKey {
                 Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(licenseKey, forType: .string)
+                    Task {
+                        if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(licenseKey, forType: .string)
+                        }
+                    }
                 } label: {
                     Label("Copy Key", systemImage: "key.horizontal")
                 }

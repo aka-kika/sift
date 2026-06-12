@@ -142,6 +142,15 @@ struct AppInfoTests {
         let state = AppInfo.AIState.unavailable("error")
         #expect(state.score == nil)
     }
+
+    @Test("Link-help callout shows only for weak, unlinked, unlocked analyses")
+    func needsLinkHelp() {
+        #expect(AppInfo.needsLinkHelp(score: 2, hasAppURL: false, isLocked: false))
+        #expect(AppInfo.needsLinkHelp(score: 1, hasAppURL: false, isLocked: false))
+        #expect(!AppInfo.needsLinkHelp(score: 3, hasAppURL: false, isLocked: false))
+        #expect(!AppInfo.needsLinkHelp(score: 2, hasAppURL: true, isLocked: false))
+        #expect(!AppInfo.needsLinkHelp(score: 2, hasAppURL: false, isLocked: true))
+    }
 }
 
 @Suite("Analysis Lock Tests")

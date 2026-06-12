@@ -23,6 +23,8 @@ struct AppDetailView: View {
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
+    @State private var isKeyRevealed = false
+    @State private var keyCopied = false
 
     var body: some View {
         ScrollView {
@@ -31,6 +33,7 @@ struct AppDetailView: View {
                 Divider()
                 whatIsThisSection
                 recommendationSection
+                improveAnalysisCallout
                 Divider()
                 utilitySection
             }
@@ -42,6 +45,8 @@ struct AppDetailView: View {
         .task(id: app.bundleID) {
             loadRecord()
             loadLicenseKey()
+            isKeyRevealed = false
+            keyCopied = false
         }
         .sheet(isPresented: $editingDescription) {
             EditDescriptionSheet(appName: app.name, draft: $draftDescription) { saved in
@@ -311,6 +316,37 @@ struct AppDetailView: View {
         }
     }
 
+    // MARK: - Improve-analysis callout
+
+    @ViewBuilder
+    private var improveAnalysisCallout: some View {
+        if case .loaded(_, let score, _, _) = app.aiState,
+           AppInfo.needsLinkHelp(score: score,
+                                 hasAppURL: !((record?.appURL ?? "").isEmpty),
+                                 isLocked: app.isAnalysisLocked) {
+            HStack(spacing: 10) {
+                Image(systemName: "questionmark.circle")
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sift couldn't confidently identify this app.")
+                        .font(.callout)
+                    Text("Adding its website or GitHub link gives the analysis real evidence.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Button("Add Link") {
+                    draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
+                    editingURL = true
+                }
+                .glassButtonStyle()
+                .controlSize(.small)
+            }
+            .padding(12)
+            .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
     // MARK: - What is this?
 
     @ViewBuilder
@@ -417,7 +453,7 @@ struct AppDetailView: View {
             Label("License Key", systemImage: "key.horizontal")
                 .font(.subheadline.weight(.semibold))
             if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
-                Text(maskedLicenseKey(licenseKey))
+                Text(isKeyRevealed ? licenseKey : maskedLicenseKey(licenseKey))
                     .font(.body.monospaced())
                     .lineLimit(1)
                     .textSelection(.enabled)
@@ -429,14 +465,45 @@ struct AppDetailView: View {
             Spacer()
             if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
                 Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(licenseKey, forType: .string)
+                    if isKeyRevealed {
+                        isKeyRevealed = false
+                    } else {
+                        Task {
+                            if await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)") {
+                                isKeyRevealed = true
+                                try? await Task.sleep(for: .seconds(10))
+                                isKeyRevealed = false
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: isKeyRevealed ? "eye.slash" : "eye")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help(isKeyRevealed ? "Hide license key" : "Reveal license key (Touch ID)")
+
+                if keyCopied {
+                    Text("Copied")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    Task {
+                        if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(licenseKey, forType: .string)
+                            keyCopied = true
+                            try? await Task.sleep(for: .seconds(1.5))
+                            keyCopied = false
+                        }
+                    }
                 } label: {
                     Image(systemName: "doc.on.doc")
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-                .help("Copy license key")
+                .help("Copy license key (Touch ID)")
             }
             Button {
                 draftLicenseKey = currentLicenseKey ?? ""
@@ -452,6 +519,7 @@ struct AppDetailView: View {
                 Button(role: .destructive) {
                     licenseKeyStore.delete(bundleID: app.bundleID)
                     currentLicenseKey = nil
+                    isKeyRevealed = false
                     record?.licenseKey = nil
                     record?.hasLicenseKey = false
                     saveRecord()

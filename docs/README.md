@@ -102,7 +102,7 @@ A suggested link is **prefilled into the editable App Link field** — it is use
 When you add or change an app link, Sift re-analyzes that app with the link as context unless the analysis is locked.
 
 ### License Keys
-Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane.
+Store purchased license keys per app in macOS Keychain. Keys can be added, copied, edited, or removed from the row context menu or detail pane. Copying or revealing a key asks for Touch ID (or your password) via the macOS authentication sheet — keys are never shown or copied without it.
 
 ### Export to CSV
 Sidebar **⋯ menu → "Export to CSV…"** writes the full audit (name, bundle ID, version, category, score, recommendation, explanation, update status, My App, Favorite, Subscription, notes) to a CSV you can open in Numbers/Excel. **License keys are never included.**
@@ -119,6 +119,8 @@ App Link rows. The header shows the app icon, name · version · category, tag b
 A single **⋯ overflow menu** (top-right) holds the analysis actions: Re-analyze,
 Lock/Unlock, and Customize/Remove description. Everything else about the app —
 tags, license keys, Finder, Copy Bundle ID — lives in the sidebar right-click menu.
+
+When an analysis is weak and the app has no link, Sift says so and offers Add Link right in the panel.
 
 ### Editing
 In the detail panel you can:

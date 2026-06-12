@@ -134,3 +134,12 @@ extension AppInfo {
         return "brew upgrade --cask \(homebrewCaskToken)"
     }
 }
+
+extension AppInfo {
+    /// Drives the "couldn't confidently identify this app" callout: a weak score
+    /// with no link to ground it (and not deliberately locked) is the one state
+    /// the user can directly improve by adding a link.
+    static func needsLinkHelp(score: Int, hasAppURL: Bool, isLocked: Bool) -> Bool {
+        score <= 2 && !hasAppURL && !isLocked
+    }
+}
