@@ -12,6 +12,7 @@ struct AppRow: View {
     private let licenseKeyStore = LicenseKeyStore.shared
     @State private var editingLicenseKey = false
     @State private var draftLicenseKey = ""
+    @State private var draftLicenseEmail = ""
     @State private var homebrewCommandCopied = false
 
     var body: some View {
@@ -233,7 +234,7 @@ struct AppRow: View {
             }
         }
         .sheet(isPresented: $editingLicenseKey) {
-            LicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
+            LicenseKeySheet(appName: app.name, draft: $draftLicenseKey, emailDraft: $draftLicenseEmail) { saved in
                 if saved {
                     saveLicenseKey()
                 }
@@ -341,6 +342,7 @@ struct AppRow: View {
 
     private func prepareLicenseKeyDraft() {
         draftLicenseKey = existingLicenseKey ?? ""
+        draftLicenseEmail = fetchRecord(for: app.bundleID)?.licenseEmail ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
     }
 
     private func saveLicenseKey() {
@@ -354,6 +356,8 @@ struct AppRow: View {
         licenseKeyStore.save(trimmed, bundleID: app.bundleID)
         record.licenseKey = nil
         record.hasLicenseKey = !trimmed.isEmpty
+        let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        record.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
         if !trimmed.isEmpty, record.iconPNG == nil {
             record.iconPNG = app.icon?.pngData()
         }
@@ -365,6 +369,7 @@ struct AppRow: View {
         if let record = fetchRecord(for: app.bundleID) {
             record.licenseKey = nil
             record.hasLicenseKey = false
+            record.licenseEmail = nil
             try? modelContext.save()
         }
     }
@@ -495,6 +500,7 @@ private extension AppInfo.UpdateSource {
 private struct LicenseKeySheet: View {
     let appName: String
     @Binding var draft: String
+    @Binding var emailDraft: String
     let onDone: (Bool) -> Void
 
     @FocusState private var focused: Bool
@@ -510,6 +516,9 @@ private struct LicenseKeySheet: View {
             SecureField("Enter license key", text: $draft)
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
+
+            TextField("Registered email (optional)", text: $emailDraft)
+                .textFieldStyle(.roundedBorder)
 
             HStack {
                 Button("Cancel") { onDone(false) }

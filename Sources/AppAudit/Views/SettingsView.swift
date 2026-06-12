@@ -30,7 +30,7 @@ struct SettingsView: View {
         switch selectedTab {
         case .models: return 430
         case .profile: return 300
-        case .general: return 230
+        case .general: return 290
         }
     }
 }
@@ -340,6 +340,7 @@ struct ScanningSettingsTab: View {
     @AppStorage("includeAppleApps") private var includeAppleApps = false
     @AppStorage("includeUtilityApps") private var includeUtilityApps = true
     @AppStorage("appearancePreference") private var appearancePreference = "system"
+    @AppStorage("defaultLicenseEmail") private var defaultLicenseEmail = ""
 
     var body: some View {
         Form {
@@ -351,6 +352,13 @@ struct ScanningSettingsTab: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+            }
+
+            Section("Licenses") {
+                TextField("Default email for new license keys", text: $defaultLicenseEmail)
+                    .textFieldStyle(.roundedBorder)
+
+                SettingsFooter("Prefilled when you save a license key. Change it per key when an app is registered to a different account.")
             }
 
             Section("Directories") {

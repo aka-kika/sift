@@ -50,6 +50,7 @@ updating, and which licenses and subscriptions you're paying for.
 - **License Vault** (File → License Vault…, ⇧⌘L, or the sidebar ⋯ menu) lists **all** your
   license keys in one place, sectioned into **Installed** and **No longer installed** — keys
   survive uninstalls and move back when you reinstall an app.
+- **Registered email per key** — remembers which account each license belongs to; a default email in Settings prefills new keys.
 
 ## App links
 

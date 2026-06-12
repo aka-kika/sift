@@ -18,6 +18,7 @@ struct AppDetailView: View {
     @State private var draftURL = ""
     @State private var editingLicenseKey = false
     @State private var draftLicenseKey = ""
+    @State private var draftLicenseEmail = ""
     @State private var currentLicenseKey: String? = nil
     @State private var notesExpanded = false
     @State private var confirmingHomebrewUpdate = false
@@ -58,7 +59,7 @@ struct AppDetailView: View {
             }
         }
         .sheet(isPresented: $editingLicenseKey) {
-            DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey) { saved in
+            DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey, emailDraft: $draftLicenseEmail) { saved in
                 if saved {
                     let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
                     let ensuredRecord = ensureRecord()
@@ -66,6 +67,8 @@ struct AppDetailView: View {
                     currentLicenseKey = trimmed.isEmpty ? nil : trimmed
                     ensuredRecord.licenseKey = nil
                     ensuredRecord.hasLicenseKey = !trimmed.isEmpty
+                    let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ensuredRecord.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
                     if !trimmed.isEmpty, ensuredRecord.iconPNG == nil {
                         ensuredRecord.iconPNG = app.icon?.pngData()
                     }
@@ -459,10 +462,19 @@ struct AppDetailView: View {
             Text("License Key")
                 .font(.subheadline.weight(.medium))
             if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
-                Text(isKeyRevealed ? licenseKey : maskedLicenseKey(licenseKey))
-                    .font(.body.monospaced())
-                    .lineLimit(1)
-                    .textSelection(.enabled)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(isKeyRevealed ? licenseKey : maskedLicenseKey(licenseKey))
+                        .font(.body.monospaced())
+                        .lineLimit(1)
+                        .textSelection(.enabled)
+                    if let email = record?.licenseEmail, !email.isEmpty {
+                        Text(email)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
             } else {
                 Text("None yet")
                     .font(.caption)
@@ -513,6 +525,8 @@ struct AppDetailView: View {
             }
             Button {
                 draftLicenseKey = currentLicenseKey ?? ""
+                draftLicenseEmail = record?.licenseEmail
+                    ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
                 editingLicenseKey = true
             } label: {
                 Image(systemName: currentLicenseKey != nil ? "pencil" : "plus.circle")
@@ -528,6 +542,7 @@ struct AppDetailView: View {
                     isKeyRevealed = false
                     record?.licenseKey = nil
                     record?.hasLicenseKey = false
+                    record?.licenseEmail = nil
                     saveRecord()
                 } label: {
                     Image(systemName: "trash")
@@ -755,6 +770,7 @@ struct AppDetailView: View {
 struct DetailLicenseKeySheet: View {
     let appName: String
     @Binding var draft: String
+    @Binding var emailDraft: String
     let onDone: (Bool) -> Void
 
     @FocusState private var focused: Bool
@@ -770,6 +786,9 @@ struct DetailLicenseKeySheet: View {
             SecureField("Enter license key", text: $draft)
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
+
+            TextField("Registered email (optional)", text: $emailDraft)
+                .textFieldStyle(.roundedBorder)
 
             HStack {
                 Button("Cancel") { onDone(false) }
