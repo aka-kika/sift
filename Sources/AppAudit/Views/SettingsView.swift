@@ -29,7 +29,7 @@ struct SettingsView: View {
     private var tabHeight: CGFloat {
         switch selectedTab {
         case .models: return 400
-        case .profile: return 380
+        case .profile: return 480
         case .general: return 290
         }
     }
