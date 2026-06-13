@@ -1173,3 +1173,35 @@ struct AppRecordSubscriptionTests {
         #expect(r.subscriptionEmail == nil)
     }
 }
+
+@Suite("Install Source Label")
+struct InstallSourceLabelTests {
+    private func make(appStore: Bool, sparkle: String?, cask: String?) -> AppInfo {
+        AppInfo(
+            id: "com.x", name: "X", version: "1", bundleID: "com.x",
+            path: "/Applications/X.app", humanReadableDescription: nil,
+            sparkleFeedURL: sparkle, isAppStoreInstall: appStore,
+            homebrewCaskToken: cask, icon: nil
+        )
+    }
+
+    @Test("App Store wins over other signals")
+    func appStoreWins() {
+        #expect(make(appStore: true, sparkle: "https://feed", cask: "x").installSourceLabel == "App Store")
+    }
+
+    @Test("Sparkle when only a feed URL")
+    func sparkle() {
+        #expect(make(appStore: false, sparkle: "https://feed", cask: nil).installSourceLabel == "Sparkle")
+    }
+
+    @Test("Homebrew when only a cask token")
+    func homebrew() {
+        #expect(make(appStore: false, sparkle: nil, cask: "the-cask").installSourceLabel == "Homebrew")
+    }
+
+    @Test("Other when no signal")
+    func other() {
+        #expect(make(appStore: false, sparkle: nil, cask: nil).installSourceLabel == "Other")
+    }
+}

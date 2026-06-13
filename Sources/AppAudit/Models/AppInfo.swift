@@ -142,6 +142,16 @@ extension AppInfo.UpdateState {
 }
 
 extension AppInfo {
+    /// Where this app was installed from, for display/export. App Store takes
+    /// precedence (a `_MASReceipt` is authoritative); then a Sparkle feed, then
+    /// a Homebrew cask; otherwise "Other".
+    var installSourceLabel: String {
+        if isAppStoreInstall { return "App Store" }
+        if sparkleFeedURL != nil { return "Sparkle" }
+        if homebrewCaskToken != nil { return "Homebrew" }
+        return "Other"
+    }
+
     var canCheckForUpdates: Bool {
         isAppStoreInstall || sparkleFeedURL != nil || homebrewCaskToken != nil
     }
