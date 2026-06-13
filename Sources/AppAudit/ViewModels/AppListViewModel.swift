@@ -258,6 +258,7 @@ final class AppListViewModel {
                     apps[i].isMyApp = record.isMyApp
                     apps[i].isFavorite = record.isFavorite
                     apps[i].isSubscribed = record.hasSubscription
+                    apps[i].isPaidApp = record.isPaidApp
                     apps[i].isAnalysisLocked = record.isAnalysisLocked
                     if record.hasLicenseKey, record.iconPNG == nil {
                         record.iconPNG = apps[i].icon?.pngData()
@@ -413,6 +414,11 @@ final class AppListViewModel {
     func setSubscription(bundleID: String, value: Bool) {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         apps[idx].isSubscribed = value
+    }
+
+    func setPaidApp(bundleID: String, value: Bool) {
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
+        apps[idx].isPaidApp = value
     }
 
     /// Reconcile each record's `hasLicenseKey` flag with the Keychain. Runs at
@@ -630,6 +636,7 @@ final class AppListViewModel {
                 apps[idx].isMyApp = record.isMyApp
                 apps[idx].isFavorite = record.isFavorite
                 apps[idx].isSubscribed = record.hasSubscription
+                apps[idx].isPaidApp = record.isPaidApp
                 apps[idx].isAnalysisLocked = record.isAnalysisLocked
             }
         }

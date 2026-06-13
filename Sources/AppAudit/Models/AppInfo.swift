@@ -48,6 +48,7 @@ struct AppInfo: Identifiable {
     var isMyApp: Bool = false
     var isFavorite: Bool = false
     var isSubscribed: Bool = false
+    var isPaidApp: Bool = false
     var isAnalysisLocked: Bool = false
 
     init(
@@ -69,6 +70,7 @@ struct AppInfo: Identifiable {
         isMyApp: Bool = false,
         isFavorite: Bool = false,
         isSubscribed: Bool = false,
+        isPaidApp: Bool = false,
         isAnalysisLocked: Bool = false
     ) {
         self.id = id
@@ -89,6 +91,7 @@ struct AppInfo: Identifiable {
         self.isMyApp = isMyApp
         self.isFavorite = isFavorite
         self.isSubscribed = isSubscribed
+        self.isPaidApp = isPaidApp
         self.isAnalysisLocked = isAnalysisLocked
     }
 

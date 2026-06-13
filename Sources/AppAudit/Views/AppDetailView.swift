@@ -853,6 +853,7 @@ struct AppDetailView: View {
     private func togglePaidApp() {
         let ensured = ensureRecord()
         ensured.isPaidApp.toggle()
+        viewModel.setPaidApp(bundleID: app.bundleID, value: ensured.isPaidApp)
         saveRecord()
     }
 
