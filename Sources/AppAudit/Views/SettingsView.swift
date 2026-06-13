@@ -28,7 +28,7 @@ struct SettingsView: View {
     /// Each tab sized to its content; the window follows on tab switch.
     private var tabHeight: CGFloat {
         switch selectedTab {
-        case .models: return 430
+        case .models: return 400
         case .profile: return 300
         case .general: return 290
         }
