@@ -44,11 +44,9 @@ actor AppleIntelligenceService: AnalysisService {
     """
 
     /// Optional user-authored style notes from Settings, appended to the
-    /// instructions so the owner can tune phrasing without a rebuild.
-    private var styleNotes: String {
-        (UserDefaults.standard.string(forKey: "analysisStyleNotes") ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    /// instructions so the owner can tune phrasing without a rebuild. Shares the
+    /// single source of truth with the other engines.
+    private var styleNotes: String { AppAnalysisPrompt.currentStyleNotes }
 
     private var instructionsText: String {
         let notes = styleNotes
