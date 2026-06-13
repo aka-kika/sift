@@ -690,15 +690,17 @@ struct AppDetailView: View {
     /// `let` bindings for the math before returning the view.
     private func subscriptionDetailLine(renewal: Date) -> some View {
         let cycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
-        let next = SubscriptionMath.nextRenewal(from: renewal, cycle: cycle, now: Date())
-        let days = SubscriptionMath.daysUntil(next, now: Date())
+        let now = Date()
+        let next = SubscriptionMath.nextRenewal(from: renewal, cycle: cycle, now: now)
+        let days = SubscriptionMath.daysUntil(next, now: now)
         let countdownStyle: AnyShapeStyle = SubscriptionMath.isNear(daysUntil: days)
             ? AnyShapeStyle(.orange)
             : AnyShapeStyle(.secondary)
         return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 if let price = record?.subscriptionPrice {
-                    Text(formattedPrice(price, currencyCode: record?.subscriptionCurrency ?? "USD"))
+                    Text(formattedPrice(price, currencyCode: record?.subscriptionCurrency
+                        ?? Locale.current.currency?.identifier ?? "USD"))
                         .font(.body)
                     Text("/ \(cycle.abbreviation)")
                         .font(.caption)
