@@ -460,6 +460,8 @@ struct AppDetailView: View {
             UtilityRowDivider()
             licenseKeySection
             UtilityRowDivider()
+            subscriptionSection
+            UtilityRowDivider()
             urlSection
         }
         .padding(.horizontal, 12)
@@ -631,6 +633,89 @@ struct AppDetailView: View {
         }
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var subscriptionSection: some View {
+        HStack(spacing: 8) {
+            utilityChip("creditcard", tint: .green)
+            Text("Subscription")
+                .font(.subheadline.weight(.medium))
+            if record?.hasSubscription == true, let renewal = record?.subscriptionRenewalDate {
+                subscriptionDetailLine(renewal: renewal)
+            } else if record?.hasSubscription == true {
+                Text("Marked · add details")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("None yet")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
+            Group {
+                Button {
+                    beginEditingSubscription()
+                } label: {
+                    Image(systemName: record?.hasSubscription == true ? "pencil" : "plus.circle")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help(record?.hasSubscription == true ? "Edit subscription" : "Add subscription")
+
+                if record?.hasSubscription == true {
+                    Button(role: .destructive) {
+                        clearSubscription()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove subscription")
+                }
+            }
+            .opacity(subHovered ? 1 : 0)
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                subHovered = hovering
+            }
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The price + countdown (+ optional email) shown when a subscription has a
+    /// renewal date. A plain function (not a ViewBuilder property) so it can use
+    /// `let` bindings for the math before returning the view.
+    private func subscriptionDetailLine(renewal: Date) -> some View {
+        let cycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
+        let next = SubscriptionMath.nextRenewal(from: renewal, cycle: cycle, now: Date())
+        let days = SubscriptionMath.daysUntil(next, now: Date())
+        let countdownStyle: AnyShapeStyle = SubscriptionMath.isNear(daysUntil: days)
+            ? AnyShapeStyle(.orange)
+            : AnyShapeStyle(.secondary)
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                if let price = record?.subscriptionPrice {
+                    Text(formattedPrice(price, currencyCode: record?.subscriptionCurrency ?? "USD"))
+                        .font(.body)
+                    Text("/ \(cycle.abbreviation)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text("· " + SubscriptionMath.countdownText(daysUntil: days))
+                    .font(.caption)
+                    .foregroundStyle(countdownStyle)
+            }
+            if let email = record?.subscriptionEmail, !email.isEmpty {
+                Text(email)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
     }
 
     private var urlSection: some View {
