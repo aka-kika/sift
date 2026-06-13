@@ -777,7 +777,6 @@ struct AppDetailView: View {
         let f = NumberFormatter()
         f.numberStyle = .currency
         f.currencyCode = currencyCode
-        f.maximumFractionDigits = 2
         return f.string(from: NSNumber(value: amount))
             ?? String(format: "%.2f %@", amount, currencyCode)
     }
@@ -951,6 +950,10 @@ struct SubscriptionSheet: View {
         return [current] + currencies
     }
 
+    private var parsedAmount: Double? {
+        Double(price.replacingOccurrences(of: ",", with: "."))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Subscription for \(appName)")
@@ -995,6 +998,7 @@ struct SubscriptionSheet: View {
                 Button("Save") { onDone(.save) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.borderedProminent)
+                    .disabled(parsedAmount == nil)
             }
         }
         .padding(20)
