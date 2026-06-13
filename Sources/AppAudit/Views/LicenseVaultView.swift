@@ -15,17 +15,17 @@ struct LicenseVaultView: View {
     @Environment(\.modelContext) private var modelContext
     private let licenseKeyStore = LicenseKeyStore.shared
 
-    @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey }, sort: \AppRecord.appName)
-    private var keyedRecords: [AppRecord]
+    @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey || $0.isPaidApp }, sort: \AppRecord.appName)
+    private var ownedRecords: [AppRecord]
 
     @State private var copiedBundleID: String? = nil
 
     private var installedRecords: [AppRecord] {
-        keyedRecords.filter { installedBundleIDs.contains($0.bundleID) }
+        ownedRecords.filter { installedBundleIDs.contains($0.bundleID) }
     }
 
     private var missingRecords: [AppRecord] {
-        keyedRecords.filter { !installedBundleIDs.contains($0.bundleID) }
+        ownedRecords.filter { !installedBundleIDs.contains($0.bundleID) }
     }
 
     var body: some View {
@@ -33,7 +33,7 @@ struct LicenseVaultView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("License Vault").font(.headline)
-                    Text("All your license keys in one place")
+                    Text("Everything you've bought in one place")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -45,11 +45,11 @@ struct LicenseVaultView: View {
 
             Divider()
 
-            if keyedRecords.isEmpty {
+            if ownedRecords.isEmpty {
                 ContentUnavailableView {
-                    Label("No License Keys Yet", systemImage: "key.horizontal")
+                    Label("Nothing Bought Yet", systemImage: "bag")
                 } description: {
-                    Text("Save a license key to any app — from its detail panel or right-click menu — and it appears here. Keys for apps you later uninstall stay safe in this vault.")
+                    Text("Save a license key to an app, or mark a Mac App Store app as paid, and it appears here. Items stay in this vault even after you uninstall the app.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -83,7 +83,7 @@ struct LicenseVaultView: View {
                     .frame(width: 28, height: 28)
                     .cornerRadius(6)
             } else {
-                Image(systemName: "key.horizontal.fill")
+                Image(systemName: record.hasLicenseKey ? "key.horizontal.fill" : "bag.fill")
                     .foregroundStyle(.secondary)
                     .frame(width: 28, height: 28)
             }
@@ -103,24 +103,40 @@ struct LicenseVaultView: View {
                 }
             }
             Spacer(minLength: 8)
-            if copiedBundleID == record.bundleID {
-                Text("Copied")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if record.hasLicenseKey {
+                if copiedBundleID == record.bundleID {
+                    Text("Copied")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    copyKey(for: record.bundleID)
+                } label: {
+                    Label("Copy Key", systemImage: "doc.on.doc")
+                }
+                .controlSize(.small)
+                Button(role: .destructive) {
+                    deleteKey(for: record)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .controlSize(.small)
+                .help("Remove this key from the vault")
+            } else {
+                Text("Mac App Store · Paid")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.green)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.green.opacity(0.14), in: Capsule())
+                Button(role: .destructive) {
+                    unmarkPaid(record)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .controlSize(.small)
+                .help("Remove from your purchases")
             }
-            Button {
-                copyKey(for: record.bundleID)
-            } label: {
-                Label("Copy Key", systemImage: "doc.on.doc")
-            }
-            .controlSize(.small)
-            Button(role: .destructive) {
-                deleteKey(for: record)
-            } label: {
-                Image(systemName: "trash")
-            }
-            .controlSize(.small)
-            .help("Remove this key from the vault")
         }
         .padding(.vertical, 2)
     }
@@ -146,6 +162,11 @@ struct LicenseVaultView: View {
         licenseKeyStore.delete(bundleID: record.bundleID)
         record.hasLicenseKey = false
         record.licenseKey = nil
+        try? modelContext.save()
+    }
+
+    private func unmarkPaid(_ record: AppRecord) {
+        record.isPaidApp = false
         try? modelContext.save()
     }
 }
