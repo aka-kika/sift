@@ -483,7 +483,8 @@ final class AppListViewModel {
     func exportCSV() -> String {
         let header = [
             "Name", "Bundle ID", "Version", "Category", "Score", "Recommendation",
-            "Explanation", "Update Status", "My App", "Favorite", "Subscription", "Notes"
+            "Explanation", "Update Status", "My App", "Favorite",
+            "Subscription", "Sub Price", "Sub Cycle", "Sub Renewal", "Notes"
         ]
         let sorted = apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         let rows: [[String]] = sorted.map { app in
@@ -508,6 +509,9 @@ final class AppListViewModel {
                 app.isMyApp ? "yes" : "no",
                 app.isFavorite ? "yes" : "no",
                 app.isSubscribed ? "yes" : "no",
+                record?.subscriptionPrice.map { String(format: "%.2f", $0) } ?? "",
+                record?.subscriptionCycle ?? "",
+                record?.subscriptionRenewalDate.map { SubscriptionMath.isoDate($0) } ?? "",
                 record?.notes ?? ""
             ]
         }
