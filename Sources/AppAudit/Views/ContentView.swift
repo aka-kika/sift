@@ -98,7 +98,7 @@ struct ContentView: View {
                         Button {
                             viewModel.showAvailableUpdates()
                         } label: {
-                            Label("View Updates", systemImage: "arrow.down.app")
+                            Label("View Updates", systemImage: "arrow.down.circle")
                         }
                         .buttonStyle(.borderedProminent)
                     }
