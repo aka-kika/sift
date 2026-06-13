@@ -37,6 +37,15 @@ enum SubscriptionMath {
     /// If `stored` is before today, advance it by `cycle` until it lands on or
     /// after today; otherwise return it unchanged. Display-only — callers do not
     /// persist the result.
+    ///
+    /// Note: month-end dates clamp per `Calendar.date(byAdding:)` — e.g. a Jan 31
+    /// renewal rolls to Feb 28, then stays on the 28th. Acceptable for a
+    /// display-only countdown.
+    ///
+    /// Note: if the calendar cannot advance the date (Foundation returns nil, or
+    /// the 1200-step guard trips), the loop breaks and returns the last computed
+    /// value, which may still be in the past. Unreachable for normal renewal
+    /// dates; callers treat a past result as "overdue".
     static func nextRenewal(from stored: Date, cycle: BillingCycle, now: Date, calendar: Calendar = .current) -> Date {
         let today = calendar.startOfDay(for: now)
         var date = stored
