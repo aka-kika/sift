@@ -1085,3 +1085,76 @@ final class MemorySecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
         values.removeValue(forKey: account)
     }
 }
+
+@Suite("Subscription Math")
+struct SubscriptionMathTests {
+    private var utc: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }
+    private func day(_ y: Int, _ m: Int, _ d: Int) -> Date {
+        utc.date(from: DateComponents(year: y, month: m, day: d))!
+    }
+
+    @Test("Future renewal is returned unchanged")
+    func futureUnchanged() {
+        let stored = day(2026, 7, 1)
+        let next = SubscriptionMath.nextRenewal(from: stored, cycle: .monthly, now: day(2026, 6, 13), calendar: utc)
+        #expect(next == stored)
+    }
+
+    @Test("Today's renewal is returned unchanged")
+    func todayUnchanged() {
+        let stored = day(2026, 6, 13)
+        let next = SubscriptionMath.nextRenewal(from: stored, cycle: .monthly, now: day(2026, 6, 13), calendar: utc)
+        #expect(next == stored)
+    }
+
+    @Test("Past monthly rolls forward to the first future month")
+    func pastMonthlyRolls() {
+        let next = SubscriptionMath.nextRenewal(from: day(2026, 1, 10), cycle: .monthly, now: day(2026, 6, 13), calendar: utc)
+        #expect(next == day(2026, 7, 10))
+    }
+
+    @Test("Past yearly rolls forward to the first future year")
+    func pastYearlyRolls() {
+        let next = SubscriptionMath.nextRenewal(from: day(2024, 3, 1), cycle: .yearly, now: day(2026, 6, 13), calendar: utc)
+        #expect(next == day(2027, 3, 1))
+    }
+
+    @Test("daysUntil counts calendar days")
+    func daysUntil() {
+        #expect(SubscriptionMath.daysUntil(day(2026, 6, 20), now: day(2026, 6, 13), calendar: utc) == 7)
+    }
+
+    @Test("Countdown copy")
+    func countdownCopy() {
+        #expect(SubscriptionMath.countdownText(daysUntil: 0) == "renews today")
+        #expect(SubscriptionMath.countdownText(daysUntil: 1) == "renews tomorrow")
+        #expect(SubscriptionMath.countdownText(daysUntil: 5) == "renews in 5 days")
+        #expect(SubscriptionMath.countdownText(daysUntil: -1) == "overdue")
+    }
+
+    @Test("Near threshold is 0...7 inclusive")
+    func nearThreshold() {
+        #expect(SubscriptionMath.isNear(daysUntil: 0))
+        #expect(SubscriptionMath.isNear(daysUntil: 7))
+        #expect(!SubscriptionMath.isNear(daysUntil: 8))
+        #expect(!SubscriptionMath.isNear(daysUntil: -1))
+    }
+
+    @Test("isoDate formats yyyy-MM-dd")
+    func iso() {
+        #expect(SubscriptionMath.isoDate(day(2026, 6, 13), calendar: utc) == "2026-06-13")
+    }
+
+    @Test("BillingCycle round-trips its rawValue")
+    func cycleRawValue() {
+        #expect(BillingCycle(rawValue: "monthly") == .monthly)
+        #expect(BillingCycle(rawValue: "yearly") == .yearly)
+        #expect(BillingCycle(rawValue: "garbage") == nil)
+        #expect(BillingCycle.monthly.abbreviation == "mo")
+        #expect(BillingCycle.yearly.abbreviation == "yr")
+    }
+}
