@@ -53,6 +53,8 @@ struct AnalysisSettingsTab: View {
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
     @State private var pccStatus: String? = nil
+    @State private var advancedExpanded = false
+    @State private var didInitAdvanced = false
 
     enum FetchState { case idle, loading, loaded, failed(String) }
 
@@ -69,26 +71,7 @@ struct AnalysisSettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SettingsSectionTitle("Provider")
-            SettingsCard {
-                HStack {
-                    Text("Engine")
-                        .frame(width: 64, alignment: .leading)
-                    Spacer()
-                    Picker("", selection: $providerRaw) {
-                        ForEach(AnalysisProviderKind.allCases) { provider in
-                            Text(provider.displayName).tag(provider.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: 190)
-                }
-            }
-
             SettingsSectionTitle(provider.displayName)
-                .padding(.top, 2)
-
             SettingsCard {
                 switch provider {
                 case .ollama:
@@ -103,6 +86,24 @@ struct AnalysisSettingsTab: View {
                     appleIntelligenceConfig
                 }
             }
+
+            DisclosureGroup("Advanced", isExpanded: $advancedExpanded) {
+                HStack {
+                    Text("Engine")
+                        .frame(width: 64, alignment: .leading)
+                    Spacer()
+                    Picker("", selection: $providerRaw) {
+                        ForEach(AnalysisProviderKind.allCases) { provider in
+                            Text(provider.displayName).tag(provider.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: 190)
+                }
+                SettingsFooter("Use a different engine — a local Ollama server or a cloud API.")
+            }
+            .padding(.top, 2)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -111,6 +112,12 @@ struct AnalysisSettingsTab: View {
             availableModels = []
             fetchState = .idle
             await fetchModels()
+        }
+        .onAppear {
+            if !didInitAdvanced {
+                advancedExpanded = (provider != .appleIntelligence)
+                didInitAdvanced = true
+            }
         }
     }
 
@@ -182,9 +189,6 @@ struct AnalysisSettingsTab: View {
         if appleIntelligenceUsePCC, let pccStatus {
             SettingsFooter(pccStatus)
         }
-
-        Divider()
-        modelRow(model: $appleIntelligenceModel)
 
         Divider()
 
