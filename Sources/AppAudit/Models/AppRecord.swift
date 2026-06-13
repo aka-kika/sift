@@ -18,6 +18,11 @@ final class AppRecord {
     var hasSubscription: Bool = false
     var hasLicenseKey: Bool = false
     var licenseEmail: String? = nil
+    var subscriptionPrice: Double? = nil
+    var subscriptionCurrency: String? = nil
+    var subscriptionCycle: String? = nil
+    var subscriptionRenewalDate: Date? = nil
+    var subscriptionEmail: String? = nil
     var iconPNG: Data? = nil
     var isAnalysisLocked: Bool = false
     var appURL: String? = nil
@@ -45,6 +50,11 @@ final class AppRecord {
         self.hasSubscription = false
         self.hasLicenseKey = false
         self.licenseEmail = nil
+        self.subscriptionPrice = nil
+        self.subscriptionCurrency = nil
+        self.subscriptionCycle = nil
+        self.subscriptionRenewalDate = nil
+        self.subscriptionEmail = nil
         self.iconPNG = nil
         self.isAnalysisLocked = false
         self.suggestedAppURL = nil

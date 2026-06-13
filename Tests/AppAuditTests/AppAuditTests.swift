@@ -1158,3 +1158,18 @@ struct SubscriptionMathTests {
         #expect(BillingCycle.yearly.abbreviation == "yr")
     }
 }
+
+@Suite("AppRecord Subscription Fields")
+struct AppRecordSubscriptionTests {
+    @Test("A new record has empty subscription fields")
+    func defaults() {
+        let r = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                          relevanceScore: 0, relevanceReason: "", bestUse: "", ollamaModel: "")
+        #expect(r.hasSubscription == false)
+        #expect(r.subscriptionPrice == nil)
+        #expect(r.subscriptionCurrency == nil)
+        #expect(r.subscriptionCycle == nil)
+        #expect(r.subscriptionRenewalDate == nil)
+        #expect(r.subscriptionEmail == nil)
+    }
+}
