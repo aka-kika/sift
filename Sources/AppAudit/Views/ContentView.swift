@@ -37,6 +37,7 @@ struct ContentView: View {
         .task {
             viewModel.cacheService = CacheService(context: modelContext)
             viewModel.migrateDefaultProfileToAutomatic()
+            viewModel.migrateStyleNotesKey()
             viewModel.migrateLegacyLicenseKeys()
             viewModel.syncLicenseFlags()
             await viewModel.applyFirstRunProviderDefault()

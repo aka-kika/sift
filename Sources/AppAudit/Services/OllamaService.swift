@@ -74,7 +74,8 @@ actor OllamaService: AnalysisService {
             profile: profile,
             appURL: appURL,
             linkEvidence: linkEvidence,
-            includeResponseFormat: true
+            includeResponseFormat: true,
+            styleNotes: AppAnalysisPrompt.currentStyleNotes
         )
         return await chat(messages: [.init(role: "user", content: prompt)])
     }

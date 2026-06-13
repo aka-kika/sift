@@ -463,6 +463,19 @@ final class AppListViewModel {
         }
     }
 
+    /// One-time: the Style note moved from an Apple-Intelligence-only key to a
+    /// global `analysisStyleNotes` key. Carry any existing value across so it
+    /// keeps working for every engine. No-op once the new key exists.
+    func migrateStyleNotesKey() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: "analysisStyleNotes") == nil else { return }
+        let old = (defaults.string(forKey: "appleIntelligenceStyleNotes") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !old.isEmpty {
+            defaults.set(old, forKey: "analysisStyleNotes")
+        }
+    }
+
     /// One-time sweep: move any lingering plaintext license keys out of the
     /// SwiftData store and into the Keychain, then null the legacy field. Runs once
     /// (guarded by a UserDefaults flag). Reads the owning app's own Keychain items,
