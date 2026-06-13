@@ -484,7 +484,8 @@ final class AppListViewModel {
         let header = [
             "Name", "Bundle ID", "Version", "Category", "Score", "Recommendation",
             "Explanation", "Update Status", "My App", "Favorite",
-            "Subscription", "Sub Price", "Sub Cycle", "Sub Renewal", "Notes"
+            "Subscription", "Sub Price", "Sub Cycle", "Sub Renewal",
+            "Source", "Paid", "Notes"
         ]
         let sorted = apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         let rows: [[String]] = sorted.map { app in
@@ -512,6 +513,8 @@ final class AppListViewModel {
                 record?.subscriptionPrice.map { String(format: "%.2f", $0) } ?? "",
                 record?.subscriptionCycle ?? "",
                 record?.subscriptionRenewalDate.map { SubscriptionMath.isoDate($0) } ?? "",
+                app.installSourceLabel,
+                record?.isPaidApp == true ? "yes" : "",
                 record?.notes ?? ""
             ]
         }
