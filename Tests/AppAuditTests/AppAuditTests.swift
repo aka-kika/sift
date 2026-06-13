@@ -1215,3 +1215,28 @@ struct AppRecordPaidTests {
         #expect(r.isPaidApp == false)
     }
 }
+
+@MainActor
+@Suite("CSV Source and Paid Columns")
+struct CSVSourceColumnsTests {
+    @Test("Header includes Source and Paid before Notes; Source reflects install origin")
+    func sourceAndPaidColumns() {
+        let vm = AppListViewModel()
+        vm.apps = [
+            AppInfo(id: "a", name: "AStore", version: "1", bundleID: "a",
+                    path: "/Applications/AStore.app", humanReadableDescription: nil,
+                    sparkleFeedURL: nil, isAppStoreInstall: true, icon: nil),
+            AppInfo(id: "b", name: "Brew", version: "1", bundleID: "b",
+                    path: "/Applications/Brew.app", humanReadableDescription: nil,
+                    sparkleFeedURL: nil, isAppStoreInstall: false,
+                    homebrewCaskToken: "brew-cask", icon: nil)
+        ]
+        let csv = vm.exportCSV()
+        let lines = csv.split(separator: "\r\n", omittingEmptySubsequences: false)
+        // Header: Source and Paid immediately before Notes
+        #expect(lines[0].contains("Source,Paid,Notes"))
+        // AStore row → App Store; Brew row → Homebrew; Paid blank (no record)
+        #expect(csv.contains("App Store"))
+        #expect(csv.contains("Homebrew"))
+    }
+}

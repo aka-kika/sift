@@ -514,7 +514,7 @@ final class AppListViewModel {
                 record?.subscriptionCycle ?? "",
                 record?.subscriptionRenewalDate.map { SubscriptionMath.isoDate($0) } ?? "",
                 app.installSourceLabel,
-                record?.isPaidApp == true ? "yes" : "",
+                (app.isAppStoreInstall && record?.isPaidApp == true) ? "yes" : "",
                 record?.notes ?? ""
             ]
         }
