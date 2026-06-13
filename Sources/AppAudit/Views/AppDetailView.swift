@@ -527,6 +527,54 @@ struct AppDetailView: View {
     }
 
     private var licenseKeySection: some View {
+        Group {
+            if app.isAppStoreInstall {
+                appStoreOwnershipRowContent
+            } else {
+                licenseKeyRowContent
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                licenseHovered = hovering
+            }
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var appStoreOwnershipRowContent: some View {
+        HStack(spacing: 8) {
+            utilityChip("bag.fill", tint: .blue)
+            Text("Mac App Store")
+                .font(.subheadline.weight(.medium))
+            Text("Tied to your Apple ID")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+            if record?.isPaidApp == true {
+                Text("Paid")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.green)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.green.opacity(0.14), in: Capsule())
+            }
+            Spacer()
+            Button {
+                togglePaidApp()
+            } label: {
+                Image(systemName: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help(record?.isPaidApp == true ? "Marked as paid — click to unmark" : "Mark as paid")
+            .opacity(licenseHovered ? 1 : 0)
+        }
+    }
+
+    private var licenseKeyRowContent: some View {
         HStack(spacing: 8) {
             utilityChip("key.horizontal", tint: .indigo)
             Text("License Key")
@@ -625,14 +673,6 @@ struct AppDetailView: View {
             }
             .opacity(licenseHovered ? 1 : 0)
         }
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.12)) {
-                licenseHovered = hovering
-            }
-        }
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var subscriptionSection: some View {
@@ -808,6 +848,12 @@ struct AppDetailView: View {
 
     private func saveRecord() {
         try? modelContext.save()
+    }
+
+    private func togglePaidApp() {
+        let ensured = ensureRecord()
+        ensured.isPaidApp.toggle()
+        saveRecord()
     }
 
     private func toggleAnalysisLock() {
