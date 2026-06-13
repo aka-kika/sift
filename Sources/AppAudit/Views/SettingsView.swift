@@ -29,7 +29,7 @@ struct SettingsView: View {
     private var tabHeight: CGFloat {
         switch selectedTab {
         case .models: return 400
-        case .profile: return 300
+        case .profile: return 380
         case .general: return 290
         }
     }
@@ -48,7 +48,6 @@ struct AnalysisSettingsTab: View {
     @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
     @AppStorage("appleIntelligenceModel") private var appleIntelligenceModel = "system-language-model"
     @AppStorage("appleIntelligenceUsePCC") private var appleIntelligenceUsePCC = true
-    @AppStorage("appleIntelligenceStyleNotes") private var appleIntelligenceStyleNotes = ""
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -189,19 +188,6 @@ struct AnalysisSettingsTab: View {
         if appleIntelligenceUsePCC, let pccStatus {
             SettingsFooter(pccStatus)
         }
-
-        Divider()
-
-        HStack(alignment: .top) {
-            Text("Style")
-                .frame(width: 64, alignment: .leading)
-            TextField("e.g. Mention alternatives. Keep best-use under 12 words.", text: $appleIntelligenceStyleNotes, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(2...4)
-                .controlSize(.small)
-        }
-
-        SettingsFooter("Appended to the analysis instructions. Experiment freely — applies to the next re-analyze.")
     }
 
     private var fetchButton: some View {
@@ -309,6 +295,7 @@ struct AnalysisSettingsTab: View {
 struct ProfileSettingsTab: View {
     @AppStorage(WorkflowProfile.storageKey) private var profileText = ""
     @AppStorage("lastProfileDigest") private var lastProfileDigest = ""
+    @AppStorage("analysisStyleNotes") private var styleNotes = ""
 
     var body: some View {
         Form {
@@ -331,6 +318,14 @@ struct ProfileSettingsTab: View {
             Section {
                 Button("Clear Override") { profileText = "" }
                     .controlSize(.small)
+            }
+
+            Section("Analysis style") {
+                TextField("e.g. Mention alternatives. Keep best-use under 12 words.", text: $styleNotes, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(2...4)
+
+                SettingsFooter("Appended to every analysis, whichever engine runs it. Applies to the next re-analyze.")
             }
         }
         .formStyle(.grouped)
