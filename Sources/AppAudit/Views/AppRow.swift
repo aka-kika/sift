@@ -313,6 +313,13 @@ struct AppRow: View {
         let bundleID = app.bundleID
         if let existing = fetchRecord(for: bundleID) {
             existing.hasSubscription.toggle()
+            if !existing.hasSubscription {
+                existing.subscriptionPrice = nil
+                existing.subscriptionCurrency = nil
+                existing.subscriptionCycle = nil
+                existing.subscriptionRenewalDate = nil
+                existing.subscriptionEmail = nil
+            }
             try? modelContext.save()
             viewModel.setSubscription(bundleID: bundleID, value: existing.hasSubscription)
         } else {
