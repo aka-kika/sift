@@ -10,7 +10,7 @@ enum AppAnalysisPrompt {
     Never use the phrase "appears to be" or "seems to be". When evidence is genuinely missing or conflicting, name the most likely purpose plainly and keep the score conservative, or say the purpose is unclear — but do not pad every sentence with hedges.
     """
 
-    static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, includeResponseFormat: Bool) -> String {
+    static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, includeResponseFormat: Bool, styleNotes: String = "") -> String {
         let categoryHint = AppCategory.humanName(for: app.category).map { "\nCategory: \($0)" } ?? ""
         let descriptionHint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
         let linkContext = referenceURLContext(from: appURL, fetched: linkEvidence)
@@ -22,6 +22,11 @@ enum AppAnalysisPrompt {
         REASON: [1 short sentence, max 22 words. Explain why this score fits the developer's specific workflow.]
         BEST_USE: [1 short actionable sentence, max 22 words. If irrelevant or unclear, write: Not applicable to your workflow.]
         """ : ""
+
+        let trimmedNotes = styleNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let styleBlock = trimmedNotes.isEmpty
+            ? ""
+            : "\n\nAdditional style notes from the user (follow them):\n\(trimmedNotes)"
 
         return """
         Analyze this installed macOS app:
@@ -49,8 +54,16 @@ enum AppAnalysisPrompt {
         4 = Regularly useful; removes friction in their specific stack
         3 = Occasionally useful; nice to have but not essential
         2 = Rarely useful; unlikely to serve this workflow
-        1 = No overlap; safe to uninstall
+        1 = No overlap; safe to uninstall\(styleBlock)
         """
+    }
+
+    /// The user's global analysis style notes from Settings (Profile tab),
+    /// trimmed. Empty when unset. Passed into `build(...)` for the non-Apple
+    /// engines; Apple Intelligence reads the same key directly.
+    static var currentStyleNotes: String {
+        (UserDefaults.standard.string(forKey: "analysisStyleNotes") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Compact facts-only prompt for small on-device models (Apple Intelligence).

@@ -1240,3 +1240,29 @@ struct CSVSourceColumnsTests {
         #expect(csv.contains("Homebrew"))
     }
 }
+
+@Suite("Analysis Prompt Style Notes")
+struct AnalysisPromptStyleNotesTests {
+    private var app: AppInfo {
+        AppInfo(id: "com.x", name: "X", version: "1", bundleID: "com.x",
+                path: "/Applications/X.app", humanReadableDescription: nil,
+                sparkleFeedURL: nil, isAppStoreInstall: false, icon: nil)
+    }
+
+    @Test("Style notes are appended when provided")
+    func appended() {
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                             includeResponseFormat: false,
+                                             styleNotes: "Mention alternatives.")
+        #expect(prompt.contains("Additional style notes from the user (follow them):"))
+        #expect(prompt.contains("Mention alternatives."))
+    }
+
+    @Test("No style block when notes are empty or whitespace")
+    func emptyOmits() {
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                             includeResponseFormat: false,
+                                             styleNotes: "   ")
+        #expect(!prompt.contains("Additional style notes"))
+    }
+}
