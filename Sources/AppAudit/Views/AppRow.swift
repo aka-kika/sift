@@ -576,7 +576,7 @@ struct ScoreBadgeView: View {
             ZStack {
                 Text("\(score)")
                     .font(.caption.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(scoreTextColor(score))
                     .frame(width: 24, height: 24)
                     .background(scoreColor(score), in: Circle())
                 if isMyApp {
@@ -601,6 +601,16 @@ struct ScoreBadgeView: View {
         case 4: return .mint
         case 5: return .green
         default: return .gray
+        }
+    }
+
+    /// Numeral color chosen to stay legible on each fill. The light pastel fills
+    /// (yellow=3, mint=4) need dark digits; the saturated fills read fine in white.
+    /// Fixed regardless of light/dark mode because the fills are light in both.
+    func scoreTextColor(_ score: Int) -> Color {
+        switch score {
+        case 3, 4: return Color.black.opacity(0.8)
+        default: return .white
         }
     }
 
