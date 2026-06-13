@@ -1205,3 +1205,13 @@ struct InstallSourceLabelTests {
         #expect(make(appStore: false, sparkle: nil, cask: nil).installSourceLabel == "Other")
     }
 }
+
+@Suite("AppRecord Paid Flag")
+struct AppRecordPaidTests {
+    @Test("A new record is not marked paid")
+    func defaultsFalse() {
+        let r = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                          relevanceScore: 0, relevanceReason: "", bestUse: "", ollamaModel: "")
+        #expect(r.isPaidApp == false)
+    }
+}

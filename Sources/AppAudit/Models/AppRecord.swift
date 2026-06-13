@@ -23,6 +23,7 @@ final class AppRecord {
     var subscriptionCycle: String? = nil
     var subscriptionRenewalDate: Date? = nil
     var subscriptionEmail: String? = nil
+    var isPaidApp: Bool = false
     var iconPNG: Data? = nil
     var isAnalysisLocked: Bool = false
     var appURL: String? = nil
@@ -55,6 +56,7 @@ final class AppRecord {
         self.subscriptionCycle = nil
         self.subscriptionRenewalDate = nil
         self.subscriptionEmail = nil
+        self.isPaidApp = false
         self.iconPNG = nil
         self.isAnalysisLocked = false
         self.suggestedAppURL = nil
