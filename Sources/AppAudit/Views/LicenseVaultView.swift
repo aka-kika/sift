@@ -5,14 +5,16 @@ import SwiftData
 import AppKit
 #endif
 
-/// Shows all license keys in one place, split into Installed and No longer installed.
-/// Records persist after an app is removed; uninstalled apps simply move to the
-/// "No longer installed" section and move back when reinstalled.
+/// Shows everything you've bought — license keys and paid Mac App Store apps —
+/// split into Installed and No longer installed. Records persist after an app is
+/// removed; uninstalled apps simply move to the "No longer installed" section and
+/// move back when reinstalled.
 struct LicenseVaultView: View {
     let installedBundleIDs: Set<String>
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppListViewModel.self) private var viewModel
     private let licenseKeyStore = LicenseKeyStore.shared
 
     @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey || $0.isPaidApp }, sort: \AppRecord.appName)
@@ -167,6 +169,7 @@ struct LicenseVaultView: View {
 
     private func unmarkPaid(_ record: AppRecord) {
         record.isPaidApp = false
+        viewModel.setPaidApp(bundleID: record.bundleID, value: false)
         try? modelContext.save()
     }
 }
