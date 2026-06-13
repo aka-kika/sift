@@ -93,18 +93,20 @@ actor AppleIntelligenceService: AnalysisService {
         }
 
         let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
-        // Lab-validated: few-shot + seeded nucleus sampling removes the "Use it…"
-        // monotony that greedy decoding produces, while a fixed seed keeps results
-        // reproducible run-to-run.
+        // Scoring is a factual task: greedy (deterministic) decoding keeps the
+        // answer grounded in the supplied facts and gives the same app the same
+        // score run-to-run. The @Guide schema forbids a "Use …" opener; on the
+        // rare miss we re-roll once with low-temperature sampling (greedy would
+        // reproduce the same text). 500 tokens leaves room so the four-field
+        // answer is never truncated into a parse failure.
         let options = GenerationOptions(
-            samplingMode: .random(probabilityThreshold: 0.9, seed: 42),
-            temperature: 0.7,
-            maximumResponseTokens: 220
+            samplingMode: .greedy,
+            maximumResponseTokens: 500
         )
         let retryOptions = GenerationOptions(
             samplingMode: .random(probabilityThreshold: 0.9, seed: 137),
-            temperature: 0.7,
-            maximumResponseTokens: 220
+            temperature: 0.4,
+            maximumResponseTokens: 500
         )
 
         // Private Cloud Compute first (macOS 27+, opt-out in Settings): a far larger
@@ -135,28 +137,22 @@ actor AppleIntelligenceService: AnalysisService {
             }
         }
 
+        // Permissive content guardrails: the default guardrails block a large
+        // share of benign prompts (security tools, networking apps, etc.),
+        // returning blank or degraded analyses. This is the on-device path that
+        // actually runs on Macs without working Private Cloud Compute.
+        let onDeviceModel = SystemLanguageModel(guardrails: .permissiveContentTransformations)
         do {
-            let session = LanguageModelSession {
-                instructionsText
-            }
-            var analysis = try await session.respond(
-                to: prompt,
-                generating: AppleIntelligenceAppAnalysis.self,
-                options: options
-            ).content
-            if Self.soundsMonotonous(analysis) {
-                let retrySession = LanguageModelSession {
-                    instructionsText
-                }
-                analysis = try await retrySession.respond(
-                    to: prompt,
-                    generating: AppleIntelligenceAppAnalysis.self,
-                    options: retryOptions
-                ).content
-            }
+            let analysis = try await Self.generate(
+                model: onDeviceModel,
+                instructions: instructionsText,
+                prompt: prompt,
+                options: options,
+                retryOptions: retryOptions
+            )
             return .success(Self.structuredText(from: analysis))
         } catch {
-            return .unavailable("Apple Intelligence error: \(error.localizedDescription)")
+            return .unavailable(Self.describeGenerationError(error))
         }
         #else
         return .unavailable("Apple Intelligence requires an SDK with Foundation Models.")
@@ -212,22 +208,98 @@ actor AppleIntelligenceService: AnalysisService {
         """
     }
 
-    /// One retry with a different seed when the canned "Use …" opener slips
-    /// through; the second draw almost always phrases differently.
+    /// One retry with sampling when the canned "Use …" opener slips through; the
+    /// sampled draw almost always phrases differently (greedy would not).
     @available(macOS 26.0, *)
     private static func soundsMonotonous(_ analysis: AppleIntelligenceAppAnalysis) -> Bool {
         analysis.bestUse.hasPrefix("Use ") || analysis.bestUse.hasPrefix("Use it")
+    }
+
+    private enum GenerationFailure: Error { case empty }
+
+    /// One grounded analysis: greedy first, then a single sampled re-roll if the
+    /// "Use …" opener slips through. Each call is retried on transient model
+    /// errors; guardrail/refusal errors propagate immediately.
+    @available(macOS 26.0, *)
+    private static func generate(
+        model: SystemLanguageModel,
+        instructions: String,
+        prompt: String,
+        options: GenerationOptions,
+        retryOptions: GenerationOptions
+    ) async throws -> AppleIntelligenceAppAnalysis {
+        var analysis = try await respondWithRetry(model: model, instructions: instructions, prompt: prompt, options: options)
+        if soundsMonotonous(analysis) {
+            analysis = try await respondWithRetry(model: model, instructions: instructions, prompt: prompt, options: retryOptions)
+        }
+        return analysis
+    }
+
+    /// Retries transient failures (model busy / assets loading) and empty output
+    /// with short backoff; rethrows guardrail/refusal immediately (they won't
+    /// change on a retry).
+    @available(macOS 26.0, *)
+    private static func respondWithRetry(
+        model: SystemLanguageModel,
+        instructions: String,
+        prompt: String,
+        options: GenerationOptions
+    ) async throws -> AppleIntelligenceAppAnalysis {
+        let backoff: [Duration] = [.milliseconds(300), .seconds(1)]
+        var attempt = 0
+        while true {
+            do {
+                let session = LanguageModelSession(model: model, instructions: instructions)
+                let analysis = try await session.respond(
+                    to: prompt,
+                    generating: AppleIntelligenceAppAnalysis.self,
+                    options: options
+                ).content
+                guard !analysis.explanation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw GenerationFailure.empty
+                }
+                return analysis
+            } catch {
+                if isNonRetryable(error) || attempt >= backoff.count {
+                    throw error
+                }
+                try? await Task.sleep(for: backoff[attempt])
+                attempt += 1
+            }
+        }
+    }
+
+    /// Guardrail blocks and outright refusals are deterministic — don't retry them.
+    private static func isNonRetryable(_ error: Error) -> Bool {
+        let d = error.localizedDescription.lowercased()
+        return d.contains("guardrail") || d.contains("safety") || d.contains("unsafe")
+            || d.contains("content policy") || d.contains("refus") || d.contains("declined")
+    }
+
+    /// A user-facing reason that names a safety block distinctly from a generic failure.
+    private static func describeGenerationError(_ error: Error) -> String {
+        if case GenerationFailure.empty = error {
+            return "Apple Intelligence returned an empty analysis — try re-analyzing."
+        }
+        let d = error.localizedDescription.lowercased()
+        if d.contains("guardrail") || d.contains("safety") || d.contains("unsafe") || d.contains("content policy") {
+            return "Apple Intelligence blocked this app's analysis (content guardrail)."
+        }
+        if d.contains("refus") || d.contains("declined") {
+            return "Apple Intelligence declined to analyze this app."
+        }
+        return "Apple Intelligence error: \(error.localizedDescription)"
     }
 
     @available(macOS 26.0, *)
     private static func describeAvailabilityReason(_ reason: SystemLanguageModel.Availability.UnavailableReason) -> String {
         switch reason {
         case .appleIntelligenceNotEnabled:
-            return "Apple Intelligence is not enabled in Settings"
+            return "Apple Intelligence is off — turn it on in System Settings › Apple Intelligence & Siri"
         case .modelNotReady:
-            return "the on-device model is still downloading or preparing"
+            return "the on-device model is still downloading or preparing (~a few GB) — try again shortly"
         case .deviceNotEligible:
-            return "this Mac is not eligible"
+            return "this Mac is not eligible (Apple Intelligence needs an Apple Silicon Mac) — choose another engine in Advanced"
         @unknown default:
             return String(describing: reason)
         }

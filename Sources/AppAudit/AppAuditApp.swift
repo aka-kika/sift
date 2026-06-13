@@ -3,11 +3,31 @@ import SwiftData
 #if canImport(AppKit)
 import AppKit
 
+/// Drives the app-wide appearance through AppKit. SwiftUI's
+/// `.preferredColorScheme(nil)` stalls ~1s on the Dark→System transition while it
+/// re-resolves the system appearance; setting `NSApp.appearance` reverts instantly.
+enum AppAppearance {
+    static func apply(_ preference: String) {
+        let appearance: NSAppearance?
+        switch preference {
+        case "light": appearance = NSAppearance(named: .aqua)
+        case "dark": appearance = NSAppearance(named: .darkAqua)
+        default: appearance = nil   // "system" — instant revert to the OS setting
+        }
+        NSApplication.shared.appearance = appearance
+    }
+}
+
 /// Single-window utility behavior: closing the window quits the app instead of
-/// leaving a ghost Dock icon with no window to reopen.
+/// leaving a ghost Dock icon with no window to reopen. Also applies the saved
+/// appearance at launch so the window opens in the right scheme immediately.
 final class SiftAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        AppAppearance.apply(UserDefaults.standard.string(forKey: "appearancePreference") ?? "system")
     }
 }
 #endif
@@ -20,13 +40,6 @@ struct AppAuditApp: App {
     @NSApplicationDelegateAdaptor(SiftAppDelegate.self) private var appDelegate
     #endif
 
-    private var preferredScheme: ColorScheme? {
-        switch appearancePreference {
-        case "light": return .light
-        case "dark": return .dark
-        default: return nil
-        }
-    }
     private static let container: ModelContainer = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let storeDir = appSupport.appendingPathComponent(Self.dataFolderName, isDirectory: true)
@@ -52,7 +65,11 @@ struct AppAuditApp: App {
             ContentView()
                 .environment(viewModel)
                 .frame(minWidth: 780, minHeight: 520)
-                .preferredColorScheme(preferredScheme)
+                #if canImport(AppKit)
+                .onChange(of: appearancePreference) { _, newValue in
+                    AppAppearance.apply(newValue)
+                }
+                #endif
         }
         .windowResizability(.contentMinSize)
         .modelContainer(Self.container)
@@ -72,7 +89,6 @@ struct AppAuditApp: App {
 
         Settings {
             SettingsView()
-                .preferredColorScheme(preferredScheme)
         }
         .windowResizability(.contentSize)
     }
