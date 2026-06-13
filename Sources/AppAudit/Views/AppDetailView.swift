@@ -24,6 +24,13 @@ struct AppDetailView: View {
     @State private var notesHovered = false
     @State private var licenseHovered = false
     @State private var urlHovered = false
+    @State private var subHovered = false
+    @State private var editingSubscription = false
+    @State private var draftSubPrice = ""
+    @State private var draftSubCurrency = ""
+    @State private var draftSubCycle: BillingCycle = .monthly
+    @State private var draftSubRenewal = Date()
+    @State private var draftSubEmail = ""
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
@@ -96,6 +103,36 @@ struct AppDetailView: View {
                     }
                 }
                 editingURL = false
+            }
+        }
+        .sheet(isPresented: $editingSubscription) {
+            SubscriptionSheet(
+                appName: app.name,
+                price: $draftSubPrice,
+                currency: $draftSubCurrency,
+                cycle: $draftSubCycle,
+                renewal: $draftSubRenewal,
+                email: $draftSubEmail
+            ) { action in
+                switch action {
+                case .cancel:
+                    break
+                case .save:
+                    let ensured = ensureRecord()
+                    ensured.subscriptionPrice = Double(draftSubPrice.replacingOccurrences(of: ",", with: "."))
+                    ensured.subscriptionCurrency = draftSubCurrency.isEmpty ? nil : draftSubCurrency
+                    ensured.subscriptionCycle = draftSubCycle.rawValue
+                    ensured.subscriptionRenewalDate = draftSubRenewal
+                    let email = draftSubEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ensured.subscriptionEmail = email.isEmpty ? nil : email
+                    ensured.hasSubscription = true
+                    if ensured.iconPNG == nil { ensured.iconPNG = app.icon?.pngData() }
+                    viewModel.setSubscription(bundleID: app.bundleID, value: true)
+                    saveRecord()
+                case .clear:
+                    clearSubscription()
+                }
+                editingSubscription = false
             }
         }
         .alert("Update with Homebrew?", isPresented: $confirmingHomebrewUpdate) {
@@ -712,6 +749,39 @@ struct AppDetailView: View {
         return created
     }
 
+    private func beginEditingSubscription() {
+        draftSubPrice = record?.subscriptionPrice.map { String(format: "%.2f", $0) } ?? ""
+        draftSubCurrency = record?.subscriptionCurrency
+            ?? (Locale.current.currency?.identifier ?? "USD")
+        draftSubCycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
+        draftSubRenewal = record?.subscriptionRenewalDate ?? Date()
+        draftSubEmail = record?.subscriptionEmail
+            ?? record?.licenseEmail
+            ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
+        editingSubscription = true
+    }
+
+    private func clearSubscription() {
+        let ensured = ensureRecord()
+        ensured.subscriptionPrice = nil
+        ensured.subscriptionCurrency = nil
+        ensured.subscriptionCycle = nil
+        ensured.subscriptionRenewalDate = nil
+        ensured.subscriptionEmail = nil
+        ensured.hasSubscription = false
+        viewModel.setSubscription(bundleID: app.bundleID, value: false)
+        saveRecord()
+    }
+
+    private func formattedPrice(_ amount: Double, currencyCode: String) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = currencyCode
+        f.maximumFractionDigits = 2
+        return f.string(from: NSNumber(value: amount))
+            ?? String(format: "%.2f %@", amount, currencyCode)
+    }
+
     private func maskedLicenseKey(_ key: String) -> String {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count > 8 else { return trimmed }
@@ -847,6 +917,82 @@ struct DetailLicenseKeySheet: View {
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
                 Button("Save") { onDone(true) }
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(20)
+        .frame(width: 400)
+        .onAppear { focused = true }
+    }
+}
+
+// MARK: - Subscription Sheet
+
+enum SubscriptionSheetAction { case cancel, save, clear }
+
+struct SubscriptionSheet: View {
+    let appName: String
+    @Binding var price: String
+    @Binding var currency: String
+    @Binding var cycle: BillingCycle
+    @Binding var renewal: Date
+    @Binding var email: String
+    let onDone: (SubscriptionSheetAction) -> Void
+
+    @FocusState private var focused: Bool
+
+    private static let currencies = ["USD", "EUR", "GBP", "ILS", "CAD", "AUD", "JPY", "CHF"]
+
+    /// Always include the record's current currency even if it is not in the
+    /// short list, so the picker can display it without losing the value.
+    static func currencyOptions(including current: String) -> [String] {
+        if current.isEmpty || currencies.contains(current) { return currencies }
+        return [current] + currencies
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Subscription for \(appName)")
+                .font(.headline)
+            Text("Track what you pay and when it renews next.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                TextField("Amount", text: $price)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 140)
+                    .focused($focused)
+                Picker("", selection: $currency) {
+                    ForEach(Self.currencyOptions(including: currency), id: \.self) { code in
+                        Text(code).tag(code)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: 110)
+            }
+
+            Picker("Billing", selection: $cycle) {
+                ForEach(BillingCycle.allCases) { c in
+                    Text(c.label).tag(c)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            DatePicker("Next renewal", selection: $renewal, displayedComponents: .date)
+
+            TextField("Billing email (optional)", text: $email)
+                .textFieldStyle(.roundedBorder)
+
+            HStack {
+                Button("Cancel") { onDone(.cancel) }
+                    .keyboardShortcut(.escape)
+                Spacer()
+                Button("Clear") { onDone(.clear) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                Button("Save") { onDone(.save) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.borderedProminent)
             }
