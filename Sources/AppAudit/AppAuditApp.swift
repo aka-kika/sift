@@ -1,10 +1,24 @@
 import SwiftUI
 import SwiftData
+#if canImport(AppKit)
+import AppKit
+
+/// Single-window utility behavior: closing the window quits the app instead of
+/// leaving a ghost Dock icon with no window to reopen.
+final class SiftAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
+}
+#endif
 
 @main
 struct AppAuditApp: App {
     @State private var viewModel = AppListViewModel()
     @AppStorage("appearancePreference") private var appearancePreference = "system"
+    #if canImport(AppKit)
+    @NSApplicationDelegateAdaptor(SiftAppDelegate.self) private var appDelegate
+    #endif
 
     private var preferredScheme: ColorScheme? {
         switch appearancePreference {

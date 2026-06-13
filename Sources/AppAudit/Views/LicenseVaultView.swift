@@ -126,7 +126,7 @@ struct LicenseVaultView: View {
     }
 
     private func copyKey(for bundleID: String) {
-        Task {
+        Task { @MainActor in
             guard await LicenseKeyGuard.authenticate(reason: "copy a license key from the vault") else { return }
             let resolution = licenseKeyStore.resolveKey(bundleID: bundleID, legacyValue: nil)
             guard let key = resolution.value, !key.isEmpty else { return }

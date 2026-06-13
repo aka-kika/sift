@@ -21,6 +21,9 @@ struct AppDetailView: View {
     @State private var draftLicenseEmail = ""
     @State private var currentLicenseKey: String? = nil
     @State private var notesExpanded = false
+    @State private var notesHovered = false
+    @State private var licenseHovered = false
+    @State private var urlHovered = false
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
@@ -428,15 +431,7 @@ struct AppDetailView: View {
     }
 
     private var notesSection: some View {
-        DisclosureGroup(isExpanded: $notesExpanded) {
-            NotesEditor(
-                text: Binding(
-                    get: { record?.notes ?? "" },
-                    set: { ensureRecord().notes = $0.isEmpty ? nil : $0; saveRecord() }
-                )
-            )
-            .padding(.top, 6)
-        } label: {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 utilityChip("note.text", tint: .yellow)
                 Text("Notes")
@@ -445,8 +440,44 @@ struct AppDetailView: View {
                     Text("Saved")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                } else {
+                    Text("None yet")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
                 Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        notesExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: (record?.notes?.isEmpty == false) ? "pencil" : "plus.circle")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help((record?.notes?.isEmpty == false) ? "Edit notes" : "Add notes")
+                .opacity(notesHovered ? 1 : 0)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    notesExpanded.toggle()
+                }
+            }
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.12)) {
+                    notesHovered = hovering
+                }
+            }
+
+            if notesExpanded {
+                NotesEditor(
+                    text: Binding(
+                        get: { record?.notes ?? "" },
+                        set: { ensureRecord().notes = $0.isEmpty ? nil : $0; saveRecord() }
+                    )
+                )
+                .padding(.top, 8)
             }
         }
         .onChange(of: app.bundleID) { _, _ in
@@ -481,75 +512,84 @@ struct AppDetailView: View {
                     .foregroundStyle(.tertiary)
             }
             Spacer()
-            if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
-                Button {
-                    if isKeyRevealed {
-                        isKeyRevealed = false
-                    } else {
-                        Task {
-                            if await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)") {
-                                isKeyRevealed = true
-                                try? await Task.sleep(for: .seconds(10))
-                                isKeyRevealed = false
+            if keyCopied {
+                Text("Copied")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Group {
+                if let licenseKey = currentLicenseKey, !licenseKey.isEmpty {
+                    Button {
+                        if isKeyRevealed {
+                            isKeyRevealed = false
+                        } else {
+                            Task { @MainActor in
+                                if await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)") {
+                                    isKeyRevealed = true
+                                    try? await Task.sleep(for: .seconds(10))
+                                    isKeyRevealed = false
+                                }
                             }
                         }
+                    } label: {
+                        Image(systemName: isKeyRevealed ? "eye.slash" : "eye")
                     }
-                } label: {
-                    Image(systemName: isKeyRevealed ? "eye.slash" : "eye")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help(isKeyRevealed ? "Hide license key" : "Reveal license key (Touch ID)")
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help(isKeyRevealed ? "Hide license key" : "Reveal license key (Touch ID)")
 
-                if keyCopied {
-                    Text("Copied")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Button {
+                        Task { @MainActor in
+                            if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(licenseKey, forType: .string)
+                                keyCopied = true
+                                try? await Task.sleep(for: .seconds(1.5))
+                                keyCopied = false
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Copy license key (Touch ID)")
                 }
                 Button {
-                    Task {
-                        if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(licenseKey, forType: .string)
-                            keyCopied = true
-                            try? await Task.sleep(for: .seconds(1.5))
-                            keyCopied = false
-                        }
-                    }
+                    draftLicenseKey = currentLicenseKey ?? ""
+                    draftLicenseEmail = record?.licenseEmail
+                        ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
+                    editingLicenseKey = true
                 } label: {
-                    Image(systemName: "doc.on.doc")
+                    Image(systemName: currentLicenseKey != nil ? "pencil" : "plus.circle")
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-                .help("Copy license key (Touch ID)")
-            }
-            Button {
-                draftLicenseKey = currentLicenseKey ?? ""
-                draftLicenseEmail = record?.licenseEmail
-                    ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
-                editingLicenseKey = true
-            } label: {
-                Image(systemName: currentLicenseKey != nil ? "pencil" : "plus.circle")
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .help(currentLicenseKey != nil ? "Edit license key" : "Add license key")
+                .help(currentLicenseKey != nil ? "Edit license key" : "Add license key")
 
-            if currentLicenseKey != nil {
-                Button(role: .destructive) {
-                    licenseKeyStore.delete(bundleID: app.bundleID)
-                    currentLicenseKey = nil
-                    isKeyRevealed = false
-                    record?.licenseKey = nil
-                    record?.hasLicenseKey = false
-                    record?.licenseEmail = nil
-                    saveRecord()
-                } label: {
-                    Image(systemName: "trash")
+                if currentLicenseKey != nil {
+                    Button(role: .destructive) {
+                        licenseKeyStore.delete(bundleID: app.bundleID)
+                        currentLicenseKey = nil
+                        isKeyRevealed = false
+                        record?.licenseKey = nil
+                        record?.hasLicenseKey = false
+                        record?.licenseEmail = nil
+                        saveRecord()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove license key")
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help("Remove license key")
+            }
+            .opacity(licenseHovered ? 1 : 0)
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                licenseHovered = hovering
             }
         }
         .padding(.vertical, 10)
@@ -580,26 +620,35 @@ struct AppDetailView: View {
                     .foregroundStyle(.tertiary)
             }
             Spacer()
-            Button {
-                draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
-                editingURL = true
-            } label: {
-                Image(systemName: record?.appURL != nil ? "pencil" : "plus.circle")
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .help(record?.appURL != nil ? "Edit app link" : (hasSuggestedLink ? "Add app link (a suggestion is prefilled)" : "Add app link"))
-            if record?.appURL != nil {
-                Button(role: .destructive) {
-                    record?.appURL = nil
-                    saveRecord()
+            Group {
+                Button {
+                    draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
+                    editingURL = true
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.caption)
+                    Image(systemName: record?.appURL != nil ? "pencil" : "plus.circle")
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-                .help("Remove app link")
+                .help(record?.appURL != nil ? "Edit app link" : (hasSuggestedLink ? "Add app link (a suggestion is prefilled)" : "Add app link"))
+                if record?.appURL != nil {
+                    Button(role: .destructive) {
+                        record?.appURL = nil
+                        saveRecord()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove app link")
+                }
+            }
+            .opacity(urlHovered ? 1 : 0)
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                urlHovered = hovering
             }
         }
         .padding(.vertical, 10)

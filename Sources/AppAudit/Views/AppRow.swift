@@ -165,7 +165,7 @@ struct AppRow: View {
             // Group 3: Key items
             if let licenseKey = existingLicenseKey {
                 Button {
-                    Task {
+                    Task { @MainActor in
                         if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(licenseKey, forType: .string)
