@@ -13,6 +13,7 @@ enum AppAnalysisPrompt {
     static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, includeResponseFormat: Bool, styleNotes: String = "") -> String {
         let categoryHint = AppCategory.humanName(for: app.category).map { "\nCategory: \($0)" } ?? ""
         let descriptionHint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
+        let knownFacts = verifiedFactsBlock(for: app.bundleID)
         let linkContext = referenceURLContext(from: appURL, fetched: linkEvidence)
         let responseFormat = includeResponseFormat ? """
 
@@ -33,7 +34,7 @@ enum AppAnalysisPrompt {
         Name: \(app.name)
         Bundle ID: \(app.bundleID)
         Version: \(app.version.isEmpty ? "Unknown" : app.version)
-        Path: \(app.path)\(categoryHint)\(descriptionHint)\(linkContext)
+        Path: \(app.path)\(categoryHint)\(descriptionHint)\(knownFacts)\(linkContext)
 
         Developer workflow context:
         \(profile.promptDescription)
@@ -76,6 +77,11 @@ enum AppAnalysisPrompt {
             "Version: \(app.version.isEmpty ? "Unknown" : app.version)",
             "Path: \(app.path)"
         ]
+        if let known = KnownApps.entry(for: app.bundleID) {
+            lines.append("Verified facts (authoritative — trust these over any guess about the name):")
+            lines.append(known.summary)
+            lines.append("Official site: \(known.url)")
+        }
         if let categoryName = AppCategory.humanName(for: app.category) {
             lines.append("Category: \(categoryName)")
         }
@@ -99,6 +105,18 @@ enum AppAnalysisPrompt {
         lines.append("")
         lines.append("Score this app's relevance to that workflow from 1 (safe to uninstall) to 5 (daily driver).")
         return lines.joined(separator: "\n")
+    }
+
+    /// Authoritative ground truth for apps in the curated `KnownApps` registry.
+    /// Leads the evidence so the model trusts it over any guess from the name.
+    private static func verifiedFactsBlock(for bundleID: String) -> String {
+        guard let known = KnownApps.entry(for: bundleID) else { return "" }
+        return """
+
+        Verified facts (authoritative — trust these over any guess about the name):
+        \(known.summary)
+        Official site: \(known.url)
+        """
     }
 
     private static func referenceURLContext(from appURL: String?, fetched: String? = nil) -> String {

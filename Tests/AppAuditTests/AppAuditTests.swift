@@ -463,6 +463,65 @@ struct AppAnalysisPromptTests {
         #expect(prompt.contains("Developer's workflow:"))
         #expect(!prompt.contains("Evidence rules"))
         #expect(!prompt.contains("EXPLANATION:"))
+        #expect(!prompt.contains("Verified facts"))
+    }
+
+    @Test("Known apps inject verified facts into the compact prompt")
+    func compactFactsGroundsKnownApp() {
+        let app = AppInfo(
+            id: "com.noodlesoft.hazel", name: "Hazel", version: "5.0",
+            bundleID: "com.noodlesoft.hazel", path: "/Applications/Hazel.app",
+            humanReadableDescription: nil, sparkleFeedURL: nil,
+            isAppStoreInstall: false, icon: nil
+        )
+        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: .generic())
+        #expect(prompt.contains("Verified facts (authoritative"))
+        #expect(prompt.contains("Hazel watches folders"))
+        #expect(prompt.contains("Official site: https://www.noodlesoft.com"))
+    }
+
+    @Test("Known apps inject verified facts into the full prompt")
+    func buildGroundsKnownApp() {
+        let app = AppInfo(
+            id: "com.noodlesoft.hazel", name: "Hazel", version: "5.0",
+            bundleID: "com.noodlesoft.hazel", path: "/Applications/Hazel.app",
+            humanReadableDescription: nil, sparkleFeedURL: nil,
+            isAppStoreInstall: false, icon: nil
+        )
+        let prompt = AppAnalysisPrompt.build(
+            app: app, profile: .local(text: "macOS apps"), includeResponseFormat: true
+        )
+        #expect(prompt.contains("Verified facts (authoritative"))
+        #expect(prompt.contains("Hazel watches folders"))
+        #expect(prompt.contains("Official site: https://www.noodlesoft.com"))
+    }
+}
+
+@Suite("KnownApps Tests")
+struct KnownAppsTests {
+
+    @Test("Lookup is case-insensitive on bundle ID")
+    func lookupCaseInsensitive() {
+        let lower = KnownApps.entry(for: "com.noodlesoft.hazel")
+        let mixed = KnownApps.entry(for: "Com.Noodlesoft.Hazel")
+        #expect(lower != nil)
+        #expect(lower == mixed)
+        #expect(lower?.url == "https://www.noodlesoft.com")
+    }
+
+    @Test("Unknown bundle IDs return nil")
+    func unknownReturnsNil() {
+        #expect(KnownApps.entry(for: "com.example.nope") == nil)
+        #expect(KnownApps.entry(for: "") == nil)
+    }
+
+    @Test("Every entry has a non-empty https URL and summary")
+    func entriesAreWellFormed() {
+        for (bundleID, entry) in KnownApps.entries {
+            #expect(bundleID == bundleID.lowercased(), "Key \(bundleID) must be lowercased")
+            #expect(entry.url.hasPrefix("https://"))
+            #expect(!entry.summary.isEmpty)
+        }
     }
 }
 
@@ -973,6 +1032,19 @@ struct AppLinkResolverTests {
         )
 
         #expect(url == "https://updates.example.com")
+    }
+
+    @Test("Resolves a known app to its curated link without the network")
+    func resolvesKnownAppOffline() async {
+        let app = AppInfo(
+            id: "com.noodlesoft.hazel", name: "Hazel", version: "5.0",
+            bundleID: "com.noodlesoft.hazel", path: "/Applications/Hazel.app",
+            humanReadableDescription: nil, sparkleFeedURL: nil,
+            isAppStoreInstall: false, icon: nil
+        )
+        let resolved = await AppLinkResolver().resolve(app: app)
+        #expect(resolved?.url == "https://www.noodlesoft.com")
+        #expect(resolved?.source == .knownApps)
     }
 }
 

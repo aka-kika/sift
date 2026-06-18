@@ -731,7 +731,7 @@ final class AppListViewModel {
     }
 
     private func refreshAppLinks(for scannedApps: [AppInfo], token: UUID) async {
-        for app in scannedApps where app.isAppStoreInstall || app.sparkleFeedURL != nil {
+        for app in scannedApps where app.isAppStoreInstall || app.sparkleFeedURL != nil || KnownApps.entry(for: app.bundleID) != nil {
             guard token == updateScanToken else { return }
             if let existingURL = cacheService?.load(bundleID: app.bundleID)?.appURL,
                !existingURL.isEmpty {
