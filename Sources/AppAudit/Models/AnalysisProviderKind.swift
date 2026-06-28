@@ -1,13 +1,13 @@
 import Foundation
 
-/// Analysis provider. Ollama (local or ollama.com cloud) plus hosted cloud
+/// Analysis provider. Ollama (local or ollama.com cloud) is the default and the
+/// focus of this personal edition; Anthropic and OpenAI remain as optional cloud
 /// providers. The model identifier embeds the selected model so the cache
 /// invalidates appropriately when it changes.
 enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
     case ollama
     case anthropic
     case openAI
-    case appleIntelligence
 
     var id: String { rawValue }
 
@@ -16,7 +16,6 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "Ollama"
         case .anthropic: return "Anthropic"
         case .openAI: return "OpenAI"
-        case .appleIntelligence: return "Apple Intelligence"
         }
     }
 
@@ -26,7 +25,6 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "ollamaModel"
         case .anthropic: return "anthropicModel"
         case .openAI: return "openAIModel"
-        case .appleIntelligence: return "appleIntelligenceModel"
         }
     }
 
@@ -36,16 +34,14 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         case .ollama: return "ollamaApiKey"
         case .anthropic: return "anthropicApiKey"
         case .openAI: return "openAIApiKey"
-        case .appleIntelligence: return "appleIntelligenceApiKey" // unused; no key needed
         }
     }
 
     var defaultModel: String {
         switch self {
-        case .ollama: return "llama3.2"
+        case .ollama: return OllamaDefaults.model
         case .anthropic: return "claude-3-5-haiku-latest"
         case .openAI: return "gpt-4o-mini"
-        case .appleIntelligence: return "system-language-model" // informational; modelIdentifier() is pinned for this case
         }
     }
 
@@ -54,22 +50,11 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
     }
 
     func modelIdentifier(userDefaults: UserDefaults = .standard) -> String {
-        // Pinned to the pre-1.1.0 identifier so old cached analyses stay valid.
-        // There is exactly one on-device system model, so it never varies.
-        if self == .appleIntelligence {
-            return "apple-intelligence:foundation-models"
-        }
         let model = userDefaults.string(forKey: modelDefaultsKey) ?? defaultModel
         return "\(rawValue):\(model)"
     }
 
     static let storageKey = "analysisProviderKind"
-
-    /// First-run only: pick Apple Intelligence when it is actually available, else
-    /// leave the preference unset so the Ollama fallback applies. Pure for testing.
-    static func firstRunProviderRawValue(appleIntelligenceAvailable: Bool) -> String? {
-        appleIntelligenceAvailable ? AnalysisProviderKind.appleIntelligence.rawValue : nil
-    }
 
     static func current(userDefaults: UserDefaults = .standard) -> AnalysisProviderKind {
         let rawValue = userDefaults.string(forKey: storageKey) ?? Self.ollama.rawValue

@@ -2,7 +2,9 @@
 
 Native macOS app auditing for people who build software.
 
-Sift scans installed apps, explains what each app is, ranks whether it fits your workflow, tracks updates, stores license keys, and lets you keep notes. Analysis runs through your choice of provider: a local Ollama server (default), or a cloud provider with an API key — ollama.com, Anthropic, or OpenAI.
+Sift scans installed apps, explains what each app is, ranks whether it fits your workflow, tracks updates, stores license keys, and lets you keep notes. Analysis runs **local-first through Ollama** by default — nothing leaves your Mac. Optional cloud providers (ollama.com, Anthropic, OpenAI) are available with an API key.
+
+> **Personal Ollama-first edition.** Apple Intelligence and the bundled known-apps catalog have been removed; Ollama is the default and is tuned for the best output (low temperature, larger context, capped length, model kept warm across a scan). The default model is `kika-ohllama:latest` — change it any time in **Settings → Models**.
 
 ## What It Does
 
@@ -29,6 +31,8 @@ See [FEATURES.md](FEATURES.md) for the full feature list.
 
 ```bash
 brew install ollama create-dmg
+# This edition defaults to kika-ohllama:latest. Use any installed model —
+# pick a non-thinking instruct model for reliable structured output, e.g.:
 ollama pull llama3.2
 ```
 

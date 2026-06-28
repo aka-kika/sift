@@ -17,9 +17,8 @@ Analysis runs locally. Update and app-link checks use public vendor endpoints wh
 |---|---|---|
 | macOS 14+ | Required OS | — |
 | [Ollama](https://ollama.ai) | Local AI analysis provider | `brew install ollama` |
-| A pulled Ollama model | LLM for analysis | `ollama pull llama3.2` |
+| A pulled Ollama model | LLM for analysis (default `kika-ohllama:latest`; any installed model works) | `ollama pull <model>` |
 | Cloud API key | Optional — use a hosted provider instead of a local server: an ollama.com, Anthropic, or OpenAI key | — |
-| Apple Intelligence | Optional on-device provider | macOS 26+ with Apple Intelligence enabled |
 | `create-dmg` | Polished release DMG builder | `brew install create-dmg` |
 
 ---
@@ -30,14 +29,14 @@ Analysis runs locally. Update and app-link checks use public vendor endpoints wh
 # 1. Start Ollama
 ollama serve
 
-# 2. Pull a model (first time only)
+# 2. Pull a model (first time only) — or use any model you already have
 ollama pull llama3.2
 
 # 3. Open Sift.dmg and drag to /Applications
 # 4. Launch Sift
 ```
 
-Sift scans `/Applications` and `~/Applications` on launch and begins analyzing each app with the selected provider — Ollama by default (local server or ollama.com cloud), with Anthropic, OpenAI, and on-device Apple Intelligence as alternatives. Results are cached — subsequent launches are instant.
+Sift scans `/Applications` and `~/Applications` on launch and begins analyzing each app with the selected provider — Ollama by default (local server or ollama.com cloud), with Anthropic and OpenAI as optional cloud alternatives. Results are cached — subsequent launches are instant.
 
 ---
 
@@ -148,14 +147,12 @@ Both are preserved across re-analyses.
 ## Settings (`⌘,`)
 
 ### Models Tab
-- **Provider** — choose **Ollama**, **Anthropic**, **OpenAI**, or **Apple Intelligence**.
-- **Ollama** — Base URL (default `http://localhost:11434`), optional API Key (for ollama.com cloud models — set the Base URL to `https://ollama.com`), and a model picker fetched from `/api/tags`.
+- **Provider** — Ollama is the default; **Anthropic** and **OpenAI** are under **Advanced → Engine**.
+- **Ollama** — Base URL (default `http://localhost:11434`), optional API Key (for ollama.com cloud models — set the Base URL to `https://ollama.com`), and a model picker fetched from `/api/tags`. The default model is `kika-ohllama:latest`; pick any installed model.
 - **Anthropic / OpenAI** — paste your API key; the model list is **fetched** from the provider (`/v1/models`) and shown in a picker. Keys are stored in app preferences.
-- **Apple Intelligence** — no key or URL; shows an availability status ("Available on this Mac" or the reason it isn't). On-device Foundation Models, macOS 26+.
 - The refresh button next to the key/URL tests the connection and fetches models.
 
-All providers use the same analysis prompt and structured-output parser; only the transport differs.
-- New installs on macOS 26+ with Apple Intelligence available start on Apple Intelligence automatically; any stored choice is never changed.
+All providers use the same analysis prompt and structured-output parser; only the transport differs. New runs start on Ollama by default; any stored choice is never changed.
 
 ### Profile Tab
 - **Automatic profile** — a read-only preview of the digest derived from your installed apps (categories, recently used, open now).

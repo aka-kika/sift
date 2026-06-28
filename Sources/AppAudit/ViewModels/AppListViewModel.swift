@@ -209,7 +209,6 @@ final class AppListViewModel {
     private let ollama = OllamaService()
     private let anthropic = AnthropicService()
     private let openAI = OpenAIService()
-    private let appleIntelligence = AppleIntelligenceService()
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     private let linkEvidenceService = LinkEvidenceService()
@@ -379,8 +378,6 @@ final class AppListViewModel {
             result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
         case .openAI:
             result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
-        case .appleIntelligence:
-            result = await appleIntelligence.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
         }
 
         switch result {
@@ -436,18 +433,6 @@ final class AppListViewModel {
             }
         }
         if changed { cache.persist() }
-    }
-
-    /// First launch only (presence check — never overrides a stored choice): start
-    /// new installs on Apple Intelligence when it actually works on this Mac.
-    func applyFirstRunProviderDefault() async {
-        let defaults = UserDefaults.standard
-        guard defaults.object(forKey: AnalysisProviderKind.storageKey) == nil else { return }
-        let available: Bool
-        if case .models = await AppleIntelligenceService().fetchModels() { available = true } else { available = false }
-        if let raw = AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: available) {
-            defaults.set(raw, forKey: AnalysisProviderKind.storageKey)
-        }
     }
 
     /// One-time: users upgraded from builds where the personal default profile was
@@ -731,7 +716,7 @@ final class AppListViewModel {
     }
 
     private func refreshAppLinks(for scannedApps: [AppInfo], token: UUID) async {
-        for app in scannedApps where app.isAppStoreInstall || app.sparkleFeedURL != nil || KnownApps.entry(for: app.bundleID) != nil {
+        for app in scannedApps where app.isAppStoreInstall || app.sparkleFeedURL != nil {
             guard token == updateScanToken else { return }
             if let existingURL = cacheService?.load(bundleID: app.bundleID)?.appURL,
                !existingURL.isEmpty {

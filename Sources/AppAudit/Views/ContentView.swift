@@ -40,7 +40,6 @@ struct ContentView: View {
             viewModel.migrateStyleNotesKey()
             viewModel.migrateLegacyLicenseKeys()
             viewModel.syncLicenseFlags()
-            await viewModel.applyFirstRunProviderDefault()
             await viewModel.runFullScan()
         }
     }

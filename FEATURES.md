@@ -16,13 +16,18 @@ updating, and which licenses and subscriptions you're paying for.
 
 ## AI providers
 
-- **Ollama** — local server (default) or **ollama.com cloud models** via an API key.
-- **Anthropic (Claude)** — Messages API; model list fetched from the provider.
-- **OpenAI** — Chat Completions API; model list fetched from the provider.
-- **Apple Intelligence** — on-device Foundation Models (macOS 26+). No API key;
-  analysis never leaves the Mac. Availability is checked and explained in Settings.
-  New installs on macOS 26+ with Apple Intelligence available start on Apple Intelligence automatically.
+- **Ollama (default, the focus of this edition)** — local server or **ollama.com cloud
+  models** via an API key. Tuned for quality: low temperature for consistent scoring,
+  a roomy context window, a capped output length, and `keep_alive` so the model stays
+  warm across a scan instead of reloading per app.
+- **Anthropic (Claude)** — Messages API; model list fetched from the provider. Optional.
+- **OpenAI** — Chat Completions API; model list fetched from the provider. Optional.
+- Reasoning ("thinking") models are supported — the parser strips `<think>` blocks and
+  tolerates markdown-wrapped labels and `4/5`-style scores — but a non-thinking model is
+  the default, since pure thinking models can spend their whole budget reasoning.
 - One shared prompt and parser across providers; only the transport differs.
+- **Evidence-only** — analysis is grounded in each app's own metadata, its website's
+  fetched words, and your workflow profile. No bundled "known apps" catalog.
 - API keys are stored in app preferences.
 - **No auto-wipe on model change** — switching models keeps your existing analyses and
   shows a banner offering to re-analyze the affected apps.
@@ -75,7 +80,7 @@ updating, and which licenses and subscriptions you're paying for.
 
 ## Privacy & data
 
-- Analysis runs locally by default (Ollama), or fully on-device with Apple
-  Intelligence. Cloud providers are opt-in via API key.
+- Analysis runs locally by default (Ollama) — nothing leaves the Mac. The
+  Anthropic and OpenAI cloud providers are opt-in via API key.
 - Data is stored locally in SwiftData; license keys live in the Keychain.
 - Update and app-link checks use public vendor endpoints only.

@@ -92,16 +92,13 @@ struct AnalysisProviderKindTests {
         #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
     }
 
-    @Test("Apple Intelligence keeps its historical cache identifier")
-    func appleIntelligenceIdentifier() {
-        let defaults = UserDefaults(suiteName: "AppAuditTests.AnalysisProviderKind.ai")!
-        // Even if a model name is stored, the identifier stays pinned so analyses
-        // cached before the 1.1.0 trims revalidate as non-drifted.
-        defaults.set("anything-else", forKey: "appleIntelligenceModel")
-        #expect(AnalysisProviderKind.appleIntelligence.modelIdentifier(userDefaults: defaults) == "apple-intelligence:foundation-models")
-        #expect(AnalysisProviderKind.allCases.count == 4)
-        #expect(AnalysisProviderKind.appleIntelligence.displayName == "Apple Intelligence")
-        defaults.removeObject(forKey: "appleIntelligenceModel")
+    @Test("Provider set is Ollama plus the two optional cloud providers")
+    func providerCases() {
+        // Personal edition: Ollama is the default and focus; Apple Intelligence
+        // has been removed. Anthropic and OpenAI remain as optional cloud providers.
+        #expect(AnalysisProviderKind.allCases.count == 3)
+        #expect(Set(AnalysisProviderKind.allCases) == [.ollama, .anthropic, .openAI])
+        #expect(AnalysisProviderKind.ollama.defaultModel == OllamaDefaults.model)
     }
 
     @Test("Builds stable cache identifiers per provider and model")
@@ -111,7 +108,7 @@ struct AnalysisProviderKindTests {
         defaults.removeObject(forKey: "anthropicModel")
         defaults.removeObject(forKey: "openAIModel")
 
-        #expect(AnalysisProviderKind.ollama.modelIdentifier(userDefaults: defaults) == "ollama:llama3.2")
+        #expect(AnalysisProviderKind.ollama.modelIdentifier(userDefaults: defaults) == "ollama:\(OllamaDefaults.model)")
         #expect(AnalysisProviderKind.anthropic.modelIdentifier(userDefaults: defaults) == "anthropic:claude-3-5-haiku-latest")
         #expect(AnalysisProviderKind.openAI.modelIdentifier(userDefaults: defaults) == "openAI:gpt-4o-mini")
 
@@ -448,80 +445,36 @@ struct AppAnalysisPromptTests {
         #expect(prompt.contains("Slug keywords: example, owner, local, agent, tools"))
     }
 
-    @Test("Compact facts prompt carries evidence without the rule lists")
-    func compactFactsIsCompact() {
-        let app = AppInfo(
-            id: "com.example.tool", name: "Tool", version: "2.0",
-            bundleID: "com.example.tool", path: "/Applications/Tool.app",
-            humanReadableDescription: "A test tool", sparkleFeedURL: nil,
-            isAppStoreInstall: false, icon: nil
-        )
-        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: .generic(), appURL: "https://example.com/tool")
-        #expect(prompt.contains("App: Tool"))
-        #expect(prompt.contains("Bundle ID: com.example.tool"))
-        #expect(prompt.contains("https://example.com/tool"))
-        #expect(prompt.contains("Developer's workflow:"))
-        #expect(!prompt.contains("Evidence rules"))
-        #expect(!prompt.contains("EXPLANATION:"))
-        #expect(!prompt.contains("Verified facts"))
+    @Test("Parses markdown-wrapped labels and N/5 scores")
+    func parseMarkdownAndSlashScore() async {
+        let service = OllamaService()
+        // Mirrors how some models (e.g. ministral) bold the labels and write 4/5.
+        let response = """
+        **EXPLANATION:** Open-source local LLM server.
+        **SCORE:** **4/5**
+        **REASON:** Local-first AI fits the workflow.
+        **BEST_USE:** Host models locally and call the API from SwiftUI.
+        """
+        let parsed = await service.parseAnalysis(from: response)
+        #expect(parsed?.score == 4)
+        #expect(parsed?.explanation == "Open-source local LLM server.")
     }
 
-    @Test("Known apps inject verified facts into the compact prompt")
-    func compactFactsGroundsKnownApp() {
-        let app = AppInfo(
-            id: "com.noodlesoft.hazel", name: "Hazel", version: "5.0",
-            bundleID: "com.noodlesoft.hazel", path: "/Applications/Hazel.app",
-            humanReadableDescription: nil, sparkleFeedURL: nil,
-            isAppStoreInstall: false, icon: nil
-        )
-        let prompt = AppAnalysisPrompt.compactFacts(app: app, profile: .generic())
-        #expect(prompt.contains("Verified facts (authoritative"))
-        #expect(prompt.contains("Hazel watches folders"))
-        #expect(prompt.contains("Official site: https://www.noodlesoft.com"))
-    }
-
-    @Test("Known apps inject verified facts into the full prompt")
-    func buildGroundsKnownApp() {
-        let app = AppInfo(
-            id: "com.noodlesoft.hazel", name: "Hazel", version: "5.0",
-            bundleID: "com.noodlesoft.hazel", path: "/Applications/Hazel.app",
-            humanReadableDescription: nil, sparkleFeedURL: nil,
-            isAppStoreInstall: false, icon: nil
-        )
-        let prompt = AppAnalysisPrompt.build(
-            app: app, profile: .local(text: "macOS apps"), includeResponseFormat: true
-        )
-        #expect(prompt.contains("Verified facts (authoritative"))
-        #expect(prompt.contains("Hazel watches folders"))
-        #expect(prompt.contains("Official site: https://www.noodlesoft.com"))
-    }
-}
-
-@Suite("KnownApps Tests")
-struct KnownAppsTests {
-
-    @Test("Lookup is case-insensitive on bundle ID")
-    func lookupCaseInsensitive() {
-        let lower = KnownApps.entry(for: "com.noodlesoft.hazel")
-        let mixed = KnownApps.entry(for: "Com.Noodlesoft.Hazel")
-        #expect(lower != nil)
-        #expect(lower == mixed)
-        #expect(lower?.url == "https://www.noodlesoft.com")
-    }
-
-    @Test("Unknown bundle IDs return nil")
-    func unknownReturnsNil() {
-        #expect(KnownApps.entry(for: "com.example.nope") == nil)
-        #expect(KnownApps.entry(for: "") == nil)
-    }
-
-    @Test("Every entry has a non-empty https URL and summary")
-    func entriesAreWellFormed() {
-        for (bundleID, entry) in KnownApps.entries {
-            #expect(bundleID == bundleID.lowercased(), "Key \(bundleID) must be lowercased")
-            #expect(entry.url.hasPrefix("https://"))
-            #expect(!entry.summary.isEmpty)
-        }
+    @Test("Strips <think> reasoning before the structured answer")
+    func parseStripsThinking() async {
+        let service = OllamaService()
+        let response = """
+        <think>
+        SCORE: 1 — scratchpad, ignore.
+        </think>
+        EXPLANATION: A terminal emulator for macOS.
+        SCORE: 5
+        REASON: Daily driver for terminal workflows.
+        BEST_USE: Keep it as the primary terminal.
+        """
+        let parsed = await service.parseAnalysis(from: response)
+        #expect(parsed?.score == 5)
+        #expect(parsed?.explanation == "A terminal emulator for macOS.")
     }
 }
 
@@ -1034,18 +987,6 @@ struct AppLinkResolverTests {
         #expect(url == "https://updates.example.com")
     }
 
-    @Test("Resolves a known app to its curated link without the network")
-    func resolvesKnownAppOffline() async {
-        let app = AppInfo(
-            id: "com.noodlesoft.hazel", name: "Hazel", version: "5.0",
-            bundleID: "com.noodlesoft.hazel", path: "/Applications/Hazel.app",
-            humanReadableDescription: nil, sparkleFeedURL: nil,
-            isAppStoreInstall: false, icon: nil
-        )
-        let resolved = await AppLinkResolver().resolve(app: app)
-        #expect(resolved?.url == "https://www.noodlesoft.com")
-        #expect(resolved?.source == .knownApps)
-    }
 }
 
 @Suite("Grounded Profile Tests")
@@ -1102,12 +1043,6 @@ struct GroundedProfileTests {
         #expect(WorkflowProfile.current(digest: "digest text", userDefaults: defaults).promptDescription == "digest text")
         #expect(WorkflowProfile.current(digest: "", userDefaults: defaults).promptDescription
             == WorkflowProfile.neutralProfileText.trimmingCharacters(in: .whitespacesAndNewlines))
-    }
-
-    @Test("First-run provider default only when Apple Intelligence is available")
-    func firstRunProvider() {
-        #expect(AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: true) == "appleIntelligence")
-        #expect(AnalysisProviderKind.firstRunProviderRawValue(appleIntelligenceAvailable: false) == nil)
     }
 }
 

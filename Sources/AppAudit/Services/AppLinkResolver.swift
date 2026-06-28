@@ -8,7 +8,6 @@ actor AppLinkResolver {
         enum Source: String {
             case appStore = "App Store"
             case sparkle = "Sparkle"
-            case knownApps = "Known Apps"
         }
     }
 
@@ -19,12 +18,6 @@ actor AppLinkResolver {
     }
 
     func resolve(app: AppInfo) async -> ResolvedLink? {
-        // Curated apps get their official link offline — no network round-trip,
-        // and it gives LinkEvidence the right page to scrape.
-        if let known = KnownApps.entry(for: app.bundleID) {
-            return ResolvedLink(url: known.url, source: .knownApps)
-        }
-
         if app.isAppStoreInstall,
            let appStoreLink = await fetchAppStoreLink(bundleID: app.bundleID) {
             return ResolvedLink(url: appStoreLink, source: .appStore)

@@ -64,7 +64,7 @@ Locked analyses opt out of invalidation and overwrite. `CacheService.save` refus
 
 - AI enrichment uses `withTaskGroup` capped at 2 concurrent provider requests (low peak memory/CPU)
 - All ViewModel mutations happen on `@MainActor`
-- Services are `actor`-isolated (AppScanner, OllamaService, AnthropicService, OpenAIService, AppleIntelligenceService)
+- Services are `actor`-isolated (AppScanner, OllamaService, AnthropicService, OpenAIService)
 
 ## Persistence
 
@@ -99,12 +99,16 @@ Single structured provider request per app:
 ```
 
 Parser: line-by-line prefix matching on `EXPLANATION:`, `SCORE:`, `REASON:`, `BEST_USE:`.
+The parser is tolerant — it strips any `<think>…</think>` reasoning a model emits,
+accepts markdown-wrapped labels (`**SCORE:**`), and reads `4/5`-style scores — so a
+reasoning model's output still parses cleanly.
 
-All providers share this one prompt via the `AnalysisService` protocol. The HTTP
-providers (Ollama, Anthropic, OpenAI) return structured text for the parser;
-Apple Intelligence uses FoundationModels `@Generable` structured generation and
-converts the result into the same parsed format. The system prompt instructs the
-model to answer directly, banning "appears to be" hedging.
+All providers share this one prompt via the `AnalysisService` protocol. Ollama,
+Anthropic, and OpenAI return structured text for the parser. Ollama is the default
+and the focus of this edition; its requests carry generation tuning (low
+temperature, larger context, output cap, `keep_alive`) centralized in
+`OllamaDefaults`. The system prompt instructs the model to answer directly,
+banning "appears to be" hedging.
 
 ## Workflow Profile Resolution
 
