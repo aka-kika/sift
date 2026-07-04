@@ -68,6 +68,42 @@ actor OpenAIService: AnalysisService {
         }
     }
 
+    func complete(prompt: String) async -> AnalysisResult {
+        let key = apiKey
+        guard !key.isEmpty else {
+            return .unavailable("Add an OpenAI API key in Settings → Models.")
+        }
+        guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
+            return .unavailable("Invalid OpenAI URL")
+        }
+
+        var request = URLRequest(url: url, timeoutInterval: 90)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+
+        let body = Request(
+            model: model,
+            messages: [
+                .init(role: "system", content: AnalysisHTTP.systemPrompt),
+                .init(role: "user", content: prompt)
+            ]
+        )
+
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                return .unavailable("OpenAI error (\(http.statusCode)). Check your API key and model.")
+            }
+            let decoded = try JSONDecoder().decode(Response.self, from: data)
+            let text = decoded.choices.first?.message.content ?? ""
+            return .success(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        } catch {
+            return .unavailable("OpenAI error: \(error.localizedDescription)")
+        }
+    }
+
     func fetchModels() async -> ModelFetchResult {
         let key = apiKey
         guard !key.isEmpty else { return .failure("Add an OpenAI API key first.") }

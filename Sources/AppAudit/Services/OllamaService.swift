@@ -120,6 +120,10 @@ actor OllamaService: AnalysisService {
         return await chat(messages: [.init(role: "user", content: prompt)])
     }
 
+    func complete(prompt: String) async -> AnalysisResult {
+        await chat(messages: [.init(role: "user", content: prompt)])
+    }
+
     func parseAnalysis(from response: String) -> (explanation: String, score: Int, reason: String, bestUse: String)? {
         var explanation: String?
         var score: Int?

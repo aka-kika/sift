@@ -72,7 +72,12 @@ updating, and which licenses and subscriptions you're paying for.
 - **Recommendation-first** layout: score + best-use + reason at the top, explanation below.
 - Compact **update pill** and a single **⋯ menu** for all per-app actions
   (re-analyze, lock, customize description, tag toggles, show in Finder, copy bundle ID).
-- Utility card grid: Notes, License, Subscription, and App Link as minimal icon+badge cubes — details live in tooltips and popups. Cards gray out when they cannot apply — license & subscription for **Free apps** (the explicit opposite of Paid) and **My Apps**, subscription also when the license type is **Lifetime** or **One-time** — always showing why in the badge, never deleting stored data. Clicking the link card opens the URL; right-click the license card to mark Paid/Free or copy/remove the key; the license sheet records the license type and can reveal the key (Touch ID).
+- Utility cube row: **Notes, License, Subscription, App Link, Lock, Favorite** as minimal icon-only cubes pinned under the header (they stay put when you switch apps). State is shown by the icon and color — filled/tinted when active, gray when not; all detail lives in the hover tooltip.
+  - **License** shows a blue verified seal for Mac App Store apps, a colored key when a key is saved. Right-click to mark **Paid**/**Free**, copy, or remove the key. The license sheet records a **license type** (Lifetime / One-time / Annual / Other) and can reveal the key (Touch ID).
+  - **Subscription** is one-click to mark active (no price needed); right-click to add price, cycle, and renewal, or to remove. The cube turns orange when a renewal is near.
+  - **App Link** shows a corner notification dot when a suggestion is available; once set, the icon reflects the host (a code glyph for GitHub/GitLab/…, a globe for websites) and clicking opens it.
+  - Cards **gray out when they cannot apply** — license & subscription for **Free apps** (the explicit opposite of Paid) and **My Apps**, subscription also under a **Lifetime**/**One-time** license — always explaining why in the tooltip, never deleting stored data.
+- **Find similar apps you have**: a button under the recommendation asks the current model which of your *other installed apps* overlap in function. The model only ever sees a numbered list of your apps and can only pick from it, so results are grounded — no invented apps or dead links. Results are compact rows (icon + name + short reason); click one to jump to that app.
 
 ## Notes
 

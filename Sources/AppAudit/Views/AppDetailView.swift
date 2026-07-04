@@ -24,6 +24,8 @@ struct AppDetailView: View {
     @State private var notesSheetPresented = false
     @State private var notesSessionBundleID: String? = nil
     @State private var notesSessionInitialNotes: String? = nil
+    @State private var similarResults: [SimilarApp]? = nil
+    @State private var findingSimilar = false
     @State private var editingSubscription = false
     @State private var draftSubPrice = ""
     @State private var draftSubCurrency = ""
@@ -33,7 +35,6 @@ struct AppDetailView: View {
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
-    @State private var keyCopied = false
 
     var body: some View {
         ScrollView {
@@ -44,6 +45,9 @@ struct AppDetailView: View {
                 whatIsThisSection
                 recommendationSection
                 improveAnalysisCallout
+                if case .loaded = app.aiState {
+                    similarSection
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
@@ -53,7 +57,8 @@ struct AppDetailView: View {
         .task(id: app.bundleID) {
             loadRecord()
             loadLicenseKey()
-            keyCopied = false
+            similarResults = nil
+            findingSimilar = false
         }
         .sheet(isPresented: $editingDescription) {
             EditDescriptionSheet(appName: app.name, draft: $draftDescription) { saved in
@@ -483,6 +488,105 @@ struct AppDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // MARK: - Similar apps
+
+    @ViewBuilder
+    private var similarSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if findingSimilar {
+                HStack(spacing: 8) {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Finding similar apps you have…")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let results = similarResults {
+                if results.isEmpty {
+                    HStack(spacing: 8) {
+                        Text("No clear overlap among your installed apps.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Button("Try again") { runFindSimilar() }
+                            .buttonStyle(.borderless)
+                            .font(.callout)
+                    }
+                } else {
+                    HStack {
+                        Label("Similar apps you have", systemImage: "square.on.square")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Button { runFindSimilar() } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("Find again")
+                    }
+                    VStack(spacing: 6) {
+                        ForEach(results) { similarRow($0) }
+                    }
+                }
+            } else {
+                Button { runFindSimilar() } label: {
+                    Label("Find similar apps you have", systemImage: "square.on.square")
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func similarRow(_ similar: SimilarApp) -> some View {
+        let info = viewModel.apps.first(where: { $0.bundleID == similar.bundleID })
+        return Button {
+            viewModel.selectedAppID = similar.bundleID
+        } label: {
+            HStack(spacing: 10) {
+                if let icon = info?.icon {
+                    Image(nsImage: icon.image)
+                        .resizable()
+                        .frame(width: 26, height: 26)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(.quaternary)
+                        .frame(width: 26, height: 26)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(similar.name).font(.callout.weight(.medium))
+                    if !similar.reason.isEmpty {
+                        Text(similar.reason)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 10)
+            .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func runFindSimilar() {
+        findingSimilar = true
+        similarResults = nil
+        let bundleID = app.bundleID
+        Task {
+            let results = await viewModel.findSimilarApps(to: bundleID)
+            // Ignore a stale result if the user switched apps mid-request.
+            guard app.bundleID == bundleID else { return }
+            similarResults = results
+            findingSimilar = false
+        }
+    }
+
     private var lockCard: some View {
         let locked = app.isAnalysisLocked
         return UtilityCard(tint: .orange, active: locked, action: { toggleAnalysisLock() }) {
@@ -613,9 +717,6 @@ struct AppDetailView: View {
             if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(key, forType: .string)
-                keyCopied = true
-                try? await Task.sleep(for: .seconds(1.5))
-                keyCopied = false
             }
         }
     }

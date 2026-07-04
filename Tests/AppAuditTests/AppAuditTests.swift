@@ -1458,3 +1458,60 @@ struct PricingMarksTests {
         #expect(!record.isPaidApp && !record.isFreeApp)
     }
 }
+
+@Suite("Similar Apps Prompt")
+struct SimilarAppsPromptTests {
+    @Test("Parse keeps only valid indices and extracts reasons")
+    func parseValid() {
+        let reply = """
+        3: Both are AI-assisted code editors
+        7: Terminal AI coding agent
+        """
+        let picks = SimilarAppsPrompt.parse(reply, validIndices: [1, 3, 7])
+        #expect(picks.count == 2)
+        #expect(picks[0].index == 3)
+        #expect(picks[0].reason == "Both are AI-assisted code editors")
+        #expect(picks[1].index == 7)
+    }
+
+    @Test("Out-of-range or invented indices are dropped (grounding)")
+    func parseRejectsInvalid() {
+        // 99 is not a real candidate; a bare app name is not an index.
+        let reply = """
+        99: Invented app the user does not have
+        Raycast: also a launcher
+        2: A real overlapping app
+        """
+        let picks = SimilarAppsPrompt.parse(reply, validIndices: [1, 2])
+        #expect(picks.map(\.index) == [2])
+    }
+
+    @Test("NONE and empty replies yield no picks")
+    func parseNone() {
+        #expect(SimilarAppsPrompt.parse("NONE", validIndices: [1, 2]).isEmpty)
+        #expect(SimilarAppsPrompt.parse("", validIndices: [1, 2]).isEmpty)
+    }
+
+    @Test("Duplicate indices are collapsed")
+    func parseDedup() {
+        let picks = SimilarAppsPrompt.parse("2: reason a\n2: reason b", validIndices: [2])
+        #expect(picks.count == 1)
+    }
+
+    @Test("Prompt lists candidates by number and never leaks beyond the list")
+    func promptStructure() {
+        let prompt = SimilarAppsPrompt.build(
+            targetName: "Cursor",
+            targetCategory: "Developer Tools",
+            targetExplanation: "AI code editor",
+            candidates: [
+                .init(index: 1, name: "Goose", category: "Developer Tools", explanation: "AI agent"),
+                .init(index: 2, name: "Zed", category: "Developer Tools", explanation: "Fast editor")
+            ]
+        )
+        #expect(prompt.contains("1. Goose"))
+        #expect(prompt.contains("2. Zed"))
+        #expect(prompt.contains("Choose ONLY from the numbered list"))
+        #expect(prompt.contains("Cursor"))
+    }
+}
