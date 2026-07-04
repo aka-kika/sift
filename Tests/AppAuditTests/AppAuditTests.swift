@@ -1383,3 +1383,78 @@ struct PricingFieldsTests {
         #expect(record.licenseType == nil)
     }
 }
+
+@Suite("Utility Card Rules")
+struct UtilityCardRulesTests {
+    @Test("License card disabled for My Apps and free apps only")
+    func licenseRule() {
+        #expect(UtilityCardRules.licenseDisabled(isMyApp: true, isFreeApp: false))
+        #expect(UtilityCardRules.licenseDisabled(isMyApp: false, isFreeApp: true))
+        #expect(UtilityCardRules.licenseDisabled(isMyApp: true, isFreeApp: true))
+        #expect(!UtilityCardRules.licenseDisabled(isMyApp: false, isFreeApp: false))
+    }
+
+    @Test("Subscription card disabled for My Apps, free apps, and forever licenses")
+    func subscriptionRule() {
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: true, isFreeApp: false, licenseType: nil))
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: true, licenseType: nil))
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .lifetime))
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .oneTime))
+        #expect(!UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .annual))
+        #expect(!UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .other))
+        #expect(!UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: nil))
+    }
+
+    @Test("Disabled reason priority: your app, then free, then license type")
+    func reasonPriority() {
+        #expect(UtilityCardRules.disabledReason(isMyApp: true, isFreeApp: true, licenseType: .lifetime) == "Your app")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: true, licenseType: .lifetime) == "Free app")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: .lifetime) == "Lifetime license")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: .oneTime) == "One-time license")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: .annual) == nil)
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: nil) == nil)
+    }
+}
+
+@Suite("Pricing Marks")
+struct PricingMarksTests {
+    @MainActor
+    @Test("Marking free clears paid, and vice versa")
+    func mutualExclusion() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let record = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                               relevanceScore: 0, relevanceReason: "",
+                               bestUse: "", ollamaModel: "")
+        container.mainContext.insert(record)
+
+        PricingMarks.setPaid(record, to: true)
+        #expect(record.isPaidApp && !record.isFreeApp)
+        PricingMarks.setFree(record, to: true)
+        #expect(record.isFreeApp && !record.isPaidApp)
+        PricingMarks.setPaid(record, to: true)
+        #expect(record.isPaidApp && !record.isFreeApp)
+    }
+
+    @MainActor
+    @Test("Unmarking one does not set the other")
+    func unmarkIsNotToggle() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let record = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                               relevanceScore: 0, relevanceReason: "",
+                               bestUse: "", ollamaModel: "")
+        container.mainContext.insert(record)
+
+        PricingMarks.setFree(record, to: true)
+        PricingMarks.setFree(record, to: false)
+        #expect(!record.isFreeApp && !record.isPaidApp)
+        PricingMarks.setPaid(record, to: true)
+        PricingMarks.setPaid(record, to: false)
+        #expect(!record.isPaidApp && !record.isFreeApp)
+    }
+}
