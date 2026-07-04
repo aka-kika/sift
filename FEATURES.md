@@ -36,8 +36,9 @@ updating, and which licenses and subscriptions you're paying for.
 ## Scanning & organizing
 
 - Scans `/Applications` and `~/Applications` (Apple system apps and Utilities are optional).
-- **Sort** by Relevance, Updates, **Last Used** (from Spotlight), or Name.
-- **Filter** toggles for **My Apps** and **Favorites**.
+- **Sort** by Relevance, Updates, **Last Used** (from Spotlight), or Name — from the toolbar.
+- **Filter** toggles for **My Apps** and **Favorites** — in the **View** menu.
+- Rescan, **Re-analyze All Apps**, **Export to CSV**, and **License Vault** live in the native **File** menu (with keyboard shortcuts), keeping the toolbar minimal.
 - **Tags:** My App (🔨), Favorite (⭐), Subscription (💳) — shown as badges and in the row/detail menus.
 - **Search** by name.
 
