@@ -1564,3 +1564,31 @@ struct DocsEvidenceTests {
         #expect(!result.contains(big))
     }
 }
+
+@Suite("Analysis Prompt Docs Evidence")
+struct AnalysisPromptDocsEvidenceTests {
+    private var app: AppInfo {
+        AppInfo(id: "com.x", name: "X", version: "1", bundleID: "com.x",
+                path: "/Applications/X.app", humanReadableDescription: nil,
+                sparkleFeedURL: nil, isAppStoreInstall: false, icon: nil)
+    }
+
+    @Test("Docs evidence appears as primary evidence when provided")
+    func docsIncluded() {
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                             includeResponseFormat: true,
+                                             docsEvidence: "A menu-bar batch renamer.\nDetected project files: Package.swift")
+        #expect(prompt.contains("From the app's own project files"))
+        #expect(prompt.contains("A menu-bar batch renamer."))
+        #expect(prompt.contains("the app's own project files outrank"))
+    }
+
+    @Test("No docs block when evidence is empty or whitespace")
+    func emptyOmits() {
+        let empty = AppAnalysisPrompt.build(app: app, profile: .generic(), includeResponseFormat: true)
+        let whitespace = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                                 includeResponseFormat: true, docsEvidence: "   \n")
+        #expect(!empty.contains("From the app's own project files"))
+        #expect(empty == whitespace)
+    }
+}
