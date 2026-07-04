@@ -11,6 +11,8 @@ Sift scans installed apps, explains what each app is, ranks whether it fits your
 - Audits apps in `/Applications` and `~/Applications`
 - Scores each app from 1 to 5 against your local workflow profile
 - Shows one concise best-use recommendation, stated directly (no hedging)
+- Grounds analysis in each app's own metadata, its notes, and — for your own apps — a **local project folder** you attach (README + manifest), fully offline
+- **Cross-App**: finds which of your *other installed apps* overlap with this one, picked only from apps you actually have
 - Sorts by relevance, updates, **last used**, and name; filters by My Apps / Favorites
 - Tags apps you **build**, **favorite**, pay a **subscription** for, or mark **free**/**paid**; license keys can carry a type (lifetime, one-time, annual)
 - Re-analyzes a single app or **all apps at once**; switching models keeps existing analyses (with a one-click refresh banner) instead of wiping them
@@ -44,7 +46,7 @@ swift test
 bash Scripts/make_dmg.sh
 ```
 
-The release DMG is written to `Sift-1.1.0.dmg`.
+The release DMG is written to `Sift-<version>.dmg` (the version comes from `version.env`).
 
 To run a throwaway **Sift2** side-build next to the installed app — with its own
 data store and Keychain so it never disturbs your primary install — use:
