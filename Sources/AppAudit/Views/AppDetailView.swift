@@ -638,10 +638,41 @@ struct AppDetailView: View {
         let active = !disabled && hasSub
         let tint: Color = subscriptionRenewalIsNear ? .orange : .green
 
-        return UtilityCard(tint: tint, active: active, disabled: disabled, action: { beginEditingSubscription() }) {
+        return UtilityCard(tint: tint, active: active, disabled: disabled, action: {
+            // Fast path: a tap just flags "this has a subscription". Price and
+            // renewal are optional, added from the right-click menu.
+            if hasSub {
+                beginEditingSubscription()
+            } else {
+                markSubscription()
+            }
+        }) {
             cardIcon(hasSub ? "creditcard.fill" : "creditcard", tint: active ? tint : .secondary)
         }
         .help(subscriptionHelp)
+        .contextMenu {
+            Button {
+                beginEditingSubscription()
+            } label: {
+                Label(hasSub ? "Edit Price & Renewal…" : "Add Price & Renewal…", systemImage: "pencil")
+            }
+            if hasSub {
+                Button(role: .destructive) {
+                    clearSubscription()
+                } label: {
+                    Label("Remove Subscription", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    /// Flags a subscription without any details — the one-click path.
+    private func markSubscription() {
+        let ensured = ensureRecord()
+        ensured.hasSubscription = true
+        if ensured.iconPNG == nil { ensured.iconPNG = app.icon?.pngData() }
+        viewModel.setSubscription(bundleID: app.bundleID, value: true)
+        saveRecord()
     }
 
     private var subscriptionBadgeText: String {
@@ -661,7 +692,9 @@ struct AppDetailView: View {
     }
 
     private var subscriptionHelp: String {
-        guard record?.hasSubscription == true else { return "Add a subscription" }
+        guard record?.hasSubscription == true else {
+            return "Click to mark a subscription · right-click to add price & renewal"
+        }
         var parts: [String] = []
         if record?.subscriptionPrice != nil {
             parts.append(subscriptionBadgeText)
