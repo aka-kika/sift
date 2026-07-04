@@ -72,7 +72,7 @@ updating, and which licenses and subscriptions you're paying for.
 - **Recommendation-first** layout: score + best-use + reason at the top, explanation below.
 - Compact **update pill** and a single **⋯ menu** for all per-app actions
   (re-analyze, lock, customize description, tag toggles, show in Finder, copy bundle ID).
-- Quiet **Notes**, **License**, and **App Link** rows.
+- Utility card grid: Notes, License, Subscription, and App Link as 2×2 cards. Cards gray out when they cannot apply — license & subscription for **Free apps** (the explicit opposite of Paid) and **My Apps**, subscription also when the license type is **Lifetime** or **One-time** — always showing why, never deleting stored data. Clicking the link card opens the URL; the license sheet records the license type.
 
 ## Notes
 
