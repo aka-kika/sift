@@ -19,6 +19,7 @@ struct AppDetailView: View {
     @State private var editingLicenseKey = false
     @State private var draftLicenseKey = ""
     @State private var draftLicenseEmail = ""
+    @State private var draftLicenseType: LicenseType? = nil
     @State private var currentLicenseKey: String? = nil
     @State private var notesExpanded = false
     @State private var notesHovered = false
@@ -71,7 +72,7 @@ struct AppDetailView: View {
             }
         }
         .sheet(isPresented: $editingLicenseKey) {
-            DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey, emailDraft: $draftLicenseEmail) { saved in
+            DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey, emailDraft: $draftLicenseEmail, licenseType: $draftLicenseType) { saved in
                 if saved {
                     let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
                     let ensuredRecord = ensureRecord()
@@ -81,6 +82,7 @@ struct AppDetailView: View {
                     ensuredRecord.hasLicenseKey = !trimmed.isEmpty
                     let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
                     ensuredRecord.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
+                    ensuredRecord.licenseType = draftLicenseType?.rawValue
                     if !trimmed.isEmpty, ensuredRecord.iconPNG == nil {
                         ensuredRecord.iconPNG = app.icon?.pngData()
                     }
@@ -691,6 +693,7 @@ struct AppDetailView: View {
                     draftLicenseKey = currentLicenseKey ?? ""
                     draftLicenseEmail = record?.licenseEmail
                         ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
+                    draftLicenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
                     editingLicenseKey = true
                 } label: {
                     Image(systemName: currentLicenseKey != nil ? "pencil" : "plus.circle")
@@ -707,6 +710,7 @@ struct AppDetailView: View {
                         record?.licenseKey = nil
                         record?.hasLicenseKey = false
                         record?.licenseEmail = nil
+                        record?.licenseType = nil
                         saveRecord()
                     } label: {
                         Image(systemName: "trash")
@@ -1068,6 +1072,7 @@ struct DetailLicenseKeySheet: View {
     let appName: String
     @Binding var draft: String
     @Binding var emailDraft: String
+    @Binding var licenseType: LicenseType?
     let onDone: (Bool) -> Void
 
     @FocusState private var focused: Bool
@@ -1086,6 +1091,14 @@ struct DetailLicenseKeySheet: View {
 
             TextField("Registered email (optional)", text: $emailDraft)
                 .textFieldStyle(.roundedBorder)
+
+            Picker("License type", selection: $licenseType) {
+                Text("Not set").tag(LicenseType?.none)
+                ForEach(LicenseType.allCases) { type in
+                    Text(type.displayName).tag(LicenseType?.some(type))
+                }
+            }
+            .pickerStyle(.menu)
 
             HStack {
                 Button("Cancel") { onDone(false) }
