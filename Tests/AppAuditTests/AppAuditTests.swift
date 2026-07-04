@@ -1337,3 +1337,49 @@ struct NotesChangeDetectionTests {
         #expect(!NotesChange.changed(previous: " same note", current: "same note"))
     }
 }
+
+@Suite("License Type")
+struct LicenseTypeTests {
+    @Test("Raw values round-trip")
+    func rawValues() {
+        #expect(LicenseType(rawValue: "lifetime") == .lifetime)
+        #expect(LicenseType(rawValue: "one-time") == .oneTime)
+        #expect(LicenseType(rawValue: "annual") == .annual)
+        #expect(LicenseType(rawValue: "other") == .other)
+        #expect(LicenseType(rawValue: "bogus") == nil)
+    }
+
+    @Test("Lifetime and one-time cover the app forever; annual and other do not")
+    func coversForever() {
+        #expect(LicenseType.lifetime.coversForever)
+        #expect(LicenseType.oneTime.coversForever)
+        #expect(!LicenseType.annual.coversForever)
+        #expect(!LicenseType.other.coversForever)
+    }
+
+    @Test("Display names are human-readable")
+    func displayNames() {
+        #expect(LicenseType.lifetime.displayName == "Lifetime")
+        #expect(LicenseType.oneTime.displayName == "One-time")
+        #expect(LicenseType.annual.displayName == "Annual")
+        #expect(LicenseType.other.displayName == "Other")
+    }
+}
+
+@Suite("Pricing Fields")
+struct PricingFieldsTests {
+    @MainActor
+    @Test("New records default to not-free with no license type")
+    func defaults() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let record = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                               relevanceScore: 0, relevanceReason: "",
+                               bestUse: "", ollamaModel: "")
+        container.mainContext.insert(record)
+        #expect(record.isFreeApp == false)
+        #expect(record.licenseType == nil)
+    }
+}
