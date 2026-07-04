@@ -66,7 +66,7 @@ struct AppRow: View {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.caption2)
                             .foregroundStyle(.green)
-                            .help("Paid (Mac App Store)")
+                            .help("Paid")
                     }
                     if app.isAnalysisLocked {
                         Image(systemName: "lock.fill")

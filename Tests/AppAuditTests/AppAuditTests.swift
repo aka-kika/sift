@@ -1337,3 +1337,124 @@ struct NotesChangeDetectionTests {
         #expect(!NotesChange.changed(previous: " same note", current: "same note"))
     }
 }
+
+@Suite("License Type")
+struct LicenseTypeTests {
+    @Test("Raw values round-trip")
+    func rawValues() {
+        #expect(LicenseType(rawValue: "lifetime") == .lifetime)
+        #expect(LicenseType(rawValue: "one-time") == .oneTime)
+        #expect(LicenseType(rawValue: "annual") == .annual)
+        #expect(LicenseType(rawValue: "other") == .other)
+        #expect(LicenseType(rawValue: "bogus") == nil)
+    }
+
+    @Test("Lifetime and one-time cover the app forever; annual and other do not")
+    func coversForever() {
+        #expect(LicenseType.lifetime.coversForever)
+        #expect(LicenseType.oneTime.coversForever)
+        #expect(!LicenseType.annual.coversForever)
+        #expect(!LicenseType.other.coversForever)
+    }
+
+    @Test("Display names are human-readable")
+    func displayNames() {
+        #expect(LicenseType.lifetime.displayName == "Lifetime")
+        #expect(LicenseType.oneTime.displayName == "One-time")
+        #expect(LicenseType.annual.displayName == "Annual")
+        #expect(LicenseType.other.displayName == "Other")
+    }
+}
+
+@Suite("Pricing Fields")
+struct PricingFieldsTests {
+    @MainActor
+    @Test("New records default to not-free with no license type")
+    func defaults() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let record = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                               relevanceScore: 0, relevanceReason: "",
+                               bestUse: "", ollamaModel: "")
+        container.mainContext.insert(record)
+        #expect(record.isFreeApp == false)
+        #expect(record.licenseType == nil)
+    }
+}
+
+@Suite("Utility Card Rules")
+struct UtilityCardRulesTests {
+    @Test("License card disabled for My Apps and free apps only")
+    func licenseRule() {
+        #expect(UtilityCardRules.licenseDisabled(isMyApp: true, isFreeApp: false))
+        #expect(UtilityCardRules.licenseDisabled(isMyApp: false, isFreeApp: true))
+        #expect(UtilityCardRules.licenseDisabled(isMyApp: true, isFreeApp: true))
+        #expect(!UtilityCardRules.licenseDisabled(isMyApp: false, isFreeApp: false))
+    }
+
+    @Test("Subscription card disabled for My Apps, free apps, and forever licenses")
+    func subscriptionRule() {
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: true, isFreeApp: false, licenseType: nil))
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: true, licenseType: nil))
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .lifetime))
+        #expect(UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .oneTime))
+        #expect(!UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .annual))
+        #expect(!UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: .other))
+        #expect(!UtilityCardRules.subscriptionDisabled(isMyApp: false, isFreeApp: false, licenseType: nil))
+    }
+
+    @Test("Disabled reason priority: your app, then free, then license type")
+    func reasonPriority() {
+        #expect(UtilityCardRules.disabledReason(isMyApp: true, isFreeApp: true, licenseType: .lifetime) == "Your app")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: true, licenseType: .lifetime) == "Free app")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: .lifetime) == "Lifetime license")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: .oneTime) == "One-time license")
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: .annual) == nil)
+        #expect(UtilityCardRules.disabledReason(isMyApp: false, isFreeApp: false, licenseType: nil) == nil)
+    }
+}
+
+@Suite("Pricing Marks")
+struct PricingMarksTests {
+    @MainActor
+    @Test("Marking free clears paid, and vice versa")
+    func mutualExclusion() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let record = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                               relevanceScore: 0, relevanceReason: "",
+                               bestUse: "", ollamaModel: "")
+        container.mainContext.insert(record)
+
+        PricingMarks.setPaid(record, to: true)
+        #expect(record.isPaidApp && !record.isFreeApp)
+        PricingMarks.setFree(record, to: true)
+        #expect(record.isFreeApp && !record.isPaidApp)
+        PricingMarks.setPaid(record, to: true)
+        #expect(record.isPaidApp && !record.isFreeApp)
+    }
+
+    @MainActor
+    @Test("Unmarking one does not set the other")
+    func unmarkIsNotToggle() throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let record = AppRecord(bundleID: "com.x", appName: "X", explanation: "",
+                               relevanceScore: 0, relevanceReason: "",
+                               bestUse: "", ollamaModel: "")
+        container.mainContext.insert(record)
+
+        PricingMarks.setFree(record, to: true)
+        PricingMarks.setFree(record, to: false)
+        #expect(!record.isFreeApp && !record.isPaidApp)
+        PricingMarks.setPaid(record, to: true)
+        PricingMarks.setPaid(record, to: false)
+        #expect(!record.isPaidApp && !record.isFreeApp)
+    }
+}

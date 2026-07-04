@@ -12,7 +12,7 @@ Sift scans installed apps, explains what each app is, ranks whether it fits your
 - Scores each app from 1 to 5 against your local workflow profile
 - Shows one concise best-use recommendation, stated directly (no hedging)
 - Sorts by relevance, updates, **last used**, and name; filters by My Apps / Favorites
-- Tags apps you **build**, **favorite**, or pay a **subscription** for
+- Tags apps you **build**, **favorite**, pay a **subscription** for, or mark **free**/**paid**; license keys can carry a type (lifetime, one-time, annual)
 - Re-analyzes a single app or **all apps at once**; switching models keeps existing analyses (with a one-click refresh banner) instead of wiping them
 - Finds app updates from the App Store, Sparkle feeds, and Homebrew casks
 - Suggests app links automatically (prefilled into the editable link field)
