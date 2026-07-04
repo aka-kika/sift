@@ -35,6 +35,7 @@ struct AppDetailView: View {
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
+    @State private var docsMessage: String? = nil
 
     var body: some View {
         ScrollView {
@@ -174,6 +175,17 @@ struct AppDetailView: View {
             Button("OK") {}
         } message: {
             Text(homebrewUpdateMessage ?? "")
+        }
+        .alert(
+            "Docs",
+            isPresented: Binding(
+                get: { docsMessage != nil },
+                set: { if !$0 { docsMessage = nil } }
+            )
+        ) {
+            Button("OK") {}
+        } message: {
+            Text(docsMessage ?? "")
         }
     }
 
@@ -484,6 +496,7 @@ struct AppDetailView: View {
             linkCard
             lockCard
             favoriteCard
+            docsCard
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -610,6 +623,87 @@ struct AppDetailView: View {
         ensured.isFavorite.toggle()
         viewModel.setFavorite(bundleID: app.bundleID, value: ensured.isFavorite)
         saveRecord()
+    }
+
+    private var docsCard: some View {
+        let hasDocs = record?.docsEvidence?.isEmpty == false
+        return UtilityCard(tint: .teal, active: hasDocs, action: {
+            if hasDocs { refreshDocs() } else { attachDocsFolder() }
+        }) {
+            cardIcon("doc.text", tint: hasDocs ? .teal : .secondary)
+        }
+        .help(docsHelp)
+        .contextMenu {
+            Button {
+                attachDocsFolder()
+            } label: {
+                Label(hasDocs ? "Change Folder…" : "Attach Project Folder…", systemImage: "folder")
+            }
+            if hasDocs {
+                Button {
+                    refreshDocs()
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                if let path = record?.docsFolderPath, !path.isEmpty {
+                    Button {
+                        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+                    } label: {
+                        Label("Reveal Source in Finder", systemImage: "magnifyingglass")
+                    }
+                }
+                Button(role: .destructive) {
+                    removeDocs()
+                } label: {
+                    Label("Remove", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    private var docsHelp: String {
+        guard let evidence = record?.docsEvidence, !evidence.isEmpty else {
+            return "Attach this app's project folder — Sift reads its README to ground the analysis"
+        }
+        let source = record?.docsFolderPath.map { " · \($0)" } ?? ""
+        let snippet = evidence.replacingOccurrences(of: "\n", with: " ").prefix(80)
+        return "Docs attached\(source)\n\(snippet)…"
+    }
+
+    private func attachDocsFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Attach"
+        panel.message = "Choose \(app.name)'s project folder (Sift reads its README and manifest)."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        storeDocs(fromFolder: url.path)
+    }
+
+    private func refreshDocs() {
+        guard let path = record?.docsFolderPath, !path.isEmpty else { return }
+        storeDocs(fromFolder: path)
+    }
+
+    private func storeDocs(fromFolder path: String) {
+        guard let evidence = DocsEvidence.extract(fromFolder: path) else {
+            docsMessage = "No README or manifest found in that folder."
+            return
+        }
+        let ensured = ensureRecord()
+        ensured.docsEvidence = evidence
+        ensured.docsFolderPath = path
+        saveRecord()
+        viewModel.reanalyzeAfterDocsChange(bundleID: app.bundleID)
+    }
+
+    private func removeDocs() {
+        let ensured = ensureRecord()
+        ensured.docsEvidence = nil
+        ensured.docsFolderPath = nil
+        saveRecord()
+        viewModel.reanalyzeAfterDocsChange(bundleID: app.bundleID)
     }
 
     private var notesCard: some View {
