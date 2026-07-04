@@ -33,7 +33,6 @@ struct AppDetailView: View {
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
-    @State private var isKeyRevealed = false
     @State private var keyCopied = false
 
     var body: some View {
@@ -54,7 +53,6 @@ struct AppDetailView: View {
         .task(id: app.bundleID) {
             loadRecord()
             loadLicenseKey()
-            isKeyRevealed = false
             keyCopied = false
         }
         .sheet(isPresented: $editingDescription) {
@@ -475,7 +473,7 @@ struct AppDetailView: View {
 
     private var utilitySection: some View {
         LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4),
             alignment: .leading, spacing: 10
         ) {
             notesCard
@@ -488,29 +486,23 @@ struct AppDetailView: View {
 
     private var notesCard: some View {
         UtilityCard(action: { notesSheetPresented = true }) {
-            HStack(spacing: 8) {
-                utilityChip("note.text", tint: .yellow)
-                Text("Notes")
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                Image(systemName: (record?.notes?.isEmpty == false) ? "pencil" : "plus.circle")
-                    .foregroundStyle(.secondary)
-                    .imageScale(.small)
-            }
-            if let notes = record?.notes, !notes.isEmpty {
-                Text(notes.components(separatedBy: .newlines).first ?? notes)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            } else {
-                Text("None yet — your words feed the analysis")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+            utilityChip("note.text", tint: .yellow)
+            if record?.notes?.isEmpty == false {
+                cardBadge("Saved")
             }
         }
+        .help(notesHelp)
         .onDisappear {
             endNotesSession()
         }
+    }
+
+    private var notesHelp: String {
+        if let notes = record?.notes, !notes.isEmpty {
+            let firstLine = notes.components(separatedBy: .newlines).first ?? notes
+            return "Notes: \(firstLine)"
+        }
+        return "Add notes — your words feed the next analysis"
     }
 
     private func endNotesSession() {
@@ -525,144 +517,105 @@ struct AppDetailView: View {
         let isFree = record?.isFreeApp == true
         let disabled = UtilityCardRules.licenseDisabled(isMyApp: app.isMyApp, isFreeApp: isFree)
         let reason = UtilityCardRules.disabledReason(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: nil)
-
-        return UtilityCard(disabled: disabled, action: {
-            guard !app.isAppStoreInstall else { return }
+        let licenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
+        let hasKey = currentLicenseKey?.isEmpty == false
+        let openEditor: (() -> Void)? = app.isAppStoreInstall ? nil : {
             draftLicenseKey = currentLicenseKey ?? ""
             draftLicenseEmail = record?.licenseEmail
                 ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
-            draftLicenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
+            draftLicenseType = licenseType
             editingLicenseKey = true
-        }) {
-            HStack(spacing: 8) {
-                utilityChip(app.isAppStoreInstall ? "bag.fill" : "key.horizontal",
-                            tint: app.isAppStoreInstall ? .blue : .indigo)
-                Text(app.isAppStoreInstall ? "Mac App Store" : "License")
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                pricingChips
-            }
-            if let reason {
-                Text(reason)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-            } else if app.isAppStoreInstall {
-                Text(record?.isPaidApp == true ? "Paid · tied to your Apple ID" : "Tied to your Apple ID")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else if let key = currentLicenseKey, !key.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text("Saved")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if let type = record?.licenseType.flatMap(LicenseType.init(rawValue:)) {
-                            Text(type.displayName)
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.indigo)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.indigo.opacity(0.14), in: Capsule())
-                        }
-                        licenseKeyActions(key: key)
-                    }
-                    if let email = record?.licenseEmail, !email.isEmpty {
-                        Text(email)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                }
-            } else {
-                Text("Add key")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+        }
+
+        return UtilityCard(disabled: disabled, action: openEditor) {
+            utilityChip(app.isAppStoreInstall ? "bag.fill" : "key.horizontal",
+                        tint: app.isAppStoreInstall ? .blue : .indigo)
+            if keyCopied {
+                cardBadge("Copied")
+            } else if let reason {
+                cardBadge(reason)
+            } else if let licenseType {
+                // The type shows even without a key — it grays the subscription
+                // card, so it must never drive that rule invisibly.
+                cardBadge(hasKey ? licenseType.displayName : "\(licenseType.displayName) · no key", tint: .indigo)
+            } else if hasKey {
+                cardBadge("Saved", tint: .indigo)
+            } else if app.isAppStoreInstall, record?.isPaidApp == true {
+                cardBadge("Paid", tint: .green)
             }
         }
+        .help(licenseHelp)
+        .contextMenu { licenseContextMenu }
+    }
+
+    private var licenseHelp: String {
+        if app.isAppStoreInstall {
+            return record?.isPaidApp == true
+                ? "Mac App Store — paid, tied to your Apple ID"
+                : "Mac App Store — tied to your Apple ID"
+        }
+        if let key = currentLicenseKey, !key.isEmpty {
+            var parts = ["License key saved"]
+            if let type = record?.licenseType.flatMap(LicenseType.init(rawValue:)) {
+                parts.append(type.displayName)
+            }
+            if let email = record?.licenseEmail, !email.isEmpty {
+                parts.append(email)
+            }
+            return parts.joined(separator: " · ")
+        }
+        return "Add a license key"
     }
 
     @ViewBuilder
-    private func licenseKeyActions(key: String) -> some View {
-        if keyCopied {
-            Text("Copied")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private var licenseContextMenu: some View {
+        Button {
+            togglePaid()
+        } label: {
+            Label(record?.isPaidApp == true ? "Unmark Paid" : "Mark as Paid",
+                  systemImage: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
         }
         Button {
-            if isKeyRevealed {
-                isKeyRevealed = false
-            } else {
-                Task { @MainActor in
-                    if await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)") {
-                        isKeyRevealed = true
-                        try? await Task.sleep(for: .seconds(10))
-                        isKeyRevealed = false
-                    }
-                }
+            toggleFree()
+        } label: {
+            Label(record?.isFreeApp == true ? "Unmark Free" : "Mark as Free App",
+                  systemImage: record?.isFreeApp == true ? "gift.fill" : "gift")
+        }
+        if let key = currentLicenseKey, !key.isEmpty {
+            Divider()
+            Button {
+                copyLicenseKey(key)
+            } label: {
+                Label("Copy Key (Touch ID)", systemImage: "doc.on.doc")
             }
-        } label: {
-            Image(systemName: isKeyRevealed ? "eye.slash" : "eye")
-        }
-        .buttonStyle(.borderless)
-        .foregroundStyle(.secondary)
-        .help(isKeyRevealed ? "Hide license key" : "Reveal license key (Touch ID)")
-
-        Button {
-            Task { @MainActor in
-                if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(key, forType: .string)
-                    keyCopied = true
-                    try? await Task.sleep(for: .seconds(1.5))
-                    keyCopied = false
-                }
+            Button(role: .destructive) {
+                removeLicenseKey()
+            } label: {
+                Label("Remove Key", systemImage: "trash")
             }
-        } label: {
-            Image(systemName: "doc.on.doc")
         }
-        .buttonStyle(.borderless)
-        .foregroundStyle(.secondary)
-        .help("Copy license key (Touch ID)")
-
-        Button(role: .destructive) {
-            licenseKeyStore.delete(bundleID: app.bundleID)
-            currentLicenseKey = nil
-            isKeyRevealed = false
-            record?.licenseKey = nil
-            record?.hasLicenseKey = false
-            record?.licenseEmail = nil
-            record?.licenseType = nil
-            saveRecord()
-        } label: {
-            Image(systemName: "trash")
-        }
-        .buttonStyle(.borderless)
-        .foregroundStyle(.secondary)
-        .help("Remove license key")
     }
 
-    private var pricingChips: some View {
-        HStack(spacing: 4) {
-            Button {
-                togglePaid()
-            } label: {
-                Image(systemName: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
+    private func copyLicenseKey(_ key: String) {
+        Task { @MainActor in
+            if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(key, forType: .string)
+                keyCopied = true
+                try? await Task.sleep(for: .seconds(1.5))
+                keyCopied = false
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(record?.isPaidApp == true ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
-            .help(record?.isPaidApp == true ? "Marked as paid — click to unmark" : "Mark as paid")
-
-            Button {
-                toggleFree()
-            } label: {
-                Image(systemName: record?.isFreeApp == true ? "gift.fill" : "gift")
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(record?.isFreeApp == true ? AnyShapeStyle(.blue) : AnyShapeStyle(.secondary))
-            .help(record?.isFreeApp == true ? "Marked as free — click to unmark" : "Mark as free app")
         }
-        .imageScale(.small)
+    }
+
+    private func removeLicenseKey() {
+        licenseKeyStore.delete(bundleID: app.bundleID)
+        currentLicenseKey = nil
+        record?.licenseKey = nil
+        record?.hasLicenseKey = false
+        record?.licenseEmail = nil
+        record?.licenseType = nil
+        saveRecord()
     }
 
     private var subscriptionCard: some View {
@@ -672,66 +625,48 @@ struct AppDetailView: View {
         let reason = UtilityCardRules.disabledReason(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: licenseType)
 
         return UtilityCard(disabled: disabled, action: { beginEditingSubscription() }) {
-            HStack(spacing: 8) {
-                utilityChip("creditcard", tint: .green)
-                Text("Subscription")
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                Image(systemName: record?.hasSubscription == true ? "pencil" : "plus.circle")
-                    .foregroundStyle(.secondary)
-                    .imageScale(.small)
-            }
+            utilityChip("creditcard", tint: .green)
             if let reason {
-                Text(reason)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-            } else if record?.hasSubscription == true, let renewal = record?.subscriptionRenewalDate {
-                subscriptionDetailLine(renewal: renewal)
+                cardBadge(reason)
             } else if record?.hasSubscription == true {
-                Text("Marked · add details")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else {
-                Text("Add subscription")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                cardBadge(subscriptionBadgeText, tint: subscriptionRenewalIsNear ? .orange : .green)
             }
         }
+        .help(subscriptionHelp)
     }
 
-    /// The price + countdown (+ optional email) shown when a subscription has a
-    /// renewal date. A plain function (not a ViewBuilder property) so it can use
-    /// `let` bindings for the math before returning the view.
-    private func subscriptionDetailLine(renewal: Date) -> some View {
+    private var subscriptionBadgeText: String {
+        guard let price = record?.subscriptionPrice else { return "Marked" }
+        let cycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
+        let amount = formattedPrice(price, currencyCode: record?.subscriptionCurrency
+            ?? Locale.current.currency?.identifier ?? "USD")
+        return "\(amount)/\(cycle.abbreviation)"
+    }
+
+    private var subscriptionRenewalIsNear: Bool {
+        guard let renewal = record?.subscriptionRenewalDate else { return false }
         let cycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
         let now = Date()
         let next = SubscriptionMath.nextRenewal(from: renewal, cycle: cycle, now: now)
-        let days = SubscriptionMath.daysUntil(next, now: now)
-        let countdownStyle: AnyShapeStyle = SubscriptionMath.isNear(daysUntil: days)
-            ? AnyShapeStyle(.orange)
-            : AnyShapeStyle(.secondary)
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
-                if let price = record?.subscriptionPrice {
-                    Text(formattedPrice(price, currencyCode: record?.subscriptionCurrency
-                        ?? Locale.current.currency?.identifier ?? "USD"))
-                        .font(.body)
-                    Text("/ \(cycle.abbreviation)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Text("· " + SubscriptionMath.countdownText(daysUntil: days))
-                    .font(.caption)
-                    .foregroundStyle(countdownStyle)
-            }
-            if let email = record?.subscriptionEmail, !email.isEmpty {
-                Text(email)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
+        return SubscriptionMath.isNear(daysUntil: SubscriptionMath.daysUntil(next, now: now))
+    }
+
+    private var subscriptionHelp: String {
+        guard record?.hasSubscription == true else { return "Add a subscription" }
+        var parts: [String] = []
+        if record?.subscriptionPrice != nil {
+            parts.append(subscriptionBadgeText)
         }
+        if let renewal = record?.subscriptionRenewalDate {
+            let cycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
+            let now = Date()
+            let next = SubscriptionMath.nextRenewal(from: renewal, cycle: cycle, now: now)
+            parts.append(SubscriptionMath.countdownText(daysUntil: SubscriptionMath.daysUntil(next, now: now)))
+        }
+        if let email = record?.subscriptionEmail, !email.isEmpty {
+            parts.append(email)
+        }
+        return parts.isEmpty ? "Subscription marked — click to add details" : parts.joined(separator: " · ")
     }
 
     private var linkCard: some View {
@@ -743,50 +678,40 @@ struct AppDetailView: View {
                 editingURL = true
             }
         }) {
-            HStack(spacing: 8) {
-                utilityChip("link", tint: .blue)
-                Text("App Link")
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                Button {
-                    draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
-                    editingURL = true
-                } label: {
-                    Image(systemName: record?.appURL != nil ? "pencil" : "plus.circle")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .imageScale(.small)
-                .help(record?.appURL != nil ? "Edit app link" : (hasSuggestedLink ? "Add app link (a suggestion is prefilled)" : "Add app link"))
-                if record?.appURL != nil {
-                    Button(role: .destructive) {
-                        record?.appURL = nil
-                        saveRecord()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .help("Remove app link")
-                }
-            }
+            utilityChip("link", tint: .blue)
             if let urlString = record?.appURL, !urlString.isEmpty {
-                Text(URL(string: urlString)?.host() ?? urlString)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                cardBadge(URL(string: urlString)?.host() ?? urlString, tint: .blue)
             } else if hasSuggestedLink {
-                Text("Add link · suggestion ready")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else {
-                Text("Add link")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                cardBadge("Suggested")
             }
         }
+        .help(linkHelp)
+        .contextMenu {
+            Button {
+                draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
+                editingURL = true
+            } label: {
+                Label(record?.appURL != nil ? "Edit Link" : "Add Link", systemImage: "pencil")
+            }
+            if record?.appURL != nil {
+                Button(role: .destructive) {
+                    record?.appURL = nil
+                    saveRecord()
+                } label: {
+                    Label("Remove Link", systemImage: "xmark.circle")
+                }
+            }
+        }
+    }
+
+    private var linkHelp: String {
+        if let urlString = record?.appURL, !urlString.isEmpty {
+            return "Open \(urlString) — right-click to edit"
+        }
+        if hasSuggestedLink {
+            return "Add app link (a suggestion is prefilled)"
+        }
+        return "Add app link"
     }
 
     private var hasSuggestedLink: Bool {
@@ -892,12 +817,6 @@ struct AppDetailView: View {
             ?? String(format: "%.2f %@", amount, currencyCode)
     }
 
-    private func maskedLicenseKey(_ key: String) -> String {
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > 8 else { return trimmed }
-        return "\(trimmed.prefix(4))••••\(trimmed.suffix(4))"
-    }
-
     // MARK: - Utility chip
 
     /// Tinted icon chip used by the utility rows — the same visual language as
@@ -908,6 +827,19 @@ struct AppDetailView: View {
             .foregroundStyle(tint)
             .frame(width: 24, height: 24)
             .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+
+    /// The one small status capsule under a utility card's icon. The card
+    /// face carries no other text — details live in the tooltip and popup.
+    private func cardBadge(_ text: String, tint: Color = .secondary) -> some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(tint)
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(tint.opacity(0.12), in: Capsule())
     }
 
     // MARK: - Score helpers
@@ -1039,6 +971,7 @@ struct DetailLicenseKeySheet: View {
     let onDone: (Bool) -> Void
 
     @FocusState private var focused: Bool
+    @State private var revealed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1048,9 +981,34 @@ struct DetailLicenseKeySheet: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            SecureField("Enter license key", text: $draft)
+            HStack(spacing: 6) {
+                Group {
+                    if revealed {
+                        TextField("Enter license key", text: $draft)
+                    } else {
+                        SecureField("Enter license key", text: $draft)
+                    }
+                }
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
+
+                Button {
+                    if revealed {
+                        revealed = false
+                    } else {
+                        Task { @MainActor in
+                            if await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(appName)") {
+                                revealed = true
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: revealed ? "eye.slash" : "eye")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help(revealed ? "Hide license key" : "Reveal license key (Touch ID)")
+            }
 
             TextField("Registered email (optional)", text: $emailDraft)
                 .textFieldStyle(.roundedBorder)
@@ -1297,13 +1255,13 @@ struct UtilityCard<Content: View>: View {
     @State private var hovered = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8, content: content)
-            .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
-            .padding(12)
+        VStack(spacing: 6, content: content)
+            .frame(maxWidth: .infinity, minHeight: 64)
+            .padding(10)
             .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(.separator.opacity(hovered && !disabled ? 0.8 : 0), lineWidth: 1)
+                    .stroke(.separator.opacity(hovered && !disabled && action != nil ? 0.8 : 0), lineWidth: 1)
             )
             .opacity(disabled ? 0.55 : 1)
             .contentShape(Rectangle())
