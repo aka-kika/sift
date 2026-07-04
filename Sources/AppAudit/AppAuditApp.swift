@@ -64,13 +64,14 @@ struct AppAuditApp: App {
         WindowGroup {
             ContentView()
                 .environment(viewModel)
-                .frame(minWidth: 780, minHeight: 520)
+                .frame(minWidth: 720, minHeight: 480)
                 #if canImport(AppKit)
                 .onChange(of: appearancePreference) { _, newValue in
                     AppAppearance.apply(newValue)
                 }
                 #endif
         }
+        .defaultSize(width: 900, height: 620)
         .windowResizability(.contentMinSize)
         .modelContainer(Self.container)
         .commands {

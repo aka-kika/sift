@@ -203,16 +203,18 @@ struct AppDetailView: View {
             #endif
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(app.name).font(.title2.weight(.medium))
+                    Text(app.name).font(.title2.weight(.medium)).lineLimit(1)
                     if !app.version.isEmpty {
                         Text(app.version)
                             .font(.callout.monospacedDigit())
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                     if let categoryName = AppCategory.humanName(for: app.category) {
                         Text("· \(categoryName)")
                             .font(.callout)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                     tagBadges
                 }
@@ -220,10 +222,12 @@ struct AppDetailView: View {
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                    .lineLimit(1)
                 updatePill
             }
-            Spacer(minLength: 8)
+            .layoutPriority(1)
             headerUtilities
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -232,7 +236,7 @@ struct AppDetailView: View {
     /// matching re-analyze chip leads it (the old ⋯ menu is gone; Lock is the
     /// lock cube, and Customize Description moved into "What is this?").
     private var headerUtilities: some View {
-        HStack(spacing: 8) {
+        FlowLayout(spacing: 8) {
             if case .loaded = app.aiState {
                 Button {
                     Task { await viewModel.reanalyze(bundleID: app.bundleID) }
@@ -1473,6 +1477,53 @@ struct NotesEditor: View {
 /// icon plus at most one badge, hugging its content. Disabled cards stay
 /// visible but ignore the primary tap; the context menu stays reachable
 /// (that is how Paid/Free marks remain available on a grayed card).
+/// A left-to-right layout that wraps its items to the next row when they run
+/// out of horizontal room — so the header's utility cubes drop to a second row
+/// on a narrow window instead of crushing the app title.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var totalWidth: CGFloat = 0
+        var totalHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
+                totalWidth = max(totalWidth, rowWidth)
+                totalHeight += rowHeight + spacing
+                rowWidth = size.width
+                rowHeight = size.height
+            } else {
+                rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
+                rowHeight = max(rowHeight, size.height)
+            }
+        }
+        totalWidth = max(totalWidth, rowWidth)
+        totalHeight += rowHeight
+        return CGSize(width: totalWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            sub.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 struct UtilityCard<Content: View>: View {
     var tint: Color
     /// Filled with `tint` when active; a neutral gray square when not.
