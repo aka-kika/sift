@@ -21,7 +21,7 @@ struct AppDetailView: View {
     @State private var draftLicenseEmail = ""
     @State private var draftLicenseType: LicenseType? = nil
     @State private var currentLicenseKey: String? = nil
-    @State private var notesExpanded = false
+    @State private var notesSheetPresented = false
     @State private var notesHovered = false
     @State private var notesSessionBundleID: String? = nil
     @State private var notesSessionInitialNotes: String? = nil
@@ -137,6 +137,25 @@ struct AppDetailView: View {
                     clearSubscription()
                 }
                 editingSubscription = false
+            }
+        }
+        .sheet(isPresented: $notesSheetPresented) {
+            NotesSheet(
+                appName: app.name,
+                text: Binding(
+                    get: { record?.notes ?? "" },
+                    set: { ensureRecord().notes = $0.isEmpty ? nil : $0; saveRecord() }
+                )
+            ) {
+                notesSheetPresented = false
+            }
+        }
+        .onChange(of: notesSheetPresented) { _, presented in
+            if presented {
+                notesSessionBundleID = app.bundleID
+                notesSessionInitialNotes = record?.notes
+            } else {
+                endNotesSession()
             }
         }
         .alert("Update with Homebrew?", isPresented: $confirmingHomebrewUpdate) {
@@ -474,89 +493,32 @@ struct AppDetailView: View {
     }
 
     private var notesSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                utilityChip("note.text", tint: .yellow)
-                Text("Notes")
-                    .font(.subheadline.weight(.medium))
-                if let notes = record?.notes, !notes.isEmpty {
-                    Text("Saved")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("None yet")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                Spacer()
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        notesExpanded.toggle()
-                    }
-                } label: {
-                    Image(systemName: (record?.notes?.isEmpty == false) ? "pencil" : "plus.circle")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help((record?.notes?.isEmpty == false) ? "Edit notes" : "Add notes")
-                .opacity(notesHovered ? 1 : 0)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    notesExpanded.toggle()
-                }
-            }
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.12)) {
-                    notesHovered = hovering
-                }
-            }
-
-            if notesExpanded {
-                NotesEditor(
-                    text: Binding(
-                        get: { record?.notes ?? "" },
-                        set: { ensureRecord().notes = $0.isEmpty ? nil : $0; saveRecord() }
-                    )
-                )
-                .padding(.top, 8)
-
-                HStack {
-                    Button("Clear") {
-                        ensureRecord().notes = nil
-                        saveRecord()
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            notesExpanded = false
-                        }
-                    }
-                    .buttonStyle(.borderless)
+        HStack(spacing: 8) {
+            utilityChip("note.text", tint: .yellow)
+            Text("Notes")
+                .font(.subheadline.weight(.medium))
+            if let notes = record?.notes, !notes.isEmpty {
+                Text(notes.components(separatedBy: .newlines).first ?? notes)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                    .help("Remove the note and close")
-                    Spacer()
-                    Button("Save") {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            notesExpanded = false
-                        }
-                    }
-                    .keyboardShortcut(.return, modifiers: .command)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .help("Save and re-analyze with this note (⌘↩)")
-                }
-                .padding(.top, 6)
-            }
-        }
-        .onChange(of: notesExpanded) { _, expanded in
-            if expanded {
-                notesSessionBundleID = app.bundleID
-                notesSessionInitialNotes = record?.notes
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             } else {
-                endNotesSession()
+                Text("None yet")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
+            Spacer()
+            Image(systemName: (record?.notes?.isEmpty == false) ? "pencil" : "plus.circle")
+                .foregroundStyle(.secondary)
+                .opacity(notesHovered ? 1 : 0)
         }
-        .onChange(of: app.bundleID) { _, _ in
-            notesExpanded = false
+        .contentShape(Rectangle())
+        .onTapGesture { notesSheetPresented = true }
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                notesHovered = hovering
+            }
         }
         .onDisappear {
             endNotesSession()
@@ -1065,6 +1027,41 @@ struct AppDetailView: View {
         }.value
         runningHomebrewUpdate = false
         homebrewUpdateMessage = output.isEmpty ? "Homebrew finished. Rescan to refresh this app's version." : output
+    }
+}
+
+struct NotesSheet: View {
+    let appName: String
+    @Binding var text: String
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Notes for \(appName)")
+                .font(.headline)
+            Text("Your words feed the next analysis — say how you actually use this app.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            NotesEditor(text: $text)
+                .frame(minHeight: 140)
+            HStack {
+                Button("Clear") {
+                    text = ""
+                    onClose()
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Remove the note and close")
+                Spacer()
+                Button("Save") { onClose() }
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .buttonStyle(.borderedProminent)
+                    .help("Save and re-analyze with this note (⌘↩)")
+            }
+        }
+        .padding(20)
+        .frame(width: 440)
+        .onExitCommand { onClose() }
     }
 }
 
