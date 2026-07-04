@@ -519,6 +519,30 @@ struct AppDetailView: View {
                     )
                 )
                 .padding(.top, 8)
+
+                HStack {
+                    Button("Clear") {
+                        ensureRecord().notes = nil
+                        saveRecord()
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            notesExpanded = false
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove the note and close")
+                    Spacer()
+                    Button("Save") {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            notesExpanded = false
+                        }
+                    }
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .help("Save and re-analyze with this note (⌘↩)")
+                }
+                .padding(.top, 6)
             }
         }
         .onChange(of: notesExpanded) { _, expanded in
