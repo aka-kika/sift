@@ -77,6 +77,7 @@ updating, and which licenses and subscriptions you're paying for.
 ## Notes
 
 - Free-form per-app notes — when you installed it, whether to keep it, etc. Preserved across re-analyses.
+- Per-app notes feed the AI analysis as personal-usage evidence — write "I use this for x y z" and the next analysis (auto-triggered when you close the notes editor) scores and recommends around how *you* actually use the app. Locked analyses just keep the note for the next manual run.
 
 ## Privacy & data
 
