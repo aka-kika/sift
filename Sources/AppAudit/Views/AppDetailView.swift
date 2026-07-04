@@ -477,8 +477,36 @@ struct AppDetailView: View {
             licenseCard
             subscriptionCard
             linkCard
+            lockCard
+            favoriteCard
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var lockCard: some View {
+        UtilityCard(tint: .orange, action: { toggleAnalysisLock() }) {
+            cardIcon(app.isAnalysisLocked ? "lock.fill" : "lock.open", tint: .orange)
+            if app.isAnalysisLocked {
+                cardBadge("Locked")
+            }
+        }
+        .help(app.isAnalysisLocked
+              ? "Analysis locked — click to unlock"
+              : "Lock the analysis so it is never regenerated")
+    }
+
+    private var favoriteCard: some View {
+        UtilityCard(tint: .pink, action: { toggleFavorite() }) {
+            cardIcon(app.isFavorite ? "star.fill" : "star", tint: .pink)
+        }
+        .help(app.isFavorite ? "Favorite — click to unmark" : "Mark as favorite")
+    }
+
+    private func toggleFavorite() {
+        let ensured = ensureRecord()
+        ensured.isFavorite.toggle()
+        viewModel.setFavorite(bundleID: app.bundleID, value: ensured.isFavorite)
+        saveRecord()
     }
 
     private var notesCard: some View {
@@ -1254,7 +1282,7 @@ struct UtilityCard<Content: View>: View {
     var body: some View {
         VStack(spacing: 6, content: content)
             .padding(10)
-            .frame(minWidth: 64, minHeight: 64)
+            .frame(maxWidth: .infinity, minHeight: 64)
             .background(
                 tint.opacity(hovered && !disabled && action != nil ? 0.22 : 0.13),
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
