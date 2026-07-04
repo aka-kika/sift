@@ -42,7 +42,6 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 Divider()
-                utilitySection
                 whatIsThisSection
                 recommendationSection
                 improveAnalysisCallout
@@ -223,9 +222,40 @@ struct AppDetailView: View {
                 updatePill
             }
             Spacer(minLength: 8)
-            overflowMenu
+            headerUtilities
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The utility cube strip lives in the header's empty right side. A
+    /// matching re-analyze chip leads it (the old ⋯ menu is gone; Lock is the
+    /// lock cube, and Customize Description moved into "What is this?").
+    private var headerUtilities: some View {
+        HStack(spacing: 8) {
+            if case .loaded = app.aiState {
+                Button {
+                    Task { await viewModel.reanalyze(bundleID: app.bundleID) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, height: 34)
+                        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(app.isAnalysisLocked)
+                .help("Re-analyze")
+                .padding(.trailing, 2)
+            }
+            notesCard
+            licenseCard
+            subscriptionCard
+            linkCard
+            lockCard
+            favoriteCard
+            docsCard
+        }
     }
 
     @ViewBuilder
@@ -288,50 +318,6 @@ struct AppDetailView: View {
         case .unknown, .unavailable:
             EmptyView()
         }
-    }
-
-    private var overflowMenu: some View {
-        Menu {
-            if case .loaded = app.aiState {
-                Button {
-                    Task { await viewModel.reanalyze(bundleID: app.bundleID) }
-                } label: {
-                    Label("Re-analyze", systemImage: "arrow.clockwise")
-                }
-                .disabled(app.isAnalysisLocked)
-            }
-            Button {
-                toggleAnalysisLock()
-            } label: {
-                Label(app.isAnalysisLocked ? "Unlock Analysis" : "Lock Analysis",
-                      systemImage: app.isAnalysisLocked ? "lock.open" : "lock.fill")
-            }
-            Button {
-                draftDescription = record?.userDescription ?? ""
-                editingDescription = true
-            } label: {
-                Label(userDescription != nil ? "Edit Description" : "Customize Description",
-                      systemImage: "pencil")
-            }
-            if userDescription != nil {
-                Button(role: .destructive) {
-                    record?.userDescription = nil
-                    saveRecord()
-                } label: {
-                    Label("Remove Custom Description", systemImage: "person.fill.xmark")
-                }
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .imageScale(.small)
-        .symbolRenderingMode(.hierarchical)
-        .fixedSize()
-        .help("More actions")
     }
 
     // MARK: - Recommendation (ranking first)
@@ -437,8 +423,20 @@ struct AppDetailView: View {
 
         if explanation != nil || userDescription != nil {
             VStack(alignment: .leading, spacing: 10) {
-                Label("What is this?", systemImage: "info.circle.fill")
-                    .font(.subheadline.weight(.semibold))
+                HStack(spacing: 6) {
+                    Label("What is this?", systemImage: "info.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Button {
+                        draftDescription = record?.userDescription ?? ""
+                        editingDescription = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help(userDescription != nil ? "Edit your description (clear it to remove)" : "Customize the description")
+                }
 
                 if let userDescription {
                     userDescriptionCard(userDescription)
@@ -487,19 +485,6 @@ struct AppDetailView: View {
     }
 
     // MARK: - Utility cards
-
-    private var utilitySection: some View {
-        HStack(spacing: 8) {
-            notesCard
-            licenseCard
-            subscriptionCard
-            linkCard
-            lockCard
-            favoriteCard
-            docsCard
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
 
     // MARK: - Similar apps
 
