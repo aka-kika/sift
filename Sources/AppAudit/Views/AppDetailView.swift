@@ -323,7 +323,7 @@ struct AppDetailView: View {
     private var recommendationSection: some View {
         switch app.aiState {
         case .loaded(_, let score, let reason, let bestUse):
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
                     ForEach(1...5, id: \.self) { i in
                         Circle()
@@ -419,7 +419,7 @@ struct AppDetailView: View {
         }()
 
         if explanation != nil || userDescription != nil {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Label("What is this?", systemImage: "info.circle.fill")
                     .font(.subheadline.weight(.semibold))
 
