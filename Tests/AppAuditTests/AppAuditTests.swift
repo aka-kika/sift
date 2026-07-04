@@ -1314,3 +1314,26 @@ struct AnalysisPromptUserNotesTests {
         #expect(prompt.contains("Mention alternatives."))
     }
 }
+
+@Suite("Notes Change Detection")
+struct NotesChangeDetectionTests {
+    @Test("Different text is a change")
+    func differentText() {
+        #expect(NotesChange.changed(previous: "old", current: "new"))
+        #expect(NotesChange.changed(previous: nil, current: "new note"))
+        #expect(NotesChange.changed(previous: "had a note", current: nil))
+    }
+
+    @Test("Nil, empty, and whitespace are all 'no note' — not a change")
+    func noNoteEquivalence() {
+        #expect(!NotesChange.changed(previous: nil, current: ""))
+        #expect(!NotesChange.changed(previous: "", current: "   \n"))
+        #expect(!NotesChange.changed(previous: nil, current: nil))
+    }
+
+    @Test("Whitespace-only edits are not a change")
+    func whitespaceEditsIgnored() {
+        #expect(!NotesChange.changed(previous: "same note", current: "same note  \n"))
+        #expect(!NotesChange.changed(previous: " same note", current: "same note"))
+    }
+}

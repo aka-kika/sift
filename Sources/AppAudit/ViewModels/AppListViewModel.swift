@@ -311,9 +311,11 @@ final class AppListViewModel {
                 let capturedApp = app
                 let capturedProfile = profile
                 let capturedProvider = provider
-                let capturedAppURL = self.cacheService?.load(bundleID: app.bundleID)?.appURL
+                let capturedRecord = self.cacheService?.load(bundleID: app.bundleID)
+                let capturedAppURL = capturedRecord?.appURL
+                let capturedNotes = capturedRecord?.notes
                 group.addTask {
-                    let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL)
+                    let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes)
                     return (result.0, result.1, capturedAppURL)
                 }
                 pendingCount += 1
@@ -353,9 +355,11 @@ final class AppListViewModel {
                     let capturedNext = next
                     let capturedProfile = profile
                     let capturedProvider = provider
-                    let capturedAppURL = self.cacheService?.load(bundleID: next.bundleID)?.appURL
+                    let capturedRecord = self.cacheService?.load(bundleID: next.bundleID)
+                    let capturedAppURL = capturedRecord?.appURL
+                    let capturedNotes = capturedRecord?.notes
                     group.addTask {
-                        let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL)
+                        let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes)
                         return (result.0, result.1, capturedAppURL)
                     }
                 }
@@ -367,17 +371,18 @@ final class AppListViewModel {
         app: AppInfo,
         profile: WorkflowProfile,
         provider: AnalysisProviderKind,
-        appURL: String? = nil
+        appURL: String? = nil,
+        userNotes: String? = nil
     ) async -> (String, AppInfo.AIState) {
         let linkEvidence = await linkEvidenceService.evidence(for: appURL)
         let result: AnalysisResult
         switch provider {
         case .ollama:
-            result = await ollama.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
+            result = await ollama.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes)
         case .anthropic:
-            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
+            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes)
         case .openAI:
-            result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence)
+            result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes)
         }
 
         switch result {
@@ -605,11 +610,13 @@ final class AppListViewModel {
               !apps[idx].isAnalysisLocked else {
             return
         }
-        let appURL = overrideAppURL ?? cacheService?.load(bundleID: bundleID)?.appURL
+        let cachedRecord = cacheService?.load(bundleID: bundleID)
+        let appURL = overrideAppURL ?? cachedRecord?.appURL
+        let userNotes = cachedRecord?.notes
         workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
         apps[idx].aiState = .loading
         let provider = AnalysisProviderKind.current()
-        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL)
+        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes)
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
               !apps[idx].isAnalysisLocked else {
             return
@@ -695,6 +702,24 @@ final class AppListViewModel {
         }
     }
 
+    /// Called when a notes editing session ends (the editor collapsed or the
+    /// selection changed). Re-runs analysis when the note text meaningfully
+    /// changed since the session began, so the new note feeds the prompt.
+    /// Locked analyses are never re-run — the note waits for a manual run.
+    func reanalyzeAfterNotesChange(bundleID: String, previousNotes: String?) {
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }),
+              !apps[idx].isAnalysisLocked,
+              let record = cacheService?.load(bundleID: bundleID),
+              !record.isAnalysisLocked,
+              NotesChange.changed(previous: previousNotes, current: record.notes) else {
+            return
+        }
+
+        Task {
+            await reanalyze(bundleID: bundleID)
+        }
+    }
+
     private func refreshUpdates(for scannedApps: [AppInfo], token: UUID) async {
         await updateChecker.resetHomebrewCache()
 
@@ -733,5 +758,16 @@ final class AppListViewModel {
             record.suggestedAppURL = resolvedLink.url
             cacheService?.persist()
         }
+    }
+}
+
+/// Decides whether a note edit is worth an automatic re-analysis.
+/// nil, empty, and whitespace-only text are all treated as "no note".
+nonisolated enum NotesChange {
+    static func changed(previous: String?, current: String?) -> Bool {
+        func normalized(_ text: String?) -> String {
+            (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return normalized(previous) != normalized(current)
     }
 }

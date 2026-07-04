@@ -22,6 +22,8 @@ struct AppDetailView: View {
     @State private var currentLicenseKey: String? = nil
     @State private var notesExpanded = false
     @State private var notesHovered = false
+    @State private var notesSessionBundleID: String? = nil
+    @State private var notesSessionInitialNotes: String? = nil
     @State private var licenseHovered = false
     @State private var urlHovered = false
     @State private var subHovered = false
@@ -517,13 +519,56 @@ struct AppDetailView: View {
                     )
                 )
                 .padding(.top, 8)
+
+                HStack {
+                    Button("Clear") {
+                        ensureRecord().notes = nil
+                        saveRecord()
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            notesExpanded = false
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove the note and close")
+                    Spacer()
+                    Button("Save") {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            notesExpanded = false
+                        }
+                    }
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .help("Save and re-analyze with this note (⌘↩)")
+                }
+                .padding(.top, 6)
+            }
+        }
+        .onChange(of: notesExpanded) { _, expanded in
+            if expanded {
+                notesSessionBundleID = app.bundleID
+                notesSessionInitialNotes = record?.notes
+            } else {
+                endNotesSession()
             }
         }
         .onChange(of: app.bundleID) { _, _ in
             notesExpanded = false
         }
+        .onDisappear {
+            endNotesSession()
+        }
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func endNotesSession() {
+        guard let bundleID = notesSessionBundleID else { return }
+        viewModel.reanalyzeAfterNotesChange(bundleID: bundleID,
+                                            previousNotes: notesSessionInitialNotes)
+        notesSessionBundleID = nil
+        notesSessionInitialNotes = nil
     }
 
     private var licenseKeySection: some View {
