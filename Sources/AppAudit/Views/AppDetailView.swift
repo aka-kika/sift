@@ -9,6 +9,7 @@ struct AppDetailView: View {
     let app: AppInfo
     @Environment(AppListViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     private let licenseKeyStore = LicenseKeyStore.shared
 
     @State private var record: AppRecord? = nil
@@ -253,6 +254,7 @@ struct AppDetailView: View {
                 .help("Re-analyze")
                 .padding(.trailing, 2)
             }
+            crossAppCard
             notesCard
             licenseCard
             subscriptionCard
@@ -261,6 +263,36 @@ struct AppDetailView: View {
             favoriteCard
             docsCard
         }
+    }
+
+    // MARK: - Cross-App
+
+    /// Cross-App finds which of your OTHER installed apps overlap with this one.
+    /// It only makes sense once the whole library is analyzed (so every app has
+    /// something to compare), and it's frozen along with a locked analysis.
+    private var crossAppCard: some View {
+        UtilityCard(tint: .purple, active: crossAppEnabled, disabled: !crossAppEnabled, action: { runFindSimilar() }) {
+            cardIcon("square.on.square", tint: crossAppEnabled ? .purple : .secondary)
+        }
+        .help(crossAppHelp)
+    }
+
+    private var libraryFullyAnalyzed: Bool {
+        !viewModel.apps.isEmpty && viewModel.apps.allSatisfy {
+            if case .loaded = $0.aiState { return true }
+            return false
+        }
+    }
+
+    private var crossAppEnabled: Bool {
+        guard !app.isAnalysisLocked, case .loaded = app.aiState else { return false }
+        return libraryFullyAnalyzed
+    }
+
+    private var crossAppHelp: String {
+        if app.isAnalysisLocked { return "Cross-App is locked with this analysis" }
+        if !libraryFullyAnalyzed { return "Analyze your whole library first — Cross-App compares across every app" }
+        return "Cross-App — find similar apps you have"
     }
 
     @ViewBuilder
@@ -529,12 +561,8 @@ struct AppDetailView: View {
                         ForEach(results) { similarRow($0) }
                     }
                 }
-            } else {
-                Button { runFindSimilar() } label: {
-                    Label("Find similar apps you have", systemImage: "square.on.square")
-                }
-                .buttonStyle(.bordered)
             }
+            // Idle: nothing here — the Cross-App cube up top is the trigger.
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -1053,7 +1081,7 @@ struct AppDetailView: View {
     private func cardIcon(_ systemImage: String, tint: Color) -> some View {
         Image(systemName: systemImage)
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(tint)
+            .foregroundStyle(pastelize(tint, colorScheme))
     }
 
     /// SF Symbol for a link cube, chosen from the destination host: a code
@@ -1477,6 +1505,19 @@ struct NotesEditor: View {
 /// icon plus at most one badge, hugging its content. Disabled cards stay
 /// visible but ignore the primary tap; the context menu stays reachable
 /// (that is how Paid/Free marks remain available on a grayed card).
+/// Softens a tint for dark mode — blends it toward white so the utility cubes
+/// read as gentle pastels on a dark background instead of harsh saturated dots.
+/// Light mode is returned unchanged.
+func pastelize(_ color: Color, _ scheme: ColorScheme) -> Color {
+    guard scheme == .dark else { return color }
+    #if canImport(AppKit)
+    guard let ns = NSColor(color).usingColorSpace(.sRGB) else { return color }
+    return Color(ns.blended(withFraction: 0.34, of: .white) ?? ns)
+    #else
+    return color
+    #endif
+}
+
 /// A left-to-right layout that wraps its items to the next row when they run
 /// out of horizontal room — so the header's utility cubes drop to a second row
 /// on a narrow window instead of crushing the app title.
@@ -1535,10 +1576,11 @@ struct UtilityCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     @State private var hovered = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private var fill: Color {
         if disabled { return Color.secondary.opacity(0.06) }
-        if active { return tint.opacity(hovered && action != nil ? 0.22 : 0.14) }
+        if active { return pastelize(tint, colorScheme).opacity(hovered && action != nil ? 0.22 : 0.14) }
         return Color.secondary.opacity(hovered && action != nil ? 0.12 : 0.07)
     }
 
