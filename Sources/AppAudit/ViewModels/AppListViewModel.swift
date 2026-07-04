@@ -702,6 +702,24 @@ final class AppListViewModel {
         }
     }
 
+    /// Called when a notes editing session ends (the editor collapsed or the
+    /// selection changed). Re-runs analysis when the note text meaningfully
+    /// changed since the session began, so the new note feeds the prompt.
+    /// Locked analyses are never re-run — the note waits for a manual run.
+    func reanalyzeAfterNotesChange(bundleID: String, previousNotes: String?) {
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }),
+              !apps[idx].isAnalysisLocked,
+              let record = cacheService?.load(bundleID: bundleID),
+              !record.isAnalysisLocked,
+              NotesChange.changed(previous: previousNotes, current: record.notes) else {
+            return
+        }
+
+        Task {
+            await reanalyze(bundleID: bundleID)
+        }
+    }
+
     private func refreshUpdates(for scannedApps: [AppInfo], token: UUID) async {
         await updateChecker.resetHomebrewCache()
 
@@ -740,5 +758,16 @@ final class AppListViewModel {
             record.suggestedAppURL = resolvedLink.url
             cacheService?.persist()
         }
+    }
+}
+
+/// Decides whether a note edit is worth an automatic re-analysis.
+/// nil, empty, and whitespace-only text are all treated as "no note".
+nonisolated enum NotesChange {
+    static func changed(previous: String?, current: String?) -> Bool {
+        func normalized(_ text: String?) -> String {
+            (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return normalized(previous) != normalized(current)
     }
 }
