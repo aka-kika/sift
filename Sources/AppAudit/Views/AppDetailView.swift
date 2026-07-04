@@ -49,6 +49,7 @@ struct AppDetailView: View {
                     similarSection
                 }
             }
+            .frame(maxWidth: 720, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
         }
