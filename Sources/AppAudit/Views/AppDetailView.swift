@@ -35,7 +35,6 @@ struct AppDetailView: View {
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
-    @State private var keyCopied = false
 
     var body: some View {
         ScrollView {
@@ -58,7 +57,6 @@ struct AppDetailView: View {
         .task(id: app.bundleID) {
             loadRecord()
             loadLicenseKey()
-            keyCopied = false
             similarResults = nil
             findingSimilar = false
         }
@@ -719,9 +717,6 @@ struct AppDetailView: View {
             if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(key, forType: .string)
-                keyCopied = true
-                try? await Task.sleep(for: .seconds(1.5))
-                keyCopied = false
             }
         }
     }
