@@ -107,14 +107,15 @@ actor OllamaService: AnalysisService {
     }
 
     /// Single request returning explanation, score, reason, and best use — 3x faster than separate calls.
-    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil) async -> OllamaResult {
+    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, userNotes: String? = nil) async -> OllamaResult {
         let prompt = AppAnalysisPrompt.build(
             app: app,
             profile: profile,
             appURL: appURL,
             linkEvidence: linkEvidence,
             includeResponseFormat: true,
-            styleNotes: AppAnalysisPrompt.currentStyleNotes
+            styleNotes: AppAnalysisPrompt.currentStyleNotes,
+            userNotes: userNotes ?? ""
         )
         return await chat(messages: [.init(role: "user", content: prompt)])
     }

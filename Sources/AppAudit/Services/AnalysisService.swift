@@ -16,7 +16,7 @@ enum ModelFetchResult: Sendable {
 /// `AppAnalysisPrompt`. All providers share the same prompt and the same parser
 /// (`OllamaService.parseAnalysis`), so only the transport differs.
 protocol AnalysisService: Sendable {
-    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String?, linkEvidence: String?) async -> AnalysisResult
+    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String?, linkEvidence: String?, userNotes: String?) async -> AnalysisResult
     func fetchModels() async -> ModelFetchResult
 }
 
