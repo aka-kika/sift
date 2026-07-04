@@ -720,6 +720,56 @@ final class AppListViewModel {
         }
     }
 
+    /// Asks the current model which of the user's OTHER installed apps overlap
+    /// in function with `bundleID`. The model only ever sees a numbered list of
+    /// installed apps and can only pick from it, so the result is grounded —
+    /// no invented apps or dead links.
+    func findSimilarApps(to bundleID: String) async -> [SimilarApp] {
+        guard let target = apps.first(where: { $0.bundleID == bundleID }) else { return [] }
+
+        var candidates: [SimilarAppsPrompt.Candidate] = []
+        var indexToApp: [Int: (bundleID: String, name: String)] = [:]
+        var i = 1
+        for app in apps where app.bundleID != bundleID {
+            candidates.append(.init(
+                index: i,
+                name: app.name,
+                category: AppCategory.humanName(for: app.category) ?? "",
+                explanation: Self.explanationText(app)
+            ))
+            indexToApp[i] = (app.bundleID, app.name)
+            i += 1
+        }
+        guard !candidates.isEmpty else { return [] }
+
+        let prompt = SimilarAppsPrompt.build(
+            targetName: target.name,
+            targetCategory: AppCategory.humanName(for: target.category) ?? "",
+            targetExplanation: Self.explanationText(target),
+            candidates: candidates
+        )
+
+        let text: String
+        switch AnalysisProviderKind.current() {
+        case .ollama:    text = await ollama.complete(prompt: prompt).successText
+        case .anthropic: text = await anthropic.complete(prompt: prompt).successText
+        case .openAI:    text = await openAI.complete(prompt: prompt).successText
+        }
+        guard !text.isEmpty else { return [] }
+
+        return SimilarAppsPrompt.parse(text, validIndices: Set(indexToApp.keys))
+            .prefix(4)
+            .compactMap { pick in
+                guard let app = indexToApp[pick.index] else { return nil }
+                return SimilarApp(bundleID: app.bundleID, name: app.name, reason: pick.reason)
+            }
+    }
+
+    private static func explanationText(_ app: AppInfo) -> String {
+        if case .loaded(let explanation, _, _, _) = app.aiState { return explanation }
+        return ""
+    }
+
     private func refreshUpdates(for scannedApps: [AppInfo], token: UUID) async {
         await updateChecker.resetHomebrewCache()
 
@@ -759,6 +809,14 @@ final class AppListViewModel {
             cacheService?.persist()
         }
     }
+}
+
+/// A grounded "similar app" pick — always one of the user's installed apps.
+struct SimilarApp: Identifiable, Sendable {
+    let bundleID: String
+    let name: String
+    let reason: String
+    var id: String { bundleID }
 }
 
 /// Decides whether a note edit is worth an automatic re-analysis.

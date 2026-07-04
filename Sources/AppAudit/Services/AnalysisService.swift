@@ -6,6 +6,14 @@ enum AnalysisResult: Sendable {
     case unavailable(String)
 }
 
+extension AnalysisResult {
+    /// The text of a `.success`, or an empty string otherwise.
+    var successText: String {
+        if case .success(let text) = self { return text }
+        return ""
+    }
+}
+
 /// Result of fetching the list of available models from a provider.
 enum ModelFetchResult: Sendable {
     case models([String])
@@ -18,6 +26,9 @@ enum ModelFetchResult: Sendable {
 protocol AnalysisService: Sendable {
     func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String?, linkEvidence: String?, userNotes: String?) async -> AnalysisResult
     func fetchModels() async -> ModelFetchResult
+    /// A free-form completion for auxiliary features (e.g. finding similar apps).
+    /// Returns the model's raw text, or `.unavailable` on error.
+    func complete(prompt: String) async -> AnalysisResult
 }
 
 /// Shared helpers for HTTP-based analysis providers.
