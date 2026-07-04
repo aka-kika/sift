@@ -40,10 +40,10 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 Divider()
+                utilitySection
                 whatIsThisSection
                 recommendationSection
                 improveAnalysisCallout
-                utilitySection
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
