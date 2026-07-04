@@ -40,10 +40,10 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 Divider()
+                utilitySection
                 whatIsThisSection
                 recommendationSection
                 improveAnalysisCallout
-                utilitySection
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
@@ -484,22 +484,21 @@ struct AppDetailView: View {
     }
 
     private var lockCard: some View {
-        UtilityCard(tint: .orange, action: { toggleAnalysisLock() }) {
-            cardIcon(app.isAnalysisLocked ? "lock.fill" : "lock.open", tint: .orange)
-            if app.isAnalysisLocked {
-                cardBadge("Locked")
-            }
+        let locked = app.isAnalysisLocked
+        return UtilityCard(tint: .orange, active: locked, action: { toggleAnalysisLock() }) {
+            cardIcon(locked ? "lock.fill" : "lock.open", tint: locked ? .orange : .secondary)
         }
-        .help(app.isAnalysisLocked
+        .help(locked
               ? "Analysis locked — click to unlock"
               : "Lock the analysis so it is never regenerated")
     }
 
     private var favoriteCard: some View {
-        UtilityCard(tint: .pink, action: { toggleFavorite() }) {
-            cardIcon(app.isFavorite ? "star.fill" : "star", tint: .pink)
+        let fav = app.isFavorite
+        return UtilityCard(tint: .pink, active: fav, action: { toggleFavorite() }) {
+            cardIcon(fav ? "star.fill" : "star", tint: fav ? .pink : .secondary)
         }
-        .help(app.isFavorite ? "Favorite — click to unmark" : "Mark as favorite")
+        .help(fav ? "Favorite — click to unmark" : "Mark as favorite")
     }
 
     private func toggleFavorite() {
@@ -510,11 +509,9 @@ struct AppDetailView: View {
     }
 
     private var notesCard: some View {
-        UtilityCard(tint: .yellow, action: { notesSheetPresented = true }) {
-            cardIcon("note.text", tint: .yellow)
-            if record?.notes?.isEmpty == false {
-                cardBadge("Saved")
-            }
+        let hasNote = record?.notes?.isEmpty == false
+        return UtilityCard(tint: .yellow, active: hasNote, action: { notesSheetPresented = true }) {
+            cardIcon(hasNote ? "square.and.pencil" : "note.text", tint: hasNote ? .yellow : .secondary)
         }
         .help(notesHelp)
         .onDisappear {
@@ -541,7 +538,6 @@ struct AppDetailView: View {
     private var licenseCard: some View {
         let isFree = record?.isFreeApp == true
         let disabled = UtilityCardRules.licenseDisabled(isMyApp: app.isMyApp, isFreeApp: isFree)
-        let reason = UtilityCardRules.disabledReason(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: nil)
         let licenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
         let hasKey = currentLicenseKey?.isEmpty == false
         let openEditor: (() -> Void)? = app.isAppStoreInstall ? nil : {
@@ -552,22 +548,13 @@ struct AppDetailView: View {
             editingLicenseKey = true
         }
 
-        return UtilityCard(tint: app.isAppStoreInstall ? .blue : .indigo, disabled: disabled, action: openEditor) {
-            cardIcon(app.isAppStoreInstall ? "bag.fill" : "key.horizontal",
-                     tint: app.isAppStoreInstall ? .blue : .indigo)
-            if keyCopied {
-                cardBadge("Copied")
-            } else if let reason {
-                cardBadge(reason)
-            } else if let licenseType {
-                // The type shows even without a key — it grays the subscription
-                // card, so it must never drive that rule invisibly.
-                cardBadge(hasKey ? licenseType.displayName : "\(licenseType.displayName) · no key", tint: .indigo)
-            } else if hasKey {
-                cardBadge("Saved", tint: .indigo)
-            } else if app.isAppStoreInstall, record?.isPaidApp == true {
-                cardBadge("Paid", tint: .green)
-            }
+        let isPaid = record?.isPaidApp == true
+        let tint: Color = app.isAppStoreInstall ? .blue : .indigo
+        let active = !disabled && (app.isAppStoreInstall || hasKey || isPaid || licenseType != nil)
+        let symbol = app.isAppStoreInstall ? "checkmark.seal.fill" : "key.horizontal"
+
+        return UtilityCard(tint: tint, active: active, disabled: disabled, action: openEditor) {
+            cardIcon(symbol, tint: active ? tint : .secondary)
         }
         .help(licenseHelp)
         .contextMenu { licenseContextMenu }
@@ -647,17 +634,45 @@ struct AppDetailView: View {
         let isFree = record?.isFreeApp == true
         let licenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
         let disabled = UtilityCardRules.subscriptionDisabled(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: licenseType)
-        let reason = UtilityCardRules.disabledReason(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: licenseType)
+        let hasSub = record?.hasSubscription == true
+        let active = !disabled && hasSub
+        let tint: Color = subscriptionRenewalIsNear ? .orange : .green
 
-        return UtilityCard(tint: .green, disabled: disabled, action: { beginEditingSubscription() }) {
-            cardIcon("creditcard", tint: .green)
-            if let reason {
-                cardBadge(reason)
-            } else if record?.hasSubscription == true {
-                cardBadge(subscriptionBadgeText, tint: subscriptionRenewalIsNear ? .orange : .green)
+        return UtilityCard(tint: tint, active: active, disabled: disabled, action: {
+            // Fast path: a tap just flags "this has a subscription". Price and
+            // renewal are optional, added from the right-click menu.
+            if hasSub {
+                beginEditingSubscription()
+            } else {
+                markSubscription()
             }
+        }) {
+            cardIcon(hasSub ? "creditcard.fill" : "creditcard", tint: active ? tint : .secondary)
         }
         .help(subscriptionHelp)
+        .contextMenu {
+            Button {
+                beginEditingSubscription()
+            } label: {
+                Label(hasSub ? "Edit Price & Renewal…" : "Add Price & Renewal…", systemImage: "pencil")
+            }
+            if hasSub {
+                Button(role: .destructive) {
+                    clearSubscription()
+                } label: {
+                    Label("Remove Subscription", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    /// Flags a subscription without any details — the one-click path.
+    private func markSubscription() {
+        let ensured = ensureRecord()
+        ensured.hasSubscription = true
+        if ensured.iconPNG == nil { ensured.iconPNG = app.icon?.pngData() }
+        viewModel.setSubscription(bundleID: app.bundleID, value: true)
+        saveRecord()
     }
 
     private var subscriptionBadgeText: String {
@@ -677,7 +692,9 @@ struct AppDetailView: View {
     }
 
     private var subscriptionHelp: String {
-        guard record?.hasSubscription == true else { return "Add a subscription" }
+        guard record?.hasSubscription == true else {
+            return "Click to mark a subscription · right-click to add price & renewal"
+        }
         var parts: [String] = []
         if record?.subscriptionPrice != nil {
             parts.append(subscriptionBadgeText)
@@ -695,20 +712,17 @@ struct AppDetailView: View {
     }
 
     private var linkCard: some View {
-        UtilityCard(tint: .blue, action: {
-            if let urlString = record?.appURL, !urlString.isEmpty, let url = URL(string: urlString) {
+        let urlString = record?.appURL
+        let hasLink = urlString?.isEmpty == false
+        return UtilityCard(tint: .blue, active: hasLink, badgeDot: !hasLink && hasSuggestedLink, action: {
+            if let urlString, !urlString.isEmpty, let url = URL(string: urlString) {
                 NSWorkspace.shared.open(url)
             } else {
                 draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
                 editingURL = true
             }
         }) {
-            cardIcon("link", tint: .blue)
-            if let urlString = record?.appURL, !urlString.isEmpty {
-                cardBadge(URL(string: urlString)?.host() ?? urlString, tint: .blue)
-            } else if hasSuggestedLink {
-                cardBadge("Suggested")
-            }
+            cardIcon(hasLink ? linkSymbol(for: urlString) : "link", tint: hasLink ? .blue : .secondary)
         }
         .help(linkHelp)
         .contextMenu {
@@ -852,17 +866,19 @@ struct AppDetailView: View {
             .foregroundStyle(tint)
     }
 
-    /// The one small status capsule under a utility cube's icon. The face
-    /// carries no other text — details live in the tooltip and popup.
-    private func cardBadge(_ text: String, tint: Color = .secondary) -> some View {
-        Text(text)
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(tint)
-            .lineLimit(1)
-            .truncationMode(.middle)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(.background.opacity(0.65), in: Capsule())
+    /// SF Symbol for a link cube, chosen from the destination host: a code
+    /// glyph for source hosts (SF Symbols has no brand logos), a globe for
+    /// everything else, and a plain link when there is nothing yet.
+    private func linkSymbol(for urlString: String?) -> String {
+        guard let urlString, !urlString.isEmpty,
+              let host = URL(string: urlString)?.host()?.lowercased() else {
+            return "link"
+        }
+        let codeHosts = ["github.com", "gitlab.com", "bitbucket.org", "codeberg.org", "sr.ht"]
+        if codeHosts.contains(where: { host == $0 || host.hasSuffix(".\($0)") }) {
+            return "chevron.left.forwardslash.chevron.right"
+        }
+        return "globe"
     }
 
     // MARK: - Score helpers
@@ -1273,21 +1289,36 @@ struct NotesEditor: View {
 /// (that is how Paid/Free marks remain available on a grayed card).
 struct UtilityCard<Content: View>: View {
     var tint: Color
+    /// Filled with `tint` when active; a neutral gray square when not.
+    var active: Bool = false
     var disabled: Bool = false
+    /// A small dot in the corner — used to flag an available suggestion.
+    var badgeDot: Bool = false
     var action: (() -> Void)? = nil
     @ViewBuilder var content: () -> Content
 
     @State private var hovered = false
 
+    private var fill: Color {
+        if disabled { return Color.secondary.opacity(0.08) }
+        if active { return tint.opacity(hovered && action != nil ? 0.24 : 0.15) }
+        return Color.secondary.opacity(hovered && action != nil ? 0.14 : 0.09)
+    }
+
     var body: some View {
         VStack(spacing: 6, content: content)
             .padding(10)
             .frame(maxWidth: .infinity, minHeight: 64)
-            .background(
-                tint.opacity(hovered && !disabled && action != nil ? 0.22 : 0.13),
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-            )
-            .opacity(disabled ? 0.5 : 1)
+            .background(fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(alignment: .topTrailing) {
+                if badgeDot {
+                    Circle()
+                        .fill(.orange)
+                        .frame(width: 8, height: 8)
+                        .padding(7)
+                }
+            }
+            .opacity(disabled ? 0.55 : 1)
             .contentShape(Rectangle())
             .onTapGesture {
                 if !disabled { action?() }
