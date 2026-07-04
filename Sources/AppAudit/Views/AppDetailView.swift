@@ -37,7 +37,7 @@ struct AppDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 Divider()
                 whatIsThisSection
@@ -472,7 +472,7 @@ struct AppDetailView: View {
     // MARK: - Utility cards
 
     private var utilitySection: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             notesCard
             licenseCard
             subscriptionCard
