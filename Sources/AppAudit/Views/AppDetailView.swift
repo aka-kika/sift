@@ -472,10 +472,7 @@ struct AppDetailView: View {
     // MARK: - Utility cards
 
     private var utilitySection: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4),
-            alignment: .leading, spacing: 10
-        ) {
+        HStack(alignment: .top, spacing: 10) {
             notesCard
             licenseCard
             subscriptionCard
@@ -485,8 +482,8 @@ struct AppDetailView: View {
     }
 
     private var notesCard: some View {
-        UtilityCard(action: { notesSheetPresented = true }) {
-            utilityChip("note.text", tint: .yellow)
+        UtilityCard(tint: .yellow, action: { notesSheetPresented = true }) {
+            cardIcon("note.text", tint: .yellow)
             if record?.notes?.isEmpty == false {
                 cardBadge("Saved")
             }
@@ -527,9 +524,9 @@ struct AppDetailView: View {
             editingLicenseKey = true
         }
 
-        return UtilityCard(disabled: disabled, action: openEditor) {
-            utilityChip(app.isAppStoreInstall ? "bag.fill" : "key.horizontal",
-                        tint: app.isAppStoreInstall ? .blue : .indigo)
+        return UtilityCard(tint: app.isAppStoreInstall ? .blue : .indigo, disabled: disabled, action: openEditor) {
+            cardIcon(app.isAppStoreInstall ? "bag.fill" : "key.horizontal",
+                     tint: app.isAppStoreInstall ? .blue : .indigo)
             if keyCopied {
                 cardBadge("Copied")
             } else if let reason {
@@ -624,8 +621,8 @@ struct AppDetailView: View {
         let disabled = UtilityCardRules.subscriptionDisabled(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: licenseType)
         let reason = UtilityCardRules.disabledReason(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: licenseType)
 
-        return UtilityCard(disabled: disabled, action: { beginEditingSubscription() }) {
-            utilityChip("creditcard", tint: .green)
+        return UtilityCard(tint: .green, disabled: disabled, action: { beginEditingSubscription() }) {
+            cardIcon("creditcard", tint: .green)
             if let reason {
                 cardBadge(reason)
             } else if record?.hasSubscription == true {
@@ -670,7 +667,7 @@ struct AppDetailView: View {
     }
 
     private var linkCard: some View {
-        UtilityCard(action: {
+        UtilityCard(tint: .blue, action: {
             if let urlString = record?.appURL, !urlString.isEmpty, let url = URL(string: urlString) {
                 NSWorkspace.shared.open(url)
             } else {
@@ -678,7 +675,7 @@ struct AppDetailView: View {
                 editingURL = true
             }
         }) {
-            utilityChip("link", tint: .blue)
+            cardIcon("link", tint: .blue)
             if let urlString = record?.appURL, !urlString.isEmpty {
                 cardBadge(URL(string: urlString)?.host() ?? urlString, tint: .blue)
             } else if hasSuggestedLink {
@@ -817,20 +814,18 @@ struct AppDetailView: View {
             ?? String(format: "%.2f %@", amount, currencyCode)
     }
 
-    // MARK: - Utility chip
+    // MARK: - Utility cube helpers
 
-    /// Tinted icon chip used by the utility rows — the same visual language as
-    /// System Settings list icons.
-    private func utilityChip(_ systemImage: String, tint: Color) -> some View {
+    /// The utility cube's icon — the cube itself is the tinted chip, so the
+    /// icon renders directly at full size.
+    private func cardIcon(_ systemImage: String, tint: Color) -> some View {
         Image(systemName: systemImage)
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(tint)
-            .frame(width: 24, height: 24)
-            .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
-    /// The one small status capsule under a utility card's icon. The card
-    /// face carries no other text — details live in the tooltip and popup.
+    /// The one small status capsule under a utility cube's icon. The face
+    /// carries no other text — details live in the tooltip and popup.
     private func cardBadge(_ text: String, tint: Color = .secondary) -> some View {
         Text(text)
             .font(.caption2.weight(.semibold))
@@ -839,7 +834,7 @@ struct AppDetailView: View {
             .truncationMode(.middle)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(tint.opacity(0.12), in: Capsule())
+            .background(.background.opacity(0.65), in: Capsule())
     }
 
     // MARK: - Score helpers
@@ -1244,10 +1239,12 @@ struct NotesEditor: View {
     }
 }
 
-/// Glass card container for the utility grid. Disabled cards stay visible
-/// but ignore the primary tap; buttons inside the content stay interactive
-/// (that is how the Free/Paid chips remain reachable on a grayed card).
+/// Tint-filled cube for the utility row — the card IS the colored chip:
+/// icon plus at most one badge, hugging its content. Disabled cards stay
+/// visible but ignore the primary tap; the context menu stays reachable
+/// (that is how Paid/Free marks remain available on a grayed card).
 struct UtilityCard<Content: View>: View {
+    var tint: Color
     var disabled: Bool = false
     var action: (() -> Void)? = nil
     @ViewBuilder var content: () -> Content
@@ -1256,14 +1253,13 @@ struct UtilityCard<Content: View>: View {
 
     var body: some View {
         VStack(spacing: 6, content: content)
-            .frame(maxWidth: .infinity, minHeight: 64)
             .padding(10)
-            .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(.separator.opacity(hovered && !disabled && action != nil ? 0.8 : 0), lineWidth: 1)
+            .frame(minWidth: 64, minHeight: 64)
+            .background(
+                tint.opacity(hovered && !disabled && action != nil ? 0.22 : 0.13),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
-            .opacity(disabled ? 0.55 : 1)
+            .opacity(disabled ? 0.5 : 1)
             .contentShape(Rectangle())
             .onTapGesture {
                 if !disabled { action?() }
