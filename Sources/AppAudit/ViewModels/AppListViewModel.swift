@@ -706,6 +706,20 @@ final class AppListViewModel {
         }
     }
 
+    /// Re-runs analysis after the user attaches, refreshes, or removes an app's
+    /// local docs folder, so the new evidence feeds the prompt. Locked analyses
+    /// are never re-run — the evidence waits for a manual run after unlocking.
+    func reanalyzeAfterDocsChange(bundleID: String) {
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }),
+              !apps[idx].isAnalysisLocked,
+              cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true else {
+            return
+        }
+        Task {
+            await reanalyze(bundleID: bundleID)
+        }
+    }
+
     /// Called when a notes editing session ends (the editor collapsed or the
     /// selection changed). Re-runs analysis when the note text meaningfully
     /// changed since the session began, so the new note feeds the prompt.
