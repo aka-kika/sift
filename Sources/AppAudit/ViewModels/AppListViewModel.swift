@@ -314,8 +314,9 @@ final class AppListViewModel {
                 let capturedRecord = self.cacheService?.load(bundleID: app.bundleID)
                 let capturedAppURL = capturedRecord?.appURL
                 let capturedNotes = capturedRecord?.notes
+                let capturedDocs = capturedRecord?.docsEvidence
                 group.addTask {
-                    let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes)
+                    let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs)
                     return (result.0, result.1, capturedAppURL)
                 }
                 pendingCount += 1
@@ -358,8 +359,9 @@ final class AppListViewModel {
                     let capturedRecord = self.cacheService?.load(bundleID: next.bundleID)
                     let capturedAppURL = capturedRecord?.appURL
                     let capturedNotes = capturedRecord?.notes
+                    let capturedDocs = capturedRecord?.docsEvidence
                     group.addTask {
-                        let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes)
+                        let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs)
                         return (result.0, result.1, capturedAppURL)
                     }
                 }
@@ -372,17 +374,18 @@ final class AppListViewModel {
         profile: WorkflowProfile,
         provider: AnalysisProviderKind,
         appURL: String? = nil,
-        userNotes: String? = nil
+        userNotes: String? = nil,
+        docsEvidence: String? = nil
     ) async -> (String, AppInfo.AIState) {
         let linkEvidence = await linkEvidenceService.evidence(for: appURL)
         let result: AnalysisResult
         switch provider {
         case .ollama:
-            result = await ollama.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes)
+            result = await ollama.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
         case .anthropic:
-            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes)
+            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
         case .openAI:
-            result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes)
+            result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
         }
 
         switch result {
@@ -613,10 +616,11 @@ final class AppListViewModel {
         let cachedRecord = cacheService?.load(bundleID: bundleID)
         let appURL = overrideAppURL ?? cachedRecord?.appURL
         let userNotes = cachedRecord?.notes
+        let docsEvidence = cachedRecord?.docsEvidence
         workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
         apps[idx].aiState = .loading
         let provider = AnalysisProviderKind.current()
-        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes)
+        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes, docsEvidence: docsEvidence)
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
               !apps[idx].isAnalysisLocked else {
             return
