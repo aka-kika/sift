@@ -1563,6 +1563,15 @@ struct DocsEvidenceTests {
         #expect(result.count <= DocsEvidence.maxReadmeChars + 200) // room for hint/labels
         #expect(!result.contains(big))
     }
+
+    @Test("Xcode project folder with only a .xcodeproj is detected")
+    func xcodeProjectOnly() throws {
+        let dir = tempFolder()
+        try FileManager.default.createDirectory(
+            at: dir.appendingPathComponent("MyApp.xcodeproj"), withIntermediateDirectories: true)
+        let result = DocsEvidence.extract(fromFolder: dir.path)
+        #expect(result?.contains("MyApp.xcodeproj") == true)
+    }
 }
 
 @Suite("Analysis Prompt Docs Evidence")

@@ -692,10 +692,15 @@ struct AppDetailView: View {
             return
         }
         let ensured = ensureRecord()
+        let previousEvidence = ensured.docsEvidence
+        let unchanged = previousEvidence?.trimmingCharacters(in: .whitespacesAndNewlines)
+            == evidence.trimmingCharacters(in: .whitespacesAndNewlines)
         ensured.docsEvidence = evidence
         ensured.docsFolderPath = path
         saveRecord()
-        viewModel.reanalyzeAfterDocsChange(bundleID: app.bundleID)
+        if !unchanged {
+            viewModel.reanalyzeAfterDocsChange(bundleID: app.bundleID)
+        }
     }
 
     private func removeDocs() {
