@@ -47,9 +47,10 @@ reason, never hidden, and graying never deletes stored data.
   picker**: Lifetime / One-time / Annual / Other.
 - **Subscription** → sheet with the existing price / cycle / renewal / email
   fields.
-- **App Link** → click **opens the URL** in the browser. A pencil affordance
-  on hover opens the link editor. If no link is set, click opens the editor
-  instead. Auto-suggested links (`suggestedAppURL`) keep working; editing and
+- **App Link** → click **opens the URL** in the browser. A small
+  always-visible pencil on the card opens the link editor (cards use small
+  always-visible action icons rather than the old rows' hover-reveal). If no
+  link is set, click opens the editor instead. Auto-suggested links (`suggestedAppURL`) keep working; editing and
   saving a link keeps triggering `reanalyzeAfterLinkChange` as today.
 
 ### 3. Pricing semantics
