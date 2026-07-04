@@ -554,6 +554,7 @@ private struct LicenseKeySheet: View {
 struct ScoreBadgeView: View {
     let state: AppInfo.AIState
     var isMyApp: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         switch state {
@@ -576,9 +577,9 @@ struct ScoreBadgeView: View {
             ZStack {
                 Text("\(score)")
                     .font(.caption.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(scoreTextColor(score))
+                    .foregroundStyle(numeralColor(score))
                     .frame(width: 24, height: 24)
-                    .background(scoreColor(score), in: Circle())
+                    .background(pastelize(scoreColor(score), colorScheme), in: Circle())
                 if isMyApp {
                     Circle()
                         .stroke(.purple, lineWidth: 2)
@@ -604,10 +605,11 @@ struct ScoreBadgeView: View {
         }
     }
 
-    /// Numeral color chosen to stay legible on each fill. The light pastel fills
-    /// (yellow=3, mint=4) need dark digits; the saturated fills read fine in white.
-    /// Fixed regardless of light/dark mode because the fills are light in both.
-    func scoreTextColor(_ score: Int) -> Color {
+    /// Numeral color chosen to stay legible on the fill. In dark mode every fill
+    /// is pastelized (lightened toward white), so dark digits read best across the
+    /// board; in light mode only the already-light yellow/mint fills need them.
+    func numeralColor(_ score: Int) -> Color {
+        if colorScheme == .dark { return Color.black.opacity(0.8) }
         switch score {
         case 3, 4: return Color.black.opacity(0.8)
         default: return .white

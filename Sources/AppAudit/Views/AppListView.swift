@@ -52,25 +52,6 @@ struct AppListView: View {
                 .pickerStyle(.menu)
             }
             ToolbarItem(placement: .automatic) {
-                Menu {
-                    Toggle("My Apps", isOn: Binding(
-                        get: { viewModel.filterMyApps },
-                        set: { viewModel.setFilterMyApps($0) }
-                    ))
-                    Toggle("Favorites", isOn: Binding(
-                        get: { viewModel.filterFavorites },
-                        set: { viewModel.setFilterFavorites($0) }
-                    ))
-                } label: {
-                    Label("Filter", systemImage: (viewModel.filterMyApps || viewModel.filterFavorites)
-                          ? "line.3.horizontal.decrease.circle.fill"
-                          : "line.3.horizontal.decrease.circle")
-                }
-            }
-            if #available(macOS 26.0, *) {
-                ToolbarSpacer(.fixed)
-            }
-            ToolbarItem(placement: .automatic) {
                 Button {
                     Task {
                         if viewModel.sortOrder == .updates {
@@ -84,57 +65,10 @@ struct AppListView: View {
                 }
                 .disabled(isRefreshButtonDisabled)
             }
-            if #available(macOS 26.0, *) {
-                ToolbarSpacer(.fixed)
-            }
-            ToolbarItem(placement: .automatic) {
-                Menu {
-                    Button {
-                        Task { await viewModel.reanalyzeAll(scope: .allUnlocked) }
-                    } label: {
-                        Label("Re-analyze All Apps", systemImage: "arrow.clockwise.circle")
-                    }
-                    .disabled(viewModel.apps.isEmpty)
-
-                    Button {
-                        exportCSV()
-                    } label: {
-                        Label("Export to CSV…", systemImage: "tablecells")
-                    }
-                    .disabled(viewModel.apps.isEmpty)
-
-                    Divider()
-
-                    Button {
-                        viewModel.showingVault = true
-                    } label: {
-                        Label("License Vault…", systemImage: "key.horizontal")
-                    }
-                } label: {
-                    Label("More", systemImage: "ellipsis.circle")
-                }
-                .disabled(viewModel.scanState == .scanning)
-            }
         }
         .sheet(isPresented: $vm.showingVault) {
             LicenseVaultView(installedBundleIDs: Set(viewModel.apps.map(\.bundleID)))
         }
-    }
-
-    private func exportCSV() {
-        #if canImport(AppKit)
-        let csv = viewModel.exportCSV()
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = "Sift-\(formatter.string(from: Date())).csv"
-        panel.allowedContentTypes = [.commaSeparatedText]
-        panel.canCreateDirectories = true
-        panel.title = "Export Audit to CSV"
-        if panel.runModal() == .OK, let url = panel.url {
-            try? Data(csv.utf8).write(to: url)
-        }
-        #endif
     }
 
     private var refreshButtonTitle: String {

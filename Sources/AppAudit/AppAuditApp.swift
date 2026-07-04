@@ -81,10 +81,32 @@ struct AppAuditApp: App {
                 }
                 .keyboardShortcut("R", modifiers: .command)
 
+                Button("Re-analyze All Apps") {
+                    Task { await viewModel.reanalyzeAll(scope: .allUnlocked) }
+                }
+                .keyboardShortcut("R", modifiers: [.command, .shift])
+                .disabled(viewModel.apps.isEmpty)
+
+                Button("Export to CSV…") {
+                    viewModel.exportCSVToFile()
+                }
+                .keyboardShortcut("E", modifiers: .command)
+                .disabled(viewModel.apps.isEmpty)
+
                 Button("License Vault…") {
                     viewModel.showingVault = true
                 }
                 .keyboardShortcut("L", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .sidebar) {
+                Toggle("Filter: My Apps", isOn: Binding(
+                    get: { viewModel.filterMyApps },
+                    set: { viewModel.setFilterMyApps($0) }
+                ))
+                Toggle("Filter: Favorites", isOn: Binding(
+                    get: { viewModel.filterFavorites },
+                    set: { viewModel.setFilterFavorites($0) }
+                ))
             }
         }
 

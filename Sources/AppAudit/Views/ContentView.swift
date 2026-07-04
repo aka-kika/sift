@@ -4,6 +4,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(AppListViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -47,16 +48,16 @@ struct ContentView: View {
     private var modelChangedBanner: some View {
         HStack(spacing: 12) {
             Image(systemName: "wand.and.stars")
-                .foregroundStyle(.orange)
+                .foregroundStyle(pastelize(.orange, colorScheme))
             Text(modelChangedMessage)
                 .font(.callout)
             Spacer(minLength: 8)
             Button("Re-analyze \(viewModel.staleModelCount)") {
                 Task { await viewModel.reanalyzeAll(scope: .modelChangedUnlocked) }
             }
-            .glassProminentButtonStyle()
+            .buttonStyle(.bordered)
             .controlSize(.small)
-            .tint(.orange)
+            .tint(pastelize(.orange, colorScheme))
             Button("Dismiss") {
                 viewModel.dismissModelChangeBanner()
             }

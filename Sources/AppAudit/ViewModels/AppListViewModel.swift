@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 #if canImport(AppKit)
 import AppKit
@@ -489,6 +490,24 @@ final class AppListViewModel {
         }
         if changed { cache.persist() }
         UserDefaults.standard.set(true, forKey: flagKey)
+    }
+
+    /// Runs the Save panel and writes the audit CSV. Callable from the menu bar.
+    func exportCSVToFile() {
+        #if canImport(AppKit)
+        guard !apps.isEmpty else { return }
+        let csv = exportCSV()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "Sift-\(formatter.string(from: Date())).csv"
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.canCreateDirectories = true
+        panel.title = "Export Audit to CSV"
+        if panel.runModal() == .OK, let url = panel.url {
+            try? Data(csv.utf8).write(to: url)
+        }
+        #endif
     }
 
     /// Full-audit CSV of every scanned app. Never includes license keys.
