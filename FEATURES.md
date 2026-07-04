@@ -36,8 +36,9 @@ updating, and which licenses and subscriptions you're paying for.
 ## Scanning & organizing
 
 - Scans `/Applications` and `~/Applications` (Apple system apps and Utilities are optional).
-- **Sort** by Relevance, Updates, **Last Used** (from Spotlight), or Name.
-- **Filter** toggles for **My Apps** and **Favorites**.
+- **Sort** by Relevance, Updates, **Last Used** (from Spotlight), or Name — from the toolbar.
+- **Filter** toggles for **My Apps** and **Favorites** — in the **View** menu.
+- Rescan, **Re-analyze All Apps**, **Export to CSV**, and **License Vault** live in the native **File** menu (with keyboard shortcuts), keeping the toolbar minimal.
 - **Tags:** My App (🔨), Favorite (⭐), Subscription (💳) — shown as badges and in the row/detail menus.
 - **Search** by name.
 
@@ -72,10 +73,11 @@ updating, and which licenses and subscriptions you're paying for.
 - **Recommendation-first** layout: score + best-use + reason at the top, explanation below.
 - Compact **update pill** and a single **⋯ menu** for all per-app actions
   (re-analyze, lock, customize description, tag toggles, show in Finder, copy bundle ID).
-- Utility cube row: **Notes, License, Subscription, App Link, Lock, Favorite** as minimal icon-only cubes pinned under the header (they stay put when you switch apps). State is shown by the icon and color — filled/tinted when active, gray when not; all detail lives in the hover tooltip.
+- Utility cube row: **Notes, License, Subscription, App Link, Lock, Favorite, Docs** as minimal icon-only cubes pinned under the header (they stay put when you switch apps). State is shown by the icon and color — filled/tinted when active, gray when not; all detail lives in the hover tooltip.
   - **License** shows a blue verified seal for Mac App Store apps, a colored key when a key is saved. Right-click to mark **Paid**/**Free**, copy, or remove the key. The license sheet records a **license type** (Lifetime / One-time / Annual / Other) and can reveal the key (Touch ID).
   - **Subscription** is one-click to mark active (no price needed); right-click to add price, cycle, and renewal, or to remove. The cube turns orange when a renewal is near.
   - **App Link** shows a corner notification dot when a suggestion is available; once set, the icon reflects the host (a code glyph for GitHub/GitLab/…, a globe for websites) and clicking opens it.
+  - **Docs cube**: attach an app's local **project folder** and Sift reads its README (and notes which manifest files are present) as primary evidence — grounding analysis for your own apps with private or no public repo, fully offline. Tap to attach, tap again to refresh after you edit the README, right-click to change/reveal/remove. Attaching, refreshing, or removing re-runs the analysis.
   - Cards **gray out when they cannot apply** — license & subscription for **Free apps** (the explicit opposite of Paid) and **My Apps**, subscription also under a **Lifetime**/**One-time** license — always explaining why in the tooltip, never deleting stored data.
 - **Find similar apps you have**: a button under the recommendation asks the current model which of your *other installed apps* overlap in function. The model only ever sees a numbered list of your apps and can only pick from it, so results are grounded — no invented apps or dead links. Results are compact rows (icon + name + short reason); click one to jump to that app.
 

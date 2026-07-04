@@ -9,6 +9,7 @@ struct AppDetailView: View {
     let app: AppInfo
     @Environment(AppListViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     private let licenseKeyStore = LicenseKeyStore.shared
 
     @State private var record: AppRecord? = nil
@@ -35,13 +36,13 @@ struct AppDetailView: View {
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
+    @State private var docsMessage: String? = nil
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 Divider()
-                utilitySection
                 whatIsThisSection
                 recommendationSection
                 improveAnalysisCallout
@@ -49,6 +50,7 @@ struct AppDetailView: View {
                     similarSection
                 }
             }
+            .frame(maxWidth: 720, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
         }
@@ -175,6 +177,17 @@ struct AppDetailView: View {
         } message: {
             Text(homebrewUpdateMessage ?? "")
         }
+        .alert(
+            "Docs",
+            isPresented: Binding(
+                get: { docsMessage != nil },
+                set: { if !$0 { docsMessage = nil } }
+            )
+        ) {
+            Button("OK") {}
+        } message: {
+            Text(docsMessage ?? "")
+        }
     }
 
     // MARK: - Header
@@ -191,16 +204,18 @@ struct AppDetailView: View {
             #endif
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(app.name).font(.title2.weight(.medium))
+                    Text(app.name).font(.title2.weight(.medium)).lineLimit(1)
                     if !app.version.isEmpty {
                         Text(app.version)
                             .font(.callout.monospacedDigit())
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                     if let categoryName = AppCategory.humanName(for: app.category) {
                         Text("· \(categoryName)")
                             .font(.callout)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                     tagBadges
                 }
@@ -208,12 +223,76 @@ struct AppDetailView: View {
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                    .lineLimit(1)
                 updatePill
             }
-            Spacer(minLength: 8)
-            overflowMenu
+            .layoutPriority(1)
+            headerUtilities
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The utility cube strip lives in the header's empty right side. A
+    /// matching re-analyze chip leads it (the old ⋯ menu is gone; Lock is the
+    /// lock cube, and Customize Description moved into "What is this?").
+    private var headerUtilities: some View {
+        FlowLayout(spacing: 8) {
+            if case .loaded = app.aiState {
+                Button {
+                    Task { await viewModel.reanalyze(bundleID: app.bundleID) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, height: 34)
+                        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(app.isAnalysisLocked)
+                .help("Re-analyze")
+                .padding(.trailing, 2)
+            }
+            crossAppCard
+            notesCard
+            licenseCard
+            subscriptionCard
+            linkCard
+            lockCard
+            favoriteCard
+            docsCard
+        }
+    }
+
+    // MARK: - Cross-App
+
+    /// Cross-App finds which of your OTHER installed apps overlap with this one.
+    /// It only makes sense once the whole library is analyzed (so every app has
+    /// something to compare), and it's frozen along with a locked analysis.
+    private var crossAppCard: some View {
+        UtilityCard(tint: .purple, active: crossAppEnabled, disabled: !crossAppEnabled, action: { runFindSimilar() }) {
+            cardIcon("square.on.square", tint: crossAppEnabled ? .purple : .secondary)
+        }
+        .help(crossAppHelp)
+    }
+
+    private var libraryFullyAnalyzed: Bool {
+        !viewModel.apps.isEmpty && viewModel.apps.allSatisfy {
+            if case .loaded = $0.aiState { return true }
+            return false
+        }
+    }
+
+    private var crossAppEnabled: Bool {
+        guard !app.isAnalysisLocked, case .loaded = app.aiState else { return false }
+        return libraryFullyAnalyzed
+    }
+
+    private var crossAppHelp: String {
+        if app.isAnalysisLocked { return "Cross-App is locked with this analysis" }
+        if !libraryFullyAnalyzed { return "Analyze your whole library first — Cross-App compares across every app" }
+        return "Cross-App — find similar apps you have"
     }
 
     @ViewBuilder
@@ -276,50 +355,6 @@ struct AppDetailView: View {
         case .unknown, .unavailable:
             EmptyView()
         }
-    }
-
-    private var overflowMenu: some View {
-        Menu {
-            if case .loaded = app.aiState {
-                Button {
-                    Task { await viewModel.reanalyze(bundleID: app.bundleID) }
-                } label: {
-                    Label("Re-analyze", systemImage: "arrow.clockwise")
-                }
-                .disabled(app.isAnalysisLocked)
-            }
-            Button {
-                toggleAnalysisLock()
-            } label: {
-                Label(app.isAnalysisLocked ? "Unlock Analysis" : "Lock Analysis",
-                      systemImage: app.isAnalysisLocked ? "lock.open" : "lock.fill")
-            }
-            Button {
-                draftDescription = record?.userDescription ?? ""
-                editingDescription = true
-            } label: {
-                Label(userDescription != nil ? "Edit Description" : "Customize Description",
-                      systemImage: "pencil")
-            }
-            if userDescription != nil {
-                Button(role: .destructive) {
-                    record?.userDescription = nil
-                    saveRecord()
-                } label: {
-                    Label("Remove Custom Description", systemImage: "person.fill.xmark")
-                }
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .imageScale(.small)
-        .symbolRenderingMode(.hierarchical)
-        .fixedSize()
-        .help("More actions")
     }
 
     // MARK: - Recommendation (ranking first)
@@ -425,8 +460,20 @@ struct AppDetailView: View {
 
         if explanation != nil || userDescription != nil {
             VStack(alignment: .leading, spacing: 10) {
-                Label("What is this?", systemImage: "info.circle.fill")
-                    .font(.subheadline.weight(.semibold))
+                HStack(spacing: 6) {
+                    Label("What is this?", systemImage: "info.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Button {
+                        draftDescription = record?.userDescription ?? ""
+                        editingDescription = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help(userDescription != nil ? "Edit your description (clear it to remove)" : "Customize the description")
+                }
 
                 if let userDescription {
                     userDescriptionCard(userDescription)
@@ -476,18 +523,6 @@ struct AppDetailView: View {
 
     // MARK: - Utility cards
 
-    private var utilitySection: some View {
-        HStack(alignment: .top, spacing: 12) {
-            notesCard
-            licenseCard
-            subscriptionCard
-            linkCard
-            lockCard
-            favoriteCard
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     // MARK: - Similar apps
 
     @ViewBuilder
@@ -526,12 +561,8 @@ struct AppDetailView: View {
                         ForEach(results) { similarRow($0) }
                     }
                 }
-            } else {
-                Button { runFindSimilar() } label: {
-                    Label("Find similar apps you have", systemImage: "square.on.square")
-                }
-                .buttonStyle(.bordered)
             }
+            // Idle: nothing here — the Cross-App cube up top is the trigger.
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -610,6 +641,92 @@ struct AppDetailView: View {
         ensured.isFavorite.toggle()
         viewModel.setFavorite(bundleID: app.bundleID, value: ensured.isFavorite)
         saveRecord()
+    }
+
+    private var docsCard: some View {
+        let hasDocs = record?.docsEvidence?.isEmpty == false
+        return UtilityCard(tint: .teal, active: hasDocs, action: {
+            if hasDocs { refreshDocs() } else { attachDocsFolder() }
+        }) {
+            cardIcon("doc.text", tint: hasDocs ? .teal : .secondary)
+        }
+        .help(docsHelp)
+        .contextMenu {
+            Button {
+                attachDocsFolder()
+            } label: {
+                Label(hasDocs ? "Change Folder…" : "Attach Project Folder…", systemImage: "folder")
+            }
+            if hasDocs {
+                Button {
+                    refreshDocs()
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                if let path = record?.docsFolderPath, !path.isEmpty {
+                    Button {
+                        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+                    } label: {
+                        Label("Reveal Source in Finder", systemImage: "magnifyingglass")
+                    }
+                }
+                Button(role: .destructive) {
+                    removeDocs()
+                } label: {
+                    Label("Remove", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    private var docsHelp: String {
+        guard let evidence = record?.docsEvidence, !evidence.isEmpty else {
+            return "Attach this app's project folder — Sift reads its README to ground the analysis"
+        }
+        let source = record?.docsFolderPath.map { " · \($0)" } ?? ""
+        let snippet = evidence.replacingOccurrences(of: "\n", with: " ").prefix(80)
+        return "Docs attached\(source)\n\(snippet)…"
+    }
+
+    private func attachDocsFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Attach"
+        panel.message = "Choose \(app.name)'s project folder (Sift reads its README and manifest)."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        storeDocs(fromFolder: url.path)
+    }
+
+    private func refreshDocs() {
+        guard let path = record?.docsFolderPath, !path.isEmpty else { return }
+        storeDocs(fromFolder: path)
+    }
+
+    private func storeDocs(fromFolder path: String) {
+        guard let evidence = DocsEvidence.extract(fromFolder: path) else {
+            docsMessage = "No README or manifest found in that folder."
+            return
+        }
+        let ensured = ensureRecord()
+        let previousEvidence = ensured.docsEvidence
+        let unchanged = previousEvidence?.trimmingCharacters(in: .whitespacesAndNewlines)
+            == evidence.trimmingCharacters(in: .whitespacesAndNewlines)
+        ensured.docsEvidence = evidence
+        ensured.docsFolderPath = path
+        saveRecord()
+        if !unchanged {
+            viewModel.reanalyzeAfterDocsChange(bundleID: app.bundleID)
+        }
+    }
+
+    private func removeDocs() {
+        let ensured = ensureRecord()
+        ensured.docsEvidence = nil
+        ensured.docsFolderPath = nil
+        saveRecord()
+        viewModel.reanalyzeAfterDocsChange(bundleID: app.bundleID)
     }
 
     private var notesCard: some View {
@@ -963,8 +1080,8 @@ struct AppDetailView: View {
     /// icon renders directly at full size.
     private func cardIcon(_ systemImage: String, tint: Color) -> some View {
         Image(systemName: systemImage)
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundStyle(tint)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(pastelize(tint, colorScheme))
     }
 
     /// SF Symbol for a link cube, chosen from the destination host: a code
@@ -1388,6 +1505,66 @@ struct NotesEditor: View {
 /// icon plus at most one badge, hugging its content. Disabled cards stay
 /// visible but ignore the primary tap; the context menu stays reachable
 /// (that is how Paid/Free marks remain available on a grayed card).
+/// Softens a tint for dark mode — blends it toward white so the utility cubes
+/// read as gentle pastels on a dark background instead of harsh saturated dots.
+/// Light mode is returned unchanged.
+func pastelize(_ color: Color, _ scheme: ColorScheme) -> Color {
+    guard scheme == .dark else { return color }
+    #if canImport(AppKit)
+    guard let ns = NSColor(color).usingColorSpace(.sRGB) else { return color }
+    return Color(ns.blended(withFraction: 0.34, of: .white) ?? ns)
+    #else
+    return color
+    #endif
+}
+
+/// A left-to-right layout that wraps its items to the next row when they run
+/// out of horizontal room — so the header's utility cubes drop to a second row
+/// on a narrow window instead of crushing the app title.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var totalWidth: CGFloat = 0
+        var totalHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
+                totalWidth = max(totalWidth, rowWidth)
+                totalHeight += rowHeight + spacing
+                rowWidth = size.width
+                rowHeight = size.height
+            } else {
+                rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
+                rowHeight = max(rowHeight, size.height)
+            }
+        }
+        totalWidth = max(totalWidth, rowWidth)
+        totalHeight += rowHeight
+        return CGSize(width: totalWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            sub.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 struct UtilityCard<Content: View>: View {
     var tint: Color
     /// Filled with `tint` when active; a neutral gray square when not.
@@ -1399,24 +1576,24 @@ struct UtilityCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     @State private var hovered = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private var fill: Color {
-        if disabled { return Color.secondary.opacity(0.08) }
-        if active { return tint.opacity(hovered && action != nil ? 0.24 : 0.15) }
-        return Color.secondary.opacity(hovered && action != nil ? 0.14 : 0.09)
+        if disabled { return Color.secondary.opacity(0.06) }
+        if active { return pastelize(tint, colorScheme).opacity(hovered && action != nil ? 0.22 : 0.14) }
+        return Color.secondary.opacity(hovered && action != nil ? 0.12 : 0.07)
     }
 
     var body: some View {
-        VStack(spacing: 6, content: content)
-            .padding(10)
-            .frame(maxWidth: .infinity, minHeight: 64)
-            .background(fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        content()
+            .frame(width: 34, height: 34)
+            .background(fill, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay(alignment: .topTrailing) {
                 if badgeDot {
                     Circle()
                         .fill(.orange)
-                        .frame(width: 8, height: 8)
-                        .padding(7)
+                        .frame(width: 6, height: 6)
+                        .padding(4)
                 }
             }
             .opacity(disabled ? 0.55 : 1)

@@ -10,7 +10,7 @@ enum AppAnalysisPrompt {
     Never use the phrase "appears to be" or "seems to be". When evidence is genuinely missing or conflicting, name the most likely purpose plainly and keep the score conservative, or say the purpose is unclear — but do not pad every sentence with hedges.
     """
 
-    static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, includeResponseFormat: Bool, styleNotes: String = "", userNotes: String = "") -> String {
+    static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, includeResponseFormat: Bool, styleNotes: String = "", userNotes: String = "", docsEvidence: String = "") -> String {
         let categoryHint = AppCategory.humanName(for: app.category).map { "\nCategory: \($0)" } ?? ""
         let descriptionHint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
         let linkContext = referenceURLContext(from: appURL, fetched: linkEvidence)
@@ -36,6 +36,14 @@ enum AppAnalysisPrompt {
             ? ""
             : "\n- The user's own notes outrank URL and metadata evidence when scoring and writing BEST_USE, but never invent product facts the notes do not state."
 
+        let trimmedDocs = docsEvidence.trimmingCharacters(in: .whitespacesAndNewlines)
+        let docsBlock = trimmedDocs.isEmpty
+            ? ""
+            : "\n\nFrom the app's own project files (provided by the user — treat as the strongest evidence for what this app is):\n\(trimmedDocs)"
+        let docsEvidenceRule = trimmedDocs.isEmpty
+            ? ""
+            : "\n- When present, the app's own project files outrank URL and metadata evidence for what the app is, but never invent facts they do not state."
+
         return """
         Analyze this installed macOS app:
         Name: \(app.name)
@@ -44,7 +52,7 @@ enum AppAnalysisPrompt {
         Path: \(app.path)\(categoryHint)\(descriptionHint)\(linkContext)
 
         Developer workflow context:
-        \(profile.promptDescription)\(notesBlock)
+        \(profile.promptDescription)\(notesBlock)\(docsBlock)
 
         Evidence rules:
         - Prefer bundle ID, reference URL context, app description, and installed path over the display name.
@@ -54,7 +62,7 @@ enum AppAnalysisPrompt {
         - If the URL conflicts with the app name, bundle ID, or path, mention the uncertainty and score conservatively.
         - Do not infer a specific product category from a generic name alone.
         - If you are unsure what the app does, say its purpose is unclear instead of making up details. Do not use the phrase "appears to be".
-        - Score unclear apps conservatively unless the metadata clearly matches the workflow.\(notesEvidenceRule)
+        - Score unclear apps conservatively unless the metadata clearly matches the workflow.\(notesEvidenceRule)\(docsEvidenceRule)
         \(responseFormat)
 
         Scoring guide:

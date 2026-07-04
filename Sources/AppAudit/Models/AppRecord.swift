@@ -26,6 +26,8 @@ final class AppRecord {
     var isPaidApp: Bool = false
     var isFreeApp: Bool = false
     var licenseType: String? = nil
+    var docsEvidence: String? = nil
+    var docsFolderPath: String? = nil
     var iconPNG: Data? = nil
     var isAnalysisLocked: Bool = false
     var appURL: String? = nil
@@ -61,6 +63,8 @@ final class AppRecord {
         self.isPaidApp = false
         self.isFreeApp = false
         self.licenseType = nil
+        self.docsEvidence = nil
+        self.docsFolderPath = nil
         self.iconPNG = nil
         self.isAnalysisLocked = false
         self.suggestedAppURL = nil

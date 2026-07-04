@@ -1515,3 +1515,89 @@ struct SimilarAppsPromptTests {
         #expect(prompt.contains("Cursor"))
     }
 }
+
+@Suite("Docs Evidence")
+struct DocsEvidenceTests {
+    private func tempFolder() -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("docsev-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    @Test("Reads README text and lists detected manifests")
+    func readsReadmeAndManifests() throws {
+        let dir = tempFolder()
+        try "# MyTool\nA menu-bar batch renamer.".write(
+            to: dir.appendingPathComponent("README.md"), atomically: true, encoding: .utf8)
+        try "{}".write(to: dir.appendingPathComponent("package.json"), atomically: true, encoding: .utf8)
+
+        let result = DocsEvidence.extract(fromFolder: dir.path)
+        #expect(result?.contains("A menu-bar batch renamer.") == true)
+        #expect(result?.contains("Detected project files:") == true)
+        #expect(result?.contains("package.json") == true)
+    }
+
+    @Test("Manifest-only folder still returns the stack hint")
+    func manifestOnly() throws {
+        let dir = tempFolder()
+        try "".write(to: dir.appendingPathComponent("Package.swift"), atomically: true, encoding: .utf8)
+        let result = DocsEvidence.extract(fromFolder: dir.path)
+        #expect(result?.contains("Package.swift") == true)
+    }
+
+    @Test("Empty or irrelevant folder returns nil")
+    func emptyFolder() throws {
+        let dir = tempFolder()
+        try "x".write(to: dir.appendingPathComponent("notes.rtf"), atomically: true, encoding: .utf8)
+        #expect(DocsEvidence.extract(fromFolder: dir.path) == nil)
+        #expect(DocsEvidence.extract(fromFolder: "/no/such/folder/here") == nil)
+    }
+
+    @Test("Oversize README is truncated to the cap")
+    func truncatesReadme() throws {
+        let dir = tempFolder()
+        let big = String(repeating: "A", count: DocsEvidence.maxReadmeChars + 500)
+        try big.write(to: dir.appendingPathComponent("README"), atomically: true, encoding: .utf8)
+        let result = DocsEvidence.extract(fromFolder: dir.path) ?? ""
+        #expect(result.count <= DocsEvidence.maxReadmeChars + 200) // room for hint/labels
+        #expect(!result.contains(big))
+    }
+
+    @Test("Xcode project folder with only a .xcodeproj is detected")
+    func xcodeProjectOnly() throws {
+        let dir = tempFolder()
+        try FileManager.default.createDirectory(
+            at: dir.appendingPathComponent("MyApp.xcodeproj"), withIntermediateDirectories: true)
+        let result = DocsEvidence.extract(fromFolder: dir.path)
+        #expect(result?.contains("MyApp.xcodeproj") == true)
+    }
+}
+
+@Suite("Analysis Prompt Docs Evidence")
+struct AnalysisPromptDocsEvidenceTests {
+    private var app: AppInfo {
+        AppInfo(id: "com.x", name: "X", version: "1", bundleID: "com.x",
+                path: "/Applications/X.app", humanReadableDescription: nil,
+                sparkleFeedURL: nil, isAppStoreInstall: false, icon: nil)
+    }
+
+    @Test("Docs evidence appears as primary evidence when provided")
+    func docsIncluded() {
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                             includeResponseFormat: true,
+                                             docsEvidence: "A menu-bar batch renamer.\nDetected project files: Package.swift")
+        #expect(prompt.contains("From the app's own project files"))
+        #expect(prompt.contains("A menu-bar batch renamer."))
+        #expect(prompt.contains("the app's own project files outrank"))
+    }
+
+    @Test("No docs block when evidence is empty or whitespace")
+    func emptyOmits() {
+        let empty = AppAnalysisPrompt.build(app: app, profile: .generic(), includeResponseFormat: true)
+        let whitespace = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                                 includeResponseFormat: true, docsEvidence: "   \n")
+        #expect(!empty.contains("From the app's own project files"))
+        #expect(empty == whitespace)
+    }
+}

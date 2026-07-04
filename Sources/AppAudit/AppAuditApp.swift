@@ -64,13 +64,14 @@ struct AppAuditApp: App {
         WindowGroup {
             ContentView()
                 .environment(viewModel)
-                .frame(minWidth: 780, minHeight: 520)
+                .frame(minWidth: 720, minHeight: 480)
                 #if canImport(AppKit)
                 .onChange(of: appearancePreference) { _, newValue in
                     AppAppearance.apply(newValue)
                 }
                 #endif
         }
+        .defaultSize(width: 900, height: 620)
         .windowResizability(.contentMinSize)
         .modelContainer(Self.container)
         .commands {
@@ -80,10 +81,32 @@ struct AppAuditApp: App {
                 }
                 .keyboardShortcut("R", modifiers: .command)
 
+                Button("Re-analyze All Apps") {
+                    Task { await viewModel.reanalyzeAll(scope: .allUnlocked) }
+                }
+                .keyboardShortcut("R", modifiers: [.command, .shift])
+                .disabled(viewModel.apps.isEmpty)
+
+                Button("Export to CSV…") {
+                    viewModel.exportCSVToFile()
+                }
+                .keyboardShortcut("E", modifiers: .command)
+                .disabled(viewModel.apps.isEmpty)
+
                 Button("License Vault…") {
                     viewModel.showingVault = true
                 }
                 .keyboardShortcut("L", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .sidebar) {
+                Toggle("Filter: My Apps", isOn: Binding(
+                    get: { viewModel.filterMyApps },
+                    set: { viewModel.setFilterMyApps($0) }
+                ))
+                Toggle("Filter: Favorites", isOn: Binding(
+                    get: { viewModel.filterFavorites },
+                    set: { viewModel.setFilterFavorites($0) }
+                ))
             }
         }
 
