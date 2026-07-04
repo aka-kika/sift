@@ -1273,3 +1273,44 @@ struct AnalysisPromptStyleNotesTests {
         #expect(!prompt.contains("Additional style notes"))
     }
 }
+
+@Suite("Analysis Prompt User Notes")
+struct AnalysisPromptUserNotesTests {
+    private var app: AppInfo {
+        AppInfo(id: "com.x", name: "X", version: "1", bundleID: "com.x",
+                path: "/Applications/X.app", humanReadableDescription: nil,
+                sparkleFeedURL: nil, isAppStoreInstall: false, icon: nil)
+    }
+
+    @Test("User notes appear as strongest personal-usage evidence")
+    func notesIncluded() {
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                             includeResponseFormat: true,
+                                             userNotes: "I use this daily to cut release videos.")
+        #expect(prompt.contains("The user's own notes about this app"))
+        #expect(prompt.contains("I use this daily to cut release videos."))
+        #expect(prompt.contains("The user's own notes outrank URL and metadata evidence"))
+    }
+
+    @Test("No notes block when notes are empty or whitespace")
+    func emptyOmits() {
+        let empty = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                            includeResponseFormat: true)
+        let whitespace = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                                 includeResponseFormat: true,
+                                                 userNotes: "  \n ")
+        #expect(!empty.contains("The user's own notes"))
+        #expect(!whitespace.contains("The user's own notes"))
+        #expect(empty == whitespace)
+    }
+
+    @Test("Notes coexist with style notes without collision")
+    func coexistsWithStyleNotes() {
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+                                             includeResponseFormat: false,
+                                             styleNotes: "Mention alternatives.",
+                                             userNotes: "Learning this app's features.")
+        #expect(prompt.contains("Learning this app's features."))
+        #expect(prompt.contains("Mention alternatives."))
+    }
+}
