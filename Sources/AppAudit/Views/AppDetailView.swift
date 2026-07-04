@@ -489,7 +489,7 @@ struct AppDetailView: View {
     // MARK: - Utility cards
 
     private var utilitySection: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(spacing: 8) {
             notesCard
             licenseCard
             subscriptionCard
@@ -1062,7 +1062,7 @@ struct AppDetailView: View {
     /// icon renders directly at full size.
     private func cardIcon(_ systemImage: String, tint: Color) -> some View {
         Image(systemName: systemImage)
-            .font(.system(size: 16, weight: .semibold))
+            .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(tint)
     }
 
@@ -1500,22 +1500,21 @@ struct UtilityCard<Content: View>: View {
     @State private var hovered = false
 
     private var fill: Color {
-        if disabled { return Color.secondary.opacity(0.08) }
-        if active { return tint.opacity(hovered && action != nil ? 0.24 : 0.15) }
-        return Color.secondary.opacity(hovered && action != nil ? 0.14 : 0.09)
+        if disabled { return Color.secondary.opacity(0.06) }
+        if active { return tint.opacity(hovered && action != nil ? 0.22 : 0.14) }
+        return Color.secondary.opacity(hovered && action != nil ? 0.12 : 0.07)
     }
 
     var body: some View {
-        VStack(spacing: 6, content: content)
-            .padding(10)
-            .frame(maxWidth: .infinity, minHeight: 64)
-            .background(fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        content()
+            .frame(width: 34, height: 34)
+            .background(fill, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay(alignment: .topTrailing) {
                 if badgeDot {
                     Circle()
                         .fill(.orange)
-                        .frame(width: 8, height: 8)
-                        .padding(7)
+                        .frame(width: 6, height: 6)
+                        .padding(4)
                 }
             }
             .opacity(disabled ? 0.55 : 1)
