@@ -43,11 +43,13 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 Divider()
-                whatIsThisSection
-                recommendationSection
-                improveAnalysisCallout
-                if case .loaded = app.aiState {
-                    similarSection
+                VStack(alignment: .leading, spacing: 16) {
+                    whatIsThisSection
+                    recommendationSection
+                    improveAnalysisCallout
+                    if case .loaded = app.aiState {
+                        similarSection
+                    }
                 }
             }
             .frame(maxWidth: 720, alignment: .leading)
@@ -202,7 +204,7 @@ struct AppDetailView: View {
                     .cornerRadius(16)
             }
             #endif
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(app.name).font(.title2.weight(.medium)).lineLimit(1)
                     if !app.version.isEmpty {
@@ -211,13 +213,13 @@ struct AppDetailView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    if let categoryName = AppCategory.humanName(for: app.category) {
-                        Text("· \(categoryName)")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
                     tagBadges
+                }
+                if let categoryName = AppCategory.humanName(for: app.category) {
+                    Text(categoryName)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
                 Text(app.bundleID)
                     .font(.system(.caption, design: .monospaced))
@@ -237,22 +239,12 @@ struct AppDetailView: View {
     /// matching re-analyze chip leads it (the old ⋯ menu is gone; Lock is the
     /// lock cube, and Customize Description moved into "What is this?").
     private var headerUtilities: some View {
-        FlowLayout(spacing: 8) {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.fixed(34), spacing: 8), count: 5),
+            spacing: 8
+        ) {
             if case .loaded = app.aiState {
-                Button {
-                    Task { await viewModel.reanalyze(bundleID: app.bundleID) }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 34, height: 34)
-                        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(app.isAnalysisLocked)
-                .help("Re-analyze")
-                .padding(.trailing, 2)
+                reanalyzeChip
             }
             crossAppCard
             notesCard
@@ -262,7 +254,41 @@ struct AppDetailView: View {
             lockCard
             favoriteCard
             docsCard
+            myAppCard
         }
+        .frame(width: 5 * 34 + 4 * 8)
+    }
+
+    private var reanalyzeChip: some View {
+        Button {
+            Task { await viewModel.reanalyze(bundleID: app.bundleID) }
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 34, height: 34)
+                .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(app.isAnalysisLocked)
+        .help("Re-analyze")
+    }
+
+    /// Marks this app as one you build. It also gates the Docs cube — only a
+    /// My App can attach a local project folder as evidence.
+    private var myAppCard: some View {
+        UtilityCard(tint: .purple, active: app.isMyApp, action: { toggleMyApp() }) {
+            cardIcon(app.isMyApp ? "hammer.fill" : "hammer", tint: app.isMyApp ? .purple : .secondary)
+        }
+        .help(app.isMyApp ? "Your app — click to unmark" : "Mark as My App (a project you build)")
+    }
+
+    private func toggleMyApp() {
+        let ensured = ensureRecord()
+        ensured.isMyApp.toggle()
+        viewModel.setMyApp(bundleID: app.bundleID, value: ensured.isMyApp)
+        saveRecord()
     }
 
     // MARK: - Cross-App
@@ -299,9 +325,6 @@ struct AppDetailView: View {
     private var tagBadges: some View {
         if app.isFavorite {
             Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow)
-        }
-        if app.isMyApp {
-            Image(systemName: "hammer.fill").font(.caption).foregroundStyle(.purple)
         }
         if app.isSubscribed {
             Image(systemName: "creditcard.fill").font(.caption).foregroundStyle(.teal)
@@ -363,7 +386,7 @@ struct AppDetailView: View {
     private var recommendationSection: some View {
         switch app.aiState {
         case .loaded(_, let score, let reason, let bestUse):
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 8) {
                     ForEach(1...5, id: \.self) { i in
                         Circle()
@@ -377,7 +400,7 @@ struct AppDetailView: View {
 
                 if !bestUse.isEmpty {
                     Text(bestUse)
-                        .font(.body.weight(.medium))
+                        .font(.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -645,13 +668,15 @@ struct AppDetailView: View {
 
     private var docsCard: some View {
         let hasDocs = record?.docsEvidence?.isEmpty == false
-        return UtilityCard(tint: .teal, active: hasDocs, action: {
+        let enabled = app.isMyApp
+        return UtilityCard(tint: .teal, active: hasDocs && enabled, disabled: !enabled, action: {
             if hasDocs { refreshDocs() } else { attachDocsFolder() }
         }) {
-            cardIcon("doc.text", tint: hasDocs ? .teal : .secondary)
+            cardIcon("doc.text", tint: (hasDocs && enabled) ? .teal : .secondary)
         }
-        .help(docsHelp)
+        .help(enabled ? docsHelp : "Mark this as My App (the hammer) to attach a project folder")
         .contextMenu {
+            if enabled {
             Button {
                 attachDocsFolder()
             } label: {
@@ -675,6 +700,7 @@ struct AppDetailView: View {
                 } label: {
                     Label("Remove", systemImage: "trash")
                 }
+            }
             }
         }
     }
@@ -1518,52 +1544,6 @@ func pastelize(_ color: Color, _ scheme: ColorScheme) -> Color {
     #endif
 }
 
-/// A left-to-right layout that wraps its items to the next row when they run
-/// out of horizontal room — so the header's utility cubes drop to a second row
-/// on a narrow window instead of crushing the app title.
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var rowWidth: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var totalWidth: CGFloat = 0
-        var totalHeight: CGFloat = 0
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
-            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
-                totalWidth = max(totalWidth, rowWidth)
-                totalHeight += rowHeight + spacing
-                rowWidth = size.width
-                rowHeight = size.height
-            } else {
-                rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
-                rowHeight = max(rowHeight, size.height)
-            }
-        }
-        totalWidth = max(totalWidth, rowWidth)
-        totalHeight += rowHeight
-        return CGSize(width: totalWidth, height: totalHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
-            if x > bounds.minX, x + size.width > bounds.maxX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            sub.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
 
 struct UtilityCard<Content: View>: View {
     var tint: Color
