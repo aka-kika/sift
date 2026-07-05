@@ -43,7 +43,7 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 Divider()
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 16) {
                     whatIsThisSection
                     recommendationSection
                     improveAnalysisCallout
@@ -386,7 +386,7 @@ struct AppDetailView: View {
     private var recommendationSection: some View {
         switch app.aiState {
         case .loaded(_, let score, let reason, let bestUse):
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 8) {
                     ForEach(1...5, id: \.self) { i in
                         Circle()
