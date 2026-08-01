@@ -63,7 +63,12 @@ struct AppRow: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
-                    if app.isPaidApp {
+                    if app.isAppStoreInstall {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                            .help("Mac App Store — tied to your Apple ID")
+                    } else if app.isPaidApp {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.caption2)
                             .foregroundStyle(.green)

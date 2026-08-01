@@ -1,8 +1,12 @@
 import SwiftUI
 
-/// One panel for everything money: paid/free marks, license key, and
-/// subscription. Replaces the separate license and subscription sheets.
+/// One panel for everything the app costs: paid/free marks, license key,
+/// and subscription. Replaces the separate license and subscription sheets.
 /// Dumb view — state arrives as values/bindings, changes leave as callbacks.
+///
+/// Layout keeps one section visible at a time (Key | Subscription tabs) so
+/// the panel stays small; App Store installs swap the Key tab for a seal
+/// banner since their license lives with the Apple ID.
 struct MoneyPopover: View {
     let appName: String
     let isAppStoreInstall: Bool
@@ -30,7 +34,13 @@ struct MoneyPopover: View {
     let onSaveSubscription: () -> Void
     let onRemoveSubscription: () -> Void
 
+    private enum Tab: String, CaseIterable {
+        case key = "Key"
+        case subscription = "Subscription"
+    }
+
     @State private var revealed = false
+    @State private var tab: Tab = .key
 
     private static let currencies = ["USD", "EUR", "GBP", "ILS", "CAD", "AUD", "JPY", "CHF"]
 
@@ -55,54 +65,103 @@ struct MoneyPopover: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Money — \(appName)")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            header
 
-            marksSection
-            Divider()
             if isAppStoreInstall {
-                Label(isPaid ? "Mac App Store — paid, tied to your Apple ID"
-                             : "Mac App Store — tied to your Apple ID",
-                      systemImage: "checkmark.seal.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                appStoreBanner
+                subscriptionSection
             } else {
-                licenseSection
+                Picker("", selection: $tab) {
+                    ForEach(Tab.allCases, id: \.self) { t in
+                        Text(t.rawValue).tag(t)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                switch tab {
+                case .key: licenseSection
+                case .subscription: subscriptionSection
+                }
             }
-            Divider()
-            subscriptionSection
         }
         .padding(16)
-        .frame(width: 360)
+        .frame(width: 320)
+        .onAppear {
+            if hasSubscription && !hasKey { tab = .subscription }
+        }
     }
 
-    private var marksSection: some View {
-        HStack(spacing: 8) {
-            Toggle("Paid", isOn: Binding(get: { isPaid }, set: { _ in onTogglePaid() }))
-            Toggle("Free", isOn: Binding(get: { isFree }, set: { _ in onToggleFree() }))
-            Spacer()
-            if let reason = UtilityCardRules.disabledReason(isMyApp: isMyApp, isFreeApp: isFree,
-                                                            licenseType: currentLicenseType) {
-                Text(reason).font(.caption).foregroundStyle(.tertiary)
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("License — \(appName)")
+                .font(.headline)
+            HStack(spacing: 6) {
+                markPill("Paid", active: isPaid, tint: .indigo, action: onTogglePaid)
+                markPill("Free", active: isFree, tint: .green, action: onToggleFree)
+                Spacer()
+                if let reason = UtilityCardRules.disabledReason(isMyApp: isMyApp, isFreeApp: isFree,
+                                                                licenseType: currentLicenseType) {
+                    Text(reason).font(.caption).foregroundStyle(.tertiary)
+                }
             }
         }
-        .toggleStyle(.button)
-        .controlSize(.small)
     }
+
+    private func markPill(_ title: String, active: Bool, tint: Color,
+                          action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(active ? tint.opacity(0.16) : Color.secondary.opacity(0.07),
+                            in: Capsule())
+                .foregroundStyle(active ? tint : .secondary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var appStoreBanner: some View {
+        Label(isPaid ? "Mac App Store — paid, tied to your Apple ID"
+                     : "Mac App Store — tied to your Apple ID",
+              systemImage: "checkmark.seal.fill")
+            .font(.caption)
+            .foregroundStyle(.blue)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .background(Color.blue.opacity(0.07), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    // MARK: - Fields
+
+    private func quietField(_ placeholder: String, text: Binding<String>) -> some View {
+        TextField(placeholder, text: text)
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    // MARK: - License key
 
     private var licenseSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("License key").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             HStack(spacing: 6) {
                 Group {
                     if revealed {
-                        TextField("Enter license key", text: $draftLicenseKey)
+                        TextField("License key", text: $draftLicenseKey)
                     } else {
-                        SecureField("Enter license key", text: $draftLicenseKey)
+                        SecureField("License key", text: $draftLicenseKey)
                     }
                 }
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
 
                 Button {
                     if revealed {
@@ -122,10 +181,9 @@ struct MoneyPopover: View {
                 .help(revealed ? "Hide license key" : "Reveal license key (Touch ID)")
             }
 
-            TextField("Registered email (optional)", text: $draftLicenseEmail)
-                .textFieldStyle(.roundedBorder)
+            quietField("Registered email (optional)", text: $draftLicenseEmail)
 
-            Picker("License type", selection: $draftLicenseType) {
+            Picker("Type", selection: $draftLicenseType) {
                 Text("Not set").tag(LicenseType?.none)
                 ForEach(LicenseType.allCases) { type in
                     Text(type.displayName).tag(LicenseType?.some(type))
@@ -135,13 +193,25 @@ struct MoneyPopover: View {
 
             HStack {
                 if hasKey {
-                    Button("Copy (Touch ID)") { onCopyKey() }
-                        .controlSize(.small)
-                    Button("Remove", role: .destructive) { onRemoveKey() }
-                        .controlSize(.small)
+                    Button {
+                        onCopyKey()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Copy key (Touch ID)")
+                    Button(role: .destructive) {
+                        onRemoveKey()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove key")
                 }
                 Spacer()
-                Button("Save Key") { onSaveLicense() }
+                Button("Save") { onSaveLicense() }
                     .controlSize(.small)
                     .buttonStyle(.borderedProminent)
                     .disabled(draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !hasKey)
@@ -151,35 +221,46 @@ struct MoneyPopover: View {
         .opacity(licenseDisabled ? 0.5 : 1)
     }
 
+    // MARK: - Subscription
+
     private var subscriptionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Subscription").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            HStack {
-                TextField("Amount", text: $draftSubPrice)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 120)
+            HStack(spacing: 6) {
+                quietField("Amount", text: $draftSubPrice)
+                    .frame(maxWidth: 110)
                 Picker("", selection: $draftSubCurrency) {
                     ForEach(Self.currencyOptions(including: draftSubCurrency), id: \.self) { code in
                         Text(code).tag(code)
                     }
                 }
                 .labelsHidden()
-                .frame(maxWidth: 100)
+                .frame(maxWidth: 90)
+                Spacer()
             }
-            Picker("Billing", selection: $draftSubCycle) {
+
+            Picker("", selection: $draftSubCycle) {
                 ForEach(BillingCycle.allCases) { c in
                     Text(c.label).tag(c)
                 }
             }
             .pickerStyle(.segmented)
-            DatePicker("Next renewal", selection: $draftSubRenewal, displayedComponents: .date)
-            TextField("Billing email (optional)", text: $draftSubEmail)
-                .textFieldStyle(.roundedBorder)
+            .labelsHidden()
+
+            DatePicker("Renews", selection: $draftSubRenewal, displayedComponents: .date)
+                .font(.callout)
+
+            quietField("Billing email (optional)", text: $draftSubEmail)
 
             HStack {
                 if hasSubscription {
-                    Button("Remove", role: .destructive) { onRemoveSubscription() }
-                        .controlSize(.small)
+                    Button(role: .destructive) {
+                        onRemoveSubscription()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Remove subscription")
                 }
                 Spacer()
                 Button(hasSubscription ? "Save" : "Mark Subscribed") { onSaveSubscription() }

@@ -821,7 +821,7 @@ struct AppDetailView: View {
         switch state {
         case .subscription: return subscriptionHelp
         case .appStore, .licensed: return licenseHelp
-        case .free: return "Free app — click for money details"
+        case .free: return "Free app — click for license details"
         case .none: return "Paid/free, license key, subscription"
         }
     }
@@ -836,7 +836,7 @@ struct AppDetailView: View {
             renewalNear: subscriptionRenewalIsNear,
             isFreeApp: record?.isFreeApp == true
         )
-        return "Money — \(moneyHelp(for: state))"
+        return "License — \(moneyHelp(for: state))"
     }
 
     /// Populate every draft from the record so the popover opens current.

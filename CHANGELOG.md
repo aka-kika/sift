@@ -16,7 +16,8 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 - Instant label strip under the utility cubes — hover shows name + state with no tooltip delay.
 
 ### Changed
-- Money cube: license, subscription, and paid/free merged into one cube with a single popover; right-click keeps the quick marks.
+- License cube: license, subscription, and paid/free merged into one cube with a single tabbed popover; right-click keeps the quick marks.
+- Sidebar rows show a blue App Store seal next to the name for Mac App Store installs.
 - Developer Mode (Settings → Scanning): the My App tools (hammer, docs, badges, filter) now hide unless enabled; all marks are preserved.
 - Detail header now shows 7 cubes (9 in Developer Mode), down from 10.
 
