@@ -19,6 +19,7 @@ struct AppDetailView: View {
     @State private var editingURL = false
     @State private var draftURL = ""
     @State private var moneyPopoverPresented = false
+    @State private var moneyPopoverStartsOnSubscription = false
     @State private var draftLicenseKey = ""
     @State private var draftLicenseEmail = ""
     @State private var draftLicenseType: LicenseType? = nil
@@ -791,8 +792,7 @@ struct AppDetailView: View {
         let tint = moneyTint(for: state)
 
         return UtilityCard(tint: tint, active: state.isActive, disabled: disabled, action: {
-            prepareMoneyDrafts()
-            moneyPopoverPresented = true
+            openMoneyPopover()
         }) {
             cardIcon(state.symbol, tint: state.isActive ? tint : .secondary)
         }
@@ -808,6 +808,7 @@ struct AppDetailView: View {
                 hasKey: currentLicenseKey?.isEmpty == false,
                 hasSubscription: record?.hasSubscription == true,
                 currentLicenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:)),
+                startOnSubscription: moneyPopoverStartsOnSubscription,
                 draftLicenseKey: $draftLicenseKey,
                 draftLicenseEmail: $draftLicenseEmail,
                 draftLicenseType: $draftLicenseType,
@@ -893,42 +894,70 @@ struct AppDetailView: View {
         return "Add a license key"
     }
 
-    /// Merged right-click: the quick actions from both old cubes.
+    /// State-aware right-click: only what makes sense for this app right now.
+    /// A saved key implies paid, so the Paid/Free marks show only while
+    /// nothing is saved yet; App Store installs get the seal note instead.
     @ViewBuilder
     private var moneyContextMenu: some View {
-        Button {
-            togglePaid()
-        } label: {
-            Label(record?.isPaidApp == true ? "Unmark Paid" : "Mark as Paid",
-                  systemImage: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
-        }
-        Button {
-            toggleFree()
-        } label: {
-            Label(record?.isFreeApp == true ? "Unmark Free" : "Mark as Free App",
-                  systemImage: record?.isFreeApp == true ? "gift.fill" : "gift")
-        }
-        if let key = currentLicenseKey, !key.isEmpty {
-            Divider()
+        let hasSub = record?.hasSubscription == true
+
+        if app.isAppStoreInstall {
+            Label("Mac App Store — tied to your Apple ID", systemImage: "checkmark.seal.fill")
+        } else if let key = currentLicenseKey, !key.isEmpty {
             Button {
                 copyLicenseKey(key)
             } label: {
                 Label("Copy Key (Touch ID)", systemImage: "doc.on.doc")
+            }
+            Button {
+                openMoneyPopover()
+            } label: {
+                Label("Edit License…", systemImage: "pencil")
             }
             Button(role: .destructive) {
                 removeLicenseKey()
             } label: {
                 Label("Remove Key", systemImage: "trash")
             }
-        }
-        if record?.hasSubscription == true {
+        } else {
+            Button {
+                togglePaid()
+            } label: {
+                Label(record?.isPaidApp == true ? "Unmark Paid" : "Mark as Paid",
+                      systemImage: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
+            }
+            Button {
+                toggleFree()
+            } label: {
+                Label(record?.isFreeApp == true ? "Unmark Free" : "Mark as Free App",
+                      systemImage: record?.isFreeApp == true ? "gift.fill" : "gift")
+            }
             Divider()
+            Button {
+                openMoneyPopover()
+            } label: {
+                Label("Add License Key…", systemImage: "key.horizontal")
+            }
+        }
+        if hasSub {
+            Divider()
+            Button {
+                openMoneyPopover(onSubscription: true)
+            } label: {
+                Label("Edit Subscription…", systemImage: "pencil")
+            }
             Button(role: .destructive) {
                 clearSubscription()
             } label: {
                 Label("Remove Subscription", systemImage: "trash")
             }
         }
+    }
+
+    private func openMoneyPopover(onSubscription: Bool = false) {
+        prepareMoneyDrafts()
+        moneyPopoverStartsOnSubscription = onSubscription
+        moneyPopoverPresented = true
     }
 
     private func copyLicenseKey(_ key: String) {

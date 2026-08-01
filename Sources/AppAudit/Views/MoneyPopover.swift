@@ -16,6 +16,8 @@ struct MoneyPopover: View {
     let hasKey: Bool
     let hasSubscription: Bool
     let currentLicenseType: LicenseType?
+    /// Opens the panel on the Subscription tab (e.g. from "Edit Subscription…").
+    var startOnSubscription: Bool = false
 
     @Binding var draftLicenseKey: String
     @Binding var draftLicenseEmail: String
@@ -39,6 +41,7 @@ struct MoneyPopover: View {
         case subscription = "Subscription"
     }
 
+    @Environment(\.dismiss) private var dismiss
     @State private var revealed = false
     @State private var tab: Tab = .key
 
@@ -89,7 +92,7 @@ struct MoneyPopover: View {
         .padding(16)
         .frame(width: 320)
         .onAppear {
-            if hasSubscription && !hasKey { tab = .subscription }
+            if startOnSubscription || (hasSubscription && !hasKey) { tab = .subscription }
         }
     }
 
@@ -203,6 +206,7 @@ struct MoneyPopover: View {
                     .help("Copy key (Touch ID)")
                     Button(role: .destructive) {
                         onRemoveKey()
+                        dismiss()
                     } label: {
                         Image(systemName: "trash")
                     }
@@ -211,7 +215,10 @@ struct MoneyPopover: View {
                     .help("Remove key")
                 }
                 Spacer()
-                Button("Save") { onSaveLicense() }
+                Button("Save") {
+                    onSaveLicense()
+                    dismiss()
+                }
                     .controlSize(.small)
                     .buttonStyle(.borderedProminent)
                     .disabled(draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !hasKey)
@@ -255,6 +262,7 @@ struct MoneyPopover: View {
                 if hasSubscription {
                     Button(role: .destructive) {
                         onRemoveSubscription()
+                        dismiss()
                     } label: {
                         Image(systemName: "trash")
                     }
@@ -263,7 +271,10 @@ struct MoneyPopover: View {
                     .help("Remove subscription")
                 }
                 Spacer()
-                Button(hasSubscription ? "Save" : "Mark Subscribed") { onSaveSubscription() }
+                Button(hasSubscription ? "Save" : "Mark Subscribed") {
+                    onSaveSubscription()
+                    dismiss()
+                }
                     .controlSize(.small)
                     .buttonStyle(.borderedProminent)
                     .disabled(!draftSubPrice.isEmpty && parsedAmount == nil)
