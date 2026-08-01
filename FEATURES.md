@@ -63,6 +63,14 @@ updating, and which licenses and subscriptions you're paying for.
 - Auto-suggests a likely app link (App Store lookup / Sparkle feed); the suggestion
   **prefills the editable link field** and is used as analysis context once you save it.
 
+## Uninstall
+
+- Right-click any app → **Uninstall…** opens a sweep panel: the app bundle plus every leftover found by bundle identifier (Application Support, Caches, Preferences incl. ByHost, Logs, Containers, Group Containers, Saved State, WebKit, Launch Agents…), each pre-checked with its size and the reason it matched.
+- **Trash-only** — everything is recoverable from the Trash, nothing is permanently deleted; user-level files only, no admin prompts.
+- Running apps offer **Quit & Continue**; Homebrew casks can run **brew uninstall** instead.
+- **Records survive**: license keys, notes, and marks are kept, and the License Vault lists the app under "No longer installed".
+- Apple system apps and Sift itself never offer Uninstall.
+
 ## Export
 
 - **Export to CSV** — the full audit (name, bundle ID, version, category, score, recommendation,
@@ -73,8 +81,8 @@ updating, and which licenses and subscriptions you're paying for.
 - **Recommendation-first** layout: score + best-use + reason at the top, explanation below.
 - Compact **update pill** and a single **⋯ menu** for all per-app actions
   (re-analyze, lock, customize description, tag toggles, show in Finder, copy bundle ID).
-- Utility cube row: **Cross-App, Notes, License, App Link, Lock, Favorite** as minimal icon-only cubes pinned under the header — plus **My App (hammer)** and **Docs** when Developer Mode is on. The grid balances itself (one line up to 5 cubes, otherwise two even rows), and an **instant label strip** under the grid names the hovered cube and its live state with no tooltip delay.
-  - **License cube** owns everything money in one place. Its face shows the state in its own color: Mac App Store seal (blue), saved key with its **license type** on the face — Lifetime ∞ (indigo), One-time ① (purple), Annual calendar (cyan), plain key otherwise — subscription card (teal, orange when a renewal is near), Free gift (green). Click opens one tabbed popover (**Key | Subscription**) with Paid/Free marks, Touch ID reveal/copy, and price/cycle/renewal; **Save closes the panel**. The right-click menu is state-aware — only actions that make sense for the app's current state. The **same icon and color appear as a badge next to the app's name in the sidebar**.
+- Utility cube row: **Notes, License, App Link, Lock, Favorite** as minimal icon-only cubes pinned under the header — plus **My App (hammer)** and **Docs** when Developer Mode is on. The grid balances itself (one line up to 5 cubes, otherwise two even rows), and an **instant label strip** under the grid names the hovered cube and its live state with no tooltip delay.
+  - **License cube** owns everything money in one place. Its face shows the state in its own color: Mac App Store seal (blue), saved key with its **license type** on the face — Lifetime ∞ (indigo), One-time ① (purple), Annual calendar (cyan), plain key otherwise — subscription card (teal, orange when a renewal is near), Free gift (green). Click opens one tabbed popover (**Key | Subscription**) with Touch ID reveal/copy and price/cycle/renewal; a **Free pill** shows only while nothing is recorded, and **Save closes the panel**. The right-click menu is state-aware — only actions that make sense for the app's current state (Mark as Paid lives there for keyless purchases). The **same icon and color appear as a badge next to the app's name in the sidebar**, and the sidebar right-click's **Add/Edit License…** opens this popover directly.
   - **App Link** shows a corner notification dot when a suggestion is available; once set, the icon reflects the host (a code glyph for GitHub/GitLab/…, a globe for websites) and clicking opens it.
   - **My App cube** (hammer, Developer Mode): mark an app as one you build.
   - **Docs cube** (Developer Mode): for **My Apps only**, attach an app's local **project folder** and Sift reads its README (and notes which manifest files are present) as primary evidence — grounding analysis for your own apps with private or no public repo, fully offline. Tap to attach, tap again to refresh after you edit the README, right-click to change/reveal/remove. Attaching, refreshing, or removing re-runs the analysis.

@@ -12,14 +12,24 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
+<!-- SF Symbol: hammer -->
+Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+
+## [1.7.0] — 2026-08-01
+
 <!-- SF Symbol: trash -->
 ### Added
 - Uninstall from the sidebar: right-click → Uninstall… sweeps the app and its leftovers (caches, preferences, containers, launch agents) to the Trash — recoverable, license keys and notes kept. Homebrew casks can run brew uninstall instead. Apple system apps and Sift itself are protected.
+- Add/Edit License… in the sidebar right-click selects the app and opens its License popover directly.
 
 ### Changed
 - Removed the Cross-App cube — the Similar-apps section keeps its own refresh; the cube grid is now symmetric (3+3 or 4+4) in everyday states.
+- Sidebar right-click decluttered: the subscription toggle and the key-sheet trio collapse into the one License entry; Copy Key stays.
+- License popover: the Paid pill is gone (Mark as Paid lives in the cube's right-click for keyless purchases); the Free pill shows only while nothing stronger is recorded.
+- The uninstall sweep panel is larger, fitting a typical sweep without scrolling.
 
-Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+### Fixed
+- License Vault shows icons for App Store purchases — rows fall back to the installed app's live icon, and marking Paid now captures the icon.
 
 ## [1.6.0] — 2026-08-01
 
