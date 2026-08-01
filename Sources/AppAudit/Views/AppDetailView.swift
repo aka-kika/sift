@@ -202,10 +202,29 @@ struct AppDetailView: View {
     /// The utility cube strip lives in the header's empty right side. A
     /// matching re-analyze chip leads it (the old ⋯ menu is gone; Lock is the
     /// lock cube, and Customize Description moved into "What is this?").
+    ///
+    /// The grid balances itself: one line up to 5 cubes, otherwise two even
+    /// rows (6 → 3+3, 7 → 4+3, 8 → 4+4, 9 → 5+4), so no ragged tail like the
+    /// old fixed 5-column layout produced.
+    private var cubeCount: Int {
+        var count = 6
+        if case .loaded = app.aiState { count += 1 }
+        if developerMode { count += 2 }
+        return count
+    }
+
+    private var gridColumns: Int {
+        cubeCount <= 5 ? cubeCount : (cubeCount + 1) / 2
+    }
+
+    private var gridWidth: CGFloat {
+        CGFloat(gridColumns) * 34 + CGFloat(gridColumns - 1) * 8
+    }
+
     private var headerUtilities: some View {
         VStack(alignment: .leading, spacing: 6) {
             LazyVGrid(
-                columns: Array(repeating: GridItem(.fixed(34), spacing: 8), count: 5),
+                columns: Array(repeating: GridItem(.fixed(34), spacing: 8), count: gridColumns),
                 spacing: 8
             ) {
                 if case .loaded = app.aiState {
@@ -220,10 +239,10 @@ struct AppDetailView: View {
                           : "Lock — freeze the analysis")
                 stripInfo(favoriteCard, app.isFavorite ? "Favorite — click to unmark" : "Mark as favorite")
                 if developerMode {
-                    stripInfo(docsCard, docsHelp)
                     stripInfo(myAppCard, app.isMyApp
                               ? "My App — you build this, click to unmark"
                               : "Mark as My App (a project you build)")
+                    stripInfo(docsCard, docsHelp)
                 }
             }
             Text(hoveredCubeInfo ?? " ")
@@ -231,9 +250,9 @@ struct AppDetailView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .frame(width: 5 * 34 + 4 * 8, alignment: .leading)
+                .frame(width: gridWidth, alignment: .leading)
         }
-        .frame(width: 5 * 34 + 4 * 8)
+        .frame(width: gridWidth)
     }
 
     private var reanalyzeChip: some View {

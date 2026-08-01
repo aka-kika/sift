@@ -176,8 +176,11 @@ struct AppRow: View {
 
             Divider()
 
-            // Group 3: Key items
-            if let licenseKey = existingLicenseKey {
+            // Group 3: Key items. App Store installs carry no key — their
+            // license is the Apple ID, same rule as the License popover.
+            if app.isAppStoreInstall {
+                Label("Mac App Store — tied to your Apple ID", systemImage: "checkmark.seal.fill")
+            } else if let licenseKey = existingLicenseKey {
                 Button {
                     Task { @MainActor in
                         if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
