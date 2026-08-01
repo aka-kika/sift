@@ -43,11 +43,12 @@ enum MoneyCubeState: Equatable {
         }
     }
 
-    /// Active states fill the cube with their tint; free/none stay quiet.
+    /// Active states fill the cube with their tint; only "nothing known
+    /// yet" stays quiet — a Free mark is information worth showing.
     var isActive: Bool {
         switch self {
-        case .subscription, .appStore, .licensed: return true
-        case .free, .none: return false
+        case .subscription, .appStore, .licensed, .free: return true
+        case .none: return false
         }
     }
 }

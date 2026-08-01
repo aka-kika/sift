@@ -53,26 +53,11 @@ struct AppRow: View {
                             .font(.caption2)
                             .foregroundStyle(.purple)
                     }
-                    if app.isSubscribed {
-                        Image(systemName: "creditcard.fill")
+                    if licenseBadgeState != .none {
+                        Image(systemName: licenseBadgeState.symbol)
                             .font(.caption2)
-                            .foregroundStyle(.teal)
-                    }
-                    if existingLicenseKey != nil {
-                        Image(systemName: "key.horizontal.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    if app.isAppStoreInstall {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.blue)
-                            .help("Mac App Store — tied to your Apple ID")
-                    } else if app.isPaidApp {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.green)
-                            .help("Paid")
+                            .foregroundStyle(licenseBadgeState.tint)
+                            .help(licenseBadgeHelp)
                     }
                     if app.isAnalysisLocked {
                         Image(systemName: "lock.fill")
@@ -362,6 +347,31 @@ struct AppRow: View {
 
     private var existingLicenseKey: String? {
         resolveLicenseKey().value
+    }
+
+    /// The row's license badge mirrors the detail view's License cube — same
+    /// derivation, same symbol, same tint, so a state reads identically in
+    /// both places. Renewal proximity is a detail-view concern only.
+    private var licenseBadgeState: MoneyCubeState {
+        MoneyCubeState.derive(
+            isAppStoreInstall: app.isAppStoreInstall,
+            hasLicenseKey: existingLicenseKey != nil,
+            isPaidApp: app.isPaidApp,
+            hasSubscription: app.isSubscribed,
+            renewalNear: false,
+            isFreeApp: app.isFreeApp,
+            licenseType: app.licenseType
+        )
+    }
+
+    private var licenseBadgeHelp: String {
+        switch licenseBadgeState {
+        case .subscription: return "Subscription"
+        case .appStore: return "Mac App Store — tied to your Apple ID"
+        case .licensed(let type): return type.map { "\($0.displayName) license" } ?? "License key saved"
+        case .free: return "Free app"
+        case .none: return ""
+        }
     }
 
     private func prepareLicenseKeyDraft() {

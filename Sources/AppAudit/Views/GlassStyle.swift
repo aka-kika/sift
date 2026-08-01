@@ -36,3 +36,23 @@ extension View {
         }
     }
 }
+
+/// One color per license story, shared by the detail cube and the sidebar
+/// badge so the same state always wears the same color everywhere.
+extension MoneyCubeState {
+    var tint: Color {
+        switch self {
+        case .subscription(let near): return near ? .orange : .teal
+        case .appStore: return .blue
+        case .licensed(let type):
+            switch type {
+            case .lifetime: return .indigo
+            case .oneTime: return .purple
+            case .annual: return .cyan
+            case .other, nil: return .indigo
+            }
+        case .free: return .green
+        case .none: return .secondary
+        }
+    }
+}

@@ -1648,7 +1648,7 @@ struct MoneyCubeStateTests {
         #expect(MoneyCubeState.subscription(renewalNear: true).isActive)
         #expect(MoneyCubeState.appStore.isActive)
         #expect(MoneyCubeState.licensed(nil).isActive)
-        #expect(!MoneyCubeState.free.isActive)
+        #expect(MoneyCubeState.free.isActive)
         #expect(!MoneyCubeState.none.isActive)
     }
 

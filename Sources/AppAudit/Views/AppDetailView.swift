@@ -790,7 +790,7 @@ struct AppDetailView: View {
             licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:))
         )
         let disabled = UtilityCardRules.moneyDisabled(isMyApp: app.isMyApp)
-        let tint = moneyTint(for: state)
+        let tint = state.tint
 
         return UtilityCard(tint: tint, active: state.isActive, disabled: disabled, action: {
             openMoneyPopover()
@@ -826,15 +826,6 @@ struct AppDetailView: View {
                 onSaveSubscription: { saveSubscriptionFromDrafts() },
                 onRemoveSubscription: { clearSubscription() }
             )
-        }
-    }
-
-    private func moneyTint(for state: MoneyCubeState) -> Color {
-        switch state {
-        case .subscription(let near): return near ? .orange : .green
-        case .appStore: return .blue
-        case .licensed: return .indigo
-        case .free, .none: return .secondary
         }
     }
 
@@ -978,6 +969,7 @@ struct AppDetailView: View {
         record?.hasLicenseKey = false
         record?.licenseEmail = nil
         record?.licenseType = nil
+        viewModel.setLicenseType(bundleID: app.bundleID, rawValue: nil)
         saveRecord()
     }
 
@@ -991,6 +983,7 @@ struct AppDetailView: View {
         let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         ensuredRecord.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
         ensuredRecord.licenseType = draftLicenseType?.rawValue
+        viewModel.setLicenseType(bundleID: app.bundleID, rawValue: ensuredRecord.licenseType)
         if !trimmed.isEmpty, ensuredRecord.iconPNG == nil {
             ensuredRecord.iconPNG = app.icon?.pngData()
         }
@@ -1124,6 +1117,7 @@ struct AppDetailView: View {
         let ensured = ensureRecord()
         PricingMarks.setPaid(ensured, to: !ensured.isPaidApp)
         viewModel.setPaidApp(bundleID: app.bundleID, value: ensured.isPaidApp)
+        viewModel.setFreeApp(bundleID: app.bundleID, value: ensured.isFreeApp)
         saveRecord()
     }
 
@@ -1131,6 +1125,7 @@ struct AppDetailView: View {
         let ensured = ensureRecord()
         PricingMarks.setFree(ensured, to: !ensured.isFreeApp)
         viewModel.setPaidApp(bundleID: app.bundleID, value: ensured.isPaidApp)
+        viewModel.setFreeApp(bundleID: app.bundleID, value: ensured.isFreeApp)
         saveRecord()
     }
 

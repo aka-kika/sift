@@ -50,6 +50,12 @@ struct AppInfo: Identifiable {
     var isSubscribed: Bool = false
     var isPaidApp: Bool = false
     var isAnalysisLocked: Bool = false
+    var isFreeApp: Bool = false
+    var licenseTypeRaw: String? = nil
+
+    var licenseType: LicenseType? {
+        licenseTypeRaw.flatMap(LicenseType.init(rawValue:))
+    }
 
     init(
         id: String,
