@@ -12,14 +12,22 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
+<!-- SF Symbol: hammer -->
+Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+
+## [1.6.0] — 2026-08-01
+
+<!-- SF Symbol: key.horizontal -->
 ### Added
 - Instant label strip under the utility cubes — hover shows name + state with no tooltip delay.
+- Developer Mode (Settings → Scanning): the My App tools (hammer, docs, badges, filter) hide unless enabled; all marks are preserved.
+- The License cube wears its license type on its face — infinity for Lifetime, 1 for One-time, calendar for Annual, key otherwise.
+- One sidebar license badge next to the app name, mirroring the cube exactly (same icon, same color).
 
 ### Changed
-- License cube: license, subscription, and paid/free merged into one cube with a single tabbed popover; right-click keeps the quick marks.
-- Sidebar rows show a blue App Store seal next to the name for Mac App Store installs.
-- Developer Mode (Settings → Scanning): the My App tools (hammer, docs, badges, filter) now hide unless enabled; all marks are preserved.
-- Detail header now shows 7 cubes (9 in Developer Mode), down from 10.
+- License cube: license, subscription, and paid/free merged into one cube with a single tabbed popover (Key | Subscription); Save closes the panel; the right-click menu is state-aware.
+- Every license state has its own color — free green, subscription teal (orange near renewal), App Store blue, lifetime indigo, one-time purple, annual cyan.
+- Detail header shows 7 cubes (9 in Developer Mode), down from 10, in a self-balancing grid — one line up to 5 cubes, otherwise two even rows.
 
 ## [1.5.1] — 2026-07-05
 

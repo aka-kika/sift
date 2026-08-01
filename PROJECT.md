@@ -46,7 +46,7 @@ audit exportable to CSV. Ships as a Developer ID–signed, notarized DMG.
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status
-`shipped` — v1.5.1 live and notarized; installed as my daily app. Next feature (receipt extraction) is specced and deferred.
+`shipped` — v1.6.0 live and notarized; installed as my daily app. Next feature (receipt extraction) is specced and deferred.
 
 ## Key paths
 - **entry**: `Sources/AppAudit/AppAuditApp.swift`
@@ -70,6 +70,7 @@ isolated store) is the tester. Debt/TODO: CSV Paid column only exports for App
 Store installs; unranked-My-Apps and receipt-extraction are designed but unbuilt.
 
 ## Log
+- 2026-08-01 — v1.6.0: License cube merge + tabbed popover, instant label strip, Developer Mode, per-type license colors mirrored in the sidebar.
 - 2026-07-05 — v1.5.1: My App cube + Docs gating, fixed 2-row grid, top-down header, first notarized DMG.
 - 2026-07-04 — v1.4.0 → v1.5.0: notes-as-evidence, utility cubes, docs evidence, Cross-App, dark-mode pastels, menu-bar move.
 - 2026-06-28 — v1.3.3: personal Ollama-first edition; removed Apple Intelligence + known-apps catalog.
