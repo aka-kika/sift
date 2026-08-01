@@ -98,13 +98,22 @@ struct MoneyPopover: View {
 
     // MARK: - Header
 
+    /// The Paid/Free marks only carry information while nothing stronger is
+    /// recorded — a saved key or a subscription already proves the purchase,
+    /// so the pills disappear and the status text speaks alone.
+    private var showsMarks: Bool {
+        !hasKey && !hasSubscription
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("License — \(appName)")
                 .font(.headline)
             HStack(spacing: 6) {
-                markPill("Paid", active: isPaid, tint: .indigo, action: onTogglePaid)
-                markPill("Free", active: isFree, tint: .green, action: onToggleFree)
+                if showsMarks {
+                    markPill("Paid", active: isPaid, tint: .indigo, action: onTogglePaid)
+                    markPill("Free", active: isFree, tint: .green, action: onToggleFree)
+                }
                 Spacer()
                 if let reason = UtilityCardRules.disabledReason(isMyApp: isMyApp, isFreeApp: isFree,
                                                                 licenseType: currentLicenseType) {

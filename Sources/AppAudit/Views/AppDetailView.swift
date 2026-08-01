@@ -886,19 +886,21 @@ struct AppDetailView: View {
                 Label("Remove Key", systemImage: "trash")
             }
         } else {
-            Button {
-                togglePaid()
-            } label: {
-                Label(record?.isPaidApp == true ? "Unmark Paid" : "Mark as Paid",
-                      systemImage: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
+            if !hasSub {
+                Button {
+                    togglePaid()
+                } label: {
+                    Label(record?.isPaidApp == true ? "Unmark Paid" : "Mark as Paid",
+                          systemImage: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
+                }
+                Button {
+                    toggleFree()
+                } label: {
+                    Label(record?.isFreeApp == true ? "Unmark Free" : "Mark as Free App",
+                          systemImage: record?.isFreeApp == true ? "gift.fill" : "gift")
+                }
+                Divider()
             }
-            Button {
-                toggleFree()
-            } label: {
-                Label(record?.isFreeApp == true ? "Unmark Free" : "Mark as Free App",
-                      systemImage: record?.isFreeApp == true ? "gift.fill" : "gift")
-            }
-            Divider()
             Button {
                 openMoneyPopover()
             } label: {
