@@ -1601,3 +1601,54 @@ struct AnalysisPromptDocsEvidenceTests {
         #expect(empty == whitespace)
     }
 }
+
+@Suite("Money Cube State")
+struct MoneyCubeStateTests {
+    @Test("Precedence: subscription > App Store > licensed > free > none")
+    func precedence() {
+        // Subscription wins over everything.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: true, isPaidApp: true,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: true)
+                == .subscription(renewalNear: false))
+        // App Store beats licensed/paid and free.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: true,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false)
+                == .appStore)
+        // Key or paid mark → licensed.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: true, isPaidApp: false,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false)
+                == .licensed)
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: true,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false)
+                == .licensed)
+        // Free mark, nothing else.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: true)
+                == .free)
+        // Nothing at all.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false)
+                == .none)
+    }
+
+    @Test("Renewal-near flag flows through")
+    func renewalNear() {
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: true, isFreeApp: false)
+                == .subscription(renewalNear: true))
+    }
+
+    @Test("Symbols and active flag per state")
+    func faces() {
+        #expect(MoneyCubeState.subscription(renewalNear: false).symbol == "creditcard.fill")
+        #expect(MoneyCubeState.appStore.symbol == "checkmark.seal.fill")
+        #expect(MoneyCubeState.licensed.symbol == "key.horizontal")
+        #expect(MoneyCubeState.free.symbol == "gift")
+        #expect(MoneyCubeState.none.symbol == "dollarsign.circle")
+        #expect(MoneyCubeState.subscription(renewalNear: true).isActive)
+        #expect(MoneyCubeState.appStore.isActive)
+        #expect(MoneyCubeState.licensed.isActive)
+        #expect(!MoneyCubeState.free.isActive)
+        #expect(!MoneyCubeState.none.isActive)
+    }
+}
