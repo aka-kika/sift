@@ -786,7 +786,8 @@ struct AppDetailView: View {
             isPaidApp: record?.isPaidApp == true,
             hasSubscription: record?.hasSubscription == true,
             renewalNear: subscriptionRenewalIsNear,
-            isFreeApp: record?.isFreeApp == true
+            isFreeApp: record?.isFreeApp == true,
+            licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:))
         )
         let disabled = UtilityCardRules.moneyDisabled(isMyApp: app.isMyApp)
         let tint = moneyTint(for: state)
@@ -854,7 +855,8 @@ struct AppDetailView: View {
             isPaidApp: record?.isPaidApp == true,
             hasSubscription: record?.hasSubscription == true,
             renewalNear: subscriptionRenewalIsNear,
-            isFreeApp: record?.isFreeApp == true
+            isFreeApp: record?.isFreeApp == true,
+            licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:))
         )
         return "License — \(moneyHelp(for: state))"
     }

@@ -1,13 +1,13 @@
 import Foundation
 
-/// The face of the merged Money cube — one cube owns App Store ownership,
+/// The face of the merged License cube — one cube owns App Store ownership,
 /// license keys, paid/free marks, and subscriptions. Precedence:
 /// subscription > App Store > licensed/paid > free > none. App Store
 /// outranks licensed because store installs never carry license keys.
 enum MoneyCubeState: Equatable {
     case subscription(renewalNear: Bool)
     case appStore
-    case licensed
+    case licensed(LicenseType?)
     case free
     case none
 
@@ -16,19 +16,28 @@ enum MoneyCubeState: Equatable {
                        isPaidApp: Bool,
                        hasSubscription: Bool,
                        renewalNear: Bool,
-                       isFreeApp: Bool) -> MoneyCubeState {
+                       isFreeApp: Bool,
+                       licenseType: LicenseType? = nil) -> MoneyCubeState {
         if hasSubscription { return .subscription(renewalNear: renewalNear) }
         if isAppStoreInstall { return .appStore }
-        if hasLicenseKey || isPaidApp { return .licensed }
+        if hasLicenseKey || isPaidApp { return .licensed(licenseType) }
         if isFreeApp { return .free }
         return .none
     }
 
+    /// Licensed apps wear their license type on the cube face, so the kind
+    /// of purchase is readable at a glance without opening the popover.
     var symbol: String {
         switch self {
         case .subscription: return "creditcard.fill"
         case .appStore: return "checkmark.seal.fill"
-        case .licensed: return "key.horizontal"
+        case .licensed(let type):
+            switch type {
+            case .lifetime: return "infinity"
+            case .oneTime: return "1.circle"
+            case .annual: return "calendar"
+            case .other, .none: return "key.horizontal"
+            }
         case .free: return "gift"
         case .none: return "dollarsign.circle"
         }

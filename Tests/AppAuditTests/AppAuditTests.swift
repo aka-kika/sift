@@ -1614,13 +1614,14 @@ struct MoneyCubeStateTests {
         #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: true,
                                       hasSubscription: false, renewalNear: false, isFreeApp: false)
                 == .appStore)
-        // Key or paid mark → licensed.
+        // Key or paid mark → licensed, carrying the license type.
         #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: true, isPaidApp: false,
                                       hasSubscription: false, renewalNear: false, isFreeApp: false)
-                == .licensed)
+                == .licensed(nil))
         #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: true,
-                                      hasSubscription: false, renewalNear: false, isFreeApp: false)
-                == .licensed)
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false,
+                                      licenseType: .lifetime)
+                == .licensed(.lifetime))
         // Free mark, nothing else.
         #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
                                       hasSubscription: false, renewalNear: false, isFreeApp: true)
@@ -1642,14 +1643,22 @@ struct MoneyCubeStateTests {
     func faces() {
         #expect(MoneyCubeState.subscription(renewalNear: false).symbol == "creditcard.fill")
         #expect(MoneyCubeState.appStore.symbol == "checkmark.seal.fill")
-        #expect(MoneyCubeState.licensed.symbol == "key.horizontal")
         #expect(MoneyCubeState.free.symbol == "gift")
         #expect(MoneyCubeState.none.symbol == "dollarsign.circle")
         #expect(MoneyCubeState.subscription(renewalNear: true).isActive)
         #expect(MoneyCubeState.appStore.isActive)
-        #expect(MoneyCubeState.licensed.isActive)
+        #expect(MoneyCubeState.licensed(nil).isActive)
         #expect(!MoneyCubeState.free.isActive)
         #expect(!MoneyCubeState.none.isActive)
+    }
+
+    @Test("Licensed cube wears its license type on the face")
+    func licensedFaces() {
+        #expect(MoneyCubeState.licensed(.lifetime).symbol == "infinity")
+        #expect(MoneyCubeState.licensed(.oneTime).symbol == "1.circle")
+        #expect(MoneyCubeState.licensed(.annual).symbol == "calendar")
+        #expect(MoneyCubeState.licensed(.other).symbol == "key.horizontal")
+        #expect(MoneyCubeState.licensed(nil).symbol == "key.horizontal")
     }
 }
 
