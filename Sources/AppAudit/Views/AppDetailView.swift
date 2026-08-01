@@ -36,6 +36,7 @@ struct AppDetailView: View {
     @State private var runningHomebrewUpdate = false
     @State private var homebrewUpdateMessage: String? = nil
     @State private var docsMessage: String? = nil
+    @State private var hoveredCubeInfo: String? = nil
 
     var body: some View {
         ScrollView {
@@ -184,25 +185,50 @@ struct AppDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Feeds the label strip: hovering shows the text instantly, leaving
+    /// clears it only if another cube hasn't already claimed the strip.
+    private func stripInfo<V: View>(_ view: V, _ text: String) -> some View {
+        let line = text.components(separatedBy: "\n").first ?? text
+        return view.onHover { hovering in
+            if hovering {
+                hoveredCubeInfo = line
+            } else if hoveredCubeInfo == line {
+                hoveredCubeInfo = nil
+            }
+        }
+    }
+
     /// The utility cube strip lives in the header's empty right side. A
     /// matching re-analyze chip leads it (the old ⋯ menu is gone; Lock is the
     /// lock cube, and Customize Description moved into "What is this?").
     private var headerUtilities: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.fixed(34), spacing: 8), count: 5),
-            spacing: 8
-        ) {
-            if case .loaded = app.aiState {
-                reanalyzeChip
+        VStack(alignment: .leading, spacing: 6) {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.fixed(34), spacing: 8), count: 5),
+                spacing: 8
+            ) {
+                if case .loaded = app.aiState {
+                    stripInfo(reanalyzeChip, "Re-analyze the AI description")
+                }
+                stripInfo(crossAppCard, crossAppHelp)
+                stripInfo(notesCard, notesHelp)
+                stripInfo(moneyCard, moneyStripLabel)
+                stripInfo(linkCard, linkHelp)
+                stripInfo(lockCard, app.isAnalysisLocked
+                          ? "Lock — analysis frozen, click to unlock"
+                          : "Lock — freeze the analysis")
+                stripInfo(favoriteCard, app.isFavorite ? "Favorite — click to unmark" : "Mark as favorite")
+                stripInfo(docsCard, docsHelp)
+                stripInfo(myAppCard, app.isMyApp
+                          ? "My App — you build this, click to unmark"
+                          : "Mark as My App (a project you build)")
             }
-            crossAppCard
-            notesCard
-            moneyCard
-            linkCard
-            lockCard
-            favoriteCard
-            docsCard
-            myAppCard
+            Text(hoveredCubeInfo ?? " ")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: 5 * 34 + 4 * 8, alignment: .leading)
         }
         .frame(width: 5 * 34 + 4 * 8)
     }
@@ -795,6 +821,19 @@ struct AppDetailView: View {
         case .free: return "Free app — click for money details"
         case .none: return "Money — paid/free, license key, subscription"
         }
+    }
+
+    /// The money cube's strip line, prefixed so the cube is namable at a glance.
+    private var moneyStripLabel: String {
+        let state = MoneyCubeState.derive(
+            isAppStoreInstall: app.isAppStoreInstall,
+            hasLicenseKey: currentLicenseKey?.isEmpty == false,
+            isPaidApp: record?.isPaidApp == true,
+            hasSubscription: record?.hasSubscription == true,
+            renewalNear: subscriptionRenewalIsNear,
+            isFreeApp: record?.isFreeApp == true
+        )
+        return "Money — \(moneyHelp(for: state))"
     }
 
     /// Populate every draft from the record so the popover opens current.
