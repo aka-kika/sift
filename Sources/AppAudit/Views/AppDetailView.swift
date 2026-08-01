@@ -822,7 +822,7 @@ struct AppDetailView: View {
         case .subscription: return subscriptionHelp
         case .appStore, .licensed: return licenseHelp
         case .free: return "Free app — click for money details"
-        case .none: return "Money — paid/free, license key, subscription"
+        case .none: return "Paid/free, license key, subscription"
         }
     }
 
