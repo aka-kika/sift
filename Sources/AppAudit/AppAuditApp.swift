@@ -36,6 +36,7 @@ final class SiftAppDelegate: NSObject, NSApplicationDelegate {
 struct AppAuditApp: App {
     @State private var viewModel = AppListViewModel()
     @AppStorage("appearancePreference") private var appearancePreference = "system"
+    @AppStorage("developerMode") private var developerMode = false
     #if canImport(AppKit)
     @NSApplicationDelegateAdaptor(SiftAppDelegate.self) private var appDelegate
     #endif
@@ -99,10 +100,12 @@ struct AppAuditApp: App {
                 .keyboardShortcut("L", modifiers: [.command, .shift])
             }
             CommandGroup(after: .sidebar) {
-                Toggle("Filter: My Apps", isOn: Binding(
-                    get: { viewModel.filterMyApps },
-                    set: { viewModel.setFilterMyApps($0) }
-                ))
+                if developerMode {
+                    Toggle("Filter: My Apps", isOn: Binding(
+                        get: { viewModel.filterMyApps },
+                        set: { viewModel.setFilterMyApps($0) }
+                    ))
+                }
                 Toggle("Filter: Favorites", isOn: Binding(
                     get: { viewModel.filterFavorites },
                     set: { viewModel.setFilterFavorites($0) }

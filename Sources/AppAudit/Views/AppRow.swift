@@ -7,6 +7,7 @@ import AppKit
 
 struct AppRow: View {
     let app: AppInfo
+    @AppStorage("developerMode") private var developerMode = false
     @Environment(\.modelContext) private var modelContext
     @Environment(AppListViewModel.self) private var viewModel
     private let licenseKeyStore = LicenseKeyStore.shared
@@ -47,7 +48,7 @@ struct AppRow: View {
                             .font(.caption2)
                             .foregroundStyle(.yellow)
                     }
-                    if app.isMyApp {
+                    if DevModeRules.showsMyAppUI(isMyApp: app.isMyApp, developerMode: developerMode) {
                         Image(systemName: "hammer.fill")
                             .font(.caption2)
                             .foregroundStyle(.purple)
@@ -111,7 +112,7 @@ struct AppRow: View {
                 }
             }
 
-            ScoreBadgeView(state: app.aiState, isMyApp: app.isMyApp)
+            ScoreBadgeView(state: app.aiState, isMyApp: DevModeRules.showsMyAppUI(isMyApp: app.isMyApp, developerMode: developerMode))
         }
         .padding(.vertical, 2)
         .contextMenu {
@@ -146,13 +147,15 @@ struct AppRow: View {
                 }
             }
 
-            Button {
-                toggleMyApp()
-            } label: {
-                if app.isMyApp {
-                    Label("Unmark as My App", systemImage: "hammer.slash")
-                } else {
-                    Label("Mark as My App", systemImage: "hammer.fill")
+            if developerMode {
+                Button {
+                    toggleMyApp()
+                } label: {
+                    if app.isMyApp {
+                        Label("Unmark as My App", systemImage: "hammer.slash")
+                    } else {
+                        Label("Mark as My App", systemImage: "hammer.fill")
+                    }
                 }
             }
 

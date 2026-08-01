@@ -7,6 +7,7 @@ import AppKit
 
 struct AppDetailView: View {
     let app: AppInfo
+    @AppStorage("developerMode") private var developerMode = false
     @Environment(AppListViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
@@ -218,10 +219,12 @@ struct AppDetailView: View {
                           ? "Lock — analysis frozen, click to unlock"
                           : "Lock — freeze the analysis")
                 stripInfo(favoriteCard, app.isFavorite ? "Favorite — click to unmark" : "Mark as favorite")
-                stripInfo(docsCard, docsHelp)
-                stripInfo(myAppCard, app.isMyApp
-                          ? "My App — you build this, click to unmark"
-                          : "Mark as My App (a project you build)")
+                if developerMode {
+                    stripInfo(docsCard, docsHelp)
+                    stripInfo(myAppCard, app.isMyApp
+                              ? "My App — you build this, click to unmark"
+                              : "Mark as My App (a project you build)")
+                }
             }
             Text(hoveredCubeInfo ?? " ")
                 .font(.caption2)

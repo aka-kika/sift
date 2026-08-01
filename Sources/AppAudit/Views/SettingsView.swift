@@ -296,6 +296,7 @@ struct ScanningSettingsTab: View {
     @AppStorage("includeUtilityApps") private var includeUtilityApps = true
     @AppStorage("appearancePreference") private var appearancePreference = "system"
     @AppStorage("defaultLicenseEmail") private var defaultLicenseEmail = ""
+    @AppStorage("developerMode") private var developerMode = false
 
     var body: some View {
         Form {
@@ -320,6 +321,11 @@ struct ScanningSettingsTab: View {
                 Toggle("Include /Applications/Utilities", isOn: $includeUtilityApps)
                 Toggle("Include Apple system apps (com.apple.*)", isOn: $includeAppleApps)
                     .help("System apps can't be uninstalled — enabling adds noise to results")
+            }
+
+            Section("Developer") {
+                Toggle("Developer Mode", isOn: $developerMode)
+                SettingsFooter("Shows the My App tools: the hammer and docs cubes, sidebar hammer badges, and the My Apps filter. Marks are kept when this is off.")
             }
 
             Section {

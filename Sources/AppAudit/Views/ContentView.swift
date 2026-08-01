@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(AppListViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("developerMode") private var developerMode = false
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -42,6 +43,11 @@ struct ContentView: View {
             viewModel.migrateLegacyLicenseKeys()
             viewModel.syncLicenseFlags()
             await viewModel.runFullScan()
+        }
+        .onChange(of: developerMode) { _, enabled in
+            viewModel.setFilterMyApps(
+                DevModeRules.filterMyApps(current: viewModel.filterMyApps, developerMode: enabled)
+            )
         }
     }
 
