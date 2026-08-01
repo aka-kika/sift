@@ -17,7 +17,7 @@ struct AppDetailView: View {
     @State private var draftDescription = ""
     @State private var editingURL = false
     @State private var draftURL = ""
-    @State private var editingLicenseKey = false
+    @State private var moneyPopoverPresented = false
     @State private var draftLicenseKey = ""
     @State private var draftLicenseEmail = ""
     @State private var draftLicenseType: LicenseType? = nil
@@ -27,7 +27,6 @@ struct AppDetailView: View {
     @State private var notesSessionInitialNotes: String? = nil
     @State private var similarResults: [SimilarApp]? = nil
     @State private var findingSimilar = false
-    @State private var editingSubscription = false
     @State private var draftSubPrice = ""
     @State private var draftSubCurrency = ""
     @State private var draftSubCycle: BillingCycle = .monthly
@@ -74,26 +73,6 @@ struct AppDetailView: View {
                 editingDescription = false
             }
         }
-        .sheet(isPresented: $editingLicenseKey) {
-            DetailLicenseKeySheet(appName: app.name, draft: $draftLicenseKey, emailDraft: $draftLicenseEmail, licenseType: $draftLicenseType) { saved in
-                if saved {
-                    let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let ensuredRecord = ensureRecord()
-                    licenseKeyStore.save(trimmed, bundleID: app.bundleID)
-                    currentLicenseKey = trimmed.isEmpty ? nil : trimmed
-                    ensuredRecord.licenseKey = nil
-                    ensuredRecord.hasLicenseKey = !trimmed.isEmpty
-                    let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-                    ensuredRecord.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
-                    ensuredRecord.licenseType = draftLicenseType?.rawValue
-                    if !trimmed.isEmpty, ensuredRecord.iconPNG == nil {
-                        ensuredRecord.iconPNG = app.icon?.pngData()
-                    }
-                    saveRecord()
-                }
-                editingLicenseKey = false
-            }
-        }
         .sheet(isPresented: $editingURL) {
             EditURLSheet(appName: app.name, draft: $draftURL) { saved in
                 if saved {
@@ -110,36 +89,6 @@ struct AppDetailView: View {
                     }
                 }
                 editingURL = false
-            }
-        }
-        .sheet(isPresented: $editingSubscription) {
-            SubscriptionSheet(
-                appName: app.name,
-                price: $draftSubPrice,
-                currency: $draftSubCurrency,
-                cycle: $draftSubCycle,
-                renewal: $draftSubRenewal,
-                email: $draftSubEmail
-            ) { action in
-                switch action {
-                case .cancel:
-                    break
-                case .save:
-                    let ensured = ensureRecord()
-                    ensured.subscriptionPrice = Double(draftSubPrice.replacingOccurrences(of: ",", with: "."))
-                    ensured.subscriptionCurrency = draftSubCurrency.isEmpty ? nil : draftSubCurrency
-                    ensured.subscriptionCycle = draftSubCycle.rawValue
-                    ensured.subscriptionRenewalDate = draftSubRenewal
-                    let email = draftSubEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-                    ensured.subscriptionEmail = email.isEmpty ? nil : email
-                    ensured.hasSubscription = true
-                    if ensured.iconPNG == nil { ensured.iconPNG = app.icon?.pngData() }
-                    viewModel.setSubscription(bundleID: app.bundleID, value: true)
-                    saveRecord()
-                case .clear:
-                    clearSubscription()
-                }
-                editingSubscription = false
             }
         }
         .sheet(isPresented: $notesSheetPresented) {
@@ -248,8 +197,7 @@ struct AppDetailView: View {
             }
             crossAppCard
             notesCard
-            licenseCard
-            subscriptionCard
+            moneyCard
             linkCard
             lockCard
             favoriteCard
@@ -782,29 +730,87 @@ struct AppDetailView: View {
         notesSessionInitialNotes = nil
     }
 
-    private var licenseCard: some View {
-        let isFree = record?.isFreeApp == true
-        let disabled = UtilityCardRules.licenseDisabled(isMyApp: app.isMyApp, isFreeApp: isFree)
-        let licenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
-        let hasKey = currentLicenseKey?.isEmpty == false
-        let openEditor: (() -> Void)? = app.isAppStoreInstall ? nil : {
-            draftLicenseKey = currentLicenseKey ?? ""
-            draftLicenseEmail = record?.licenseEmail
-                ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
-            draftLicenseType = licenseType
-            editingLicenseKey = true
-        }
+    private var moneyCard: some View {
+        let state = MoneyCubeState.derive(
+            isAppStoreInstall: app.isAppStoreInstall,
+            hasLicenseKey: currentLicenseKey?.isEmpty == false,
+            isPaidApp: record?.isPaidApp == true,
+            hasSubscription: record?.hasSubscription == true,
+            renewalNear: subscriptionRenewalIsNear,
+            isFreeApp: record?.isFreeApp == true
+        )
+        let disabled = UtilityCardRules.moneyDisabled(isMyApp: app.isMyApp)
+        let tint = moneyTint(for: state)
 
-        let isPaid = record?.isPaidApp == true
-        let tint: Color = app.isAppStoreInstall ? .blue : .indigo
-        let active = !disabled && (app.isAppStoreInstall || hasKey || isPaid || licenseType != nil)
-        let symbol = app.isAppStoreInstall ? "checkmark.seal.fill" : "key.horizontal"
-
-        return UtilityCard(tint: tint, active: active, disabled: disabled, action: openEditor) {
-            cardIcon(symbol, tint: active ? tint : .secondary)
+        return UtilityCard(tint: tint, active: state.isActive, disabled: disabled, action: {
+            prepareMoneyDrafts()
+            moneyPopoverPresented = true
+        }) {
+            cardIcon(state.symbol, tint: state.isActive ? tint : .secondary)
         }
-        .help(licenseHelp)
-        .contextMenu { licenseContextMenu }
+        .help(moneyHelp(for: state))
+        .contextMenu { moneyContextMenu }
+        .popover(isPresented: $moneyPopoverPresented, arrowEdge: .bottom) {
+            MoneyPopover(
+                appName: app.name,
+                isAppStoreInstall: app.isAppStoreInstall,
+                isMyApp: app.isMyApp,
+                isPaid: record?.isPaidApp == true,
+                isFree: record?.isFreeApp == true,
+                hasKey: currentLicenseKey?.isEmpty == false,
+                hasSubscription: record?.hasSubscription == true,
+                currentLicenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:)),
+                draftLicenseKey: $draftLicenseKey,
+                draftLicenseEmail: $draftLicenseEmail,
+                draftLicenseType: $draftLicenseType,
+                draftSubPrice: $draftSubPrice,
+                draftSubCurrency: $draftSubCurrency,
+                draftSubCycle: $draftSubCycle,
+                draftSubRenewal: $draftSubRenewal,
+                draftSubEmail: $draftSubEmail,
+                onTogglePaid: { togglePaid() },
+                onToggleFree: { toggleFree() },
+                onSaveLicense: { saveLicenseFromDrafts() },
+                onCopyKey: { if let key = currentLicenseKey { copyLicenseKey(key) } },
+                onRemoveKey: { removeLicenseKey() },
+                onSaveSubscription: { saveSubscriptionFromDrafts() },
+                onRemoveSubscription: { clearSubscription() }
+            )
+        }
+    }
+
+    private func moneyTint(for state: MoneyCubeState) -> Color {
+        switch state {
+        case .subscription(let near): return near ? .orange : .green
+        case .appStore: return .blue
+        case .licensed: return .indigo
+        case .free, .none: return .secondary
+        }
+    }
+
+    private func moneyHelp(for state: MoneyCubeState) -> String {
+        switch state {
+        case .subscription: return subscriptionHelp
+        case .appStore, .licensed: return licenseHelp
+        case .free: return "Free app — click for money details"
+        case .none: return "Money — paid/free, license key, subscription"
+        }
+    }
+
+    /// Populate every draft from the record so the popover opens current.
+    private func prepareMoneyDrafts() {
+        draftLicenseKey = currentLicenseKey ?? ""
+        draftLicenseEmail = record?.licenseEmail
+            ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
+        draftLicenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
+        draftSubPrice = record?.subscriptionPrice.map { String(format: "%.2f", $0) } ?? ""
+        draftSubCurrency = record?.subscriptionCurrency
+            ?? (Locale.current.currency?.identifier ?? "USD")
+        draftSubCycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
+        draftSubRenewal = record?.subscriptionRenewalDate ?? Date()
+        draftSubEmail = record?.subscriptionEmail
+            ?? record?.licenseEmail
+            ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
     }
 
     private var licenseHelp: String {
@@ -826,8 +832,9 @@ struct AppDetailView: View {
         return "Add a license key"
     }
 
+    /// Merged right-click: the quick actions from both old cubes.
     @ViewBuilder
-    private var licenseContextMenu: some View {
+    private var moneyContextMenu: some View {
         Button {
             togglePaid()
         } label: {
@@ -853,6 +860,14 @@ struct AppDetailView: View {
                 Label("Remove Key", systemImage: "trash")
             }
         }
+        if record?.hasSubscription == true {
+            Divider()
+            Button(role: .destructive) {
+                clearSubscription()
+            } label: {
+                Label("Remove Subscription", systemImage: "trash")
+            }
+        }
     }
 
     private func copyLicenseKey(_ key: String) {
@@ -874,48 +889,19 @@ struct AppDetailView: View {
         saveRecord()
     }
 
-    private var subscriptionCard: some View {
-        let isFree = record?.isFreeApp == true
-        let licenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
-        let disabled = UtilityCardRules.subscriptionDisabled(isMyApp: app.isMyApp, isFreeApp: isFree, licenseType: licenseType)
-        let hasSub = record?.hasSubscription == true
-        let active = !disabled && hasSub
-        let tint: Color = subscriptionRenewalIsNear ? .orange : .green
-
-        return UtilityCard(tint: tint, active: active, disabled: disabled, action: {
-            // Fast path: a tap just flags "this has a subscription". Price and
-            // renewal are optional, added from the right-click menu.
-            if hasSub {
-                beginEditingSubscription()
-            } else {
-                markSubscription()
-            }
-        }) {
-            cardIcon(hasSub ? "creditcard.fill" : "creditcard", tint: active ? tint : .secondary)
+    private func saveLicenseFromDrafts() {
+        let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ensuredRecord = ensureRecord()
+        licenseKeyStore.save(trimmed, bundleID: app.bundleID)
+        currentLicenseKey = trimmed.isEmpty ? nil : trimmed
+        ensuredRecord.licenseKey = nil
+        ensuredRecord.hasLicenseKey = !trimmed.isEmpty
+        let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        ensuredRecord.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
+        ensuredRecord.licenseType = draftLicenseType?.rawValue
+        if !trimmed.isEmpty, ensuredRecord.iconPNG == nil {
+            ensuredRecord.iconPNG = app.icon?.pngData()
         }
-        .help(subscriptionHelp)
-        .contextMenu {
-            Button {
-                beginEditingSubscription()
-            } label: {
-                Label(hasSub ? "Edit Price & Renewal…" : "Add Price & Renewal…", systemImage: "pencil")
-            }
-            if hasSub {
-                Button(role: .destructive) {
-                    clearSubscription()
-                } label: {
-                    Label("Remove Subscription", systemImage: "trash")
-                }
-            }
-        }
-    }
-
-    /// Flags a subscription without any details — the one-click path.
-    private func markSubscription() {
-        let ensured = ensureRecord()
-        ensured.hasSubscription = true
-        if ensured.iconPNG == nil { ensured.iconPNG = app.icon?.pngData() }
-        viewModel.setSubscription(bundleID: app.bundleID, value: true)
         saveRecord()
     }
 
@@ -953,6 +939,20 @@ struct AppDetailView: View {
             parts.append(email)
         }
         return parts.isEmpty ? "Subscription marked — click to add details" : parts.joined(separator: " · ")
+    }
+
+    private func saveSubscriptionFromDrafts() {
+        let ensured = ensureRecord()
+        ensured.subscriptionPrice = Double(draftSubPrice.replacingOccurrences(of: ",", with: "."))
+        ensured.subscriptionCurrency = draftSubCurrency.isEmpty ? nil : draftSubCurrency
+        ensured.subscriptionCycle = draftSubCycle.rawValue
+        ensured.subscriptionRenewalDate = draftSubRenewal
+        let email = draftSubEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        ensured.subscriptionEmail = email.isEmpty ? nil : email
+        ensured.hasSubscription = true
+        if ensured.iconPNG == nil { ensured.iconPNG = app.icon?.pngData() }
+        viewModel.setSubscription(bundleID: app.bundleID, value: true)
+        saveRecord()
     }
 
     private var linkCard: some View {
@@ -1066,18 +1066,6 @@ struct AppDetailView: View {
         modelContext.insert(created)
         record = created
         return created
-    }
-
-    private func beginEditingSubscription() {
-        draftSubPrice = record?.subscriptionPrice.map { String(format: "%.2f", $0) } ?? ""
-        draftSubCurrency = record?.subscriptionCurrency
-            ?? (Locale.current.currency?.identifier ?? "USD")
-        draftSubCycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
-        draftSubRenewal = record?.subscriptionRenewalDate ?? Date()
-        draftSubEmail = record?.subscriptionEmail
-            ?? record?.licenseEmail
-            ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
-        editingSubscription = true
     }
 
     private func clearSubscription() {
@@ -1243,163 +1231,6 @@ struct NotesSheet: View {
         .padding(20)
         .frame(width: 440)
         .onExitCommand { onClose() }
-    }
-}
-
-struct DetailLicenseKeySheet: View {
-    let appName: String
-    @Binding var draft: String
-    @Binding var emailDraft: String
-    @Binding var licenseType: LicenseType?
-    let onDone: (Bool) -> Void
-
-    @FocusState private var focused: Bool
-    @State private var revealed = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("License key for \(appName)")
-                .font(.headline)
-            Text("Store the purchased key for this app so you can copy it later.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 6) {
-                Group {
-                    if revealed {
-                        TextField("Enter license key", text: $draft)
-                    } else {
-                        SecureField("Enter license key", text: $draft)
-                    }
-                }
-                .textFieldStyle(.roundedBorder)
-                .focused($focused)
-
-                Button {
-                    if revealed {
-                        revealed = false
-                    } else {
-                        Task { @MainActor in
-                            if await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(appName)") {
-                                revealed = true
-                            }
-                        }
-                    }
-                } label: {
-                    Image(systemName: revealed ? "eye.slash" : "eye")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help(revealed ? "Hide license key" : "Reveal license key (Touch ID)")
-            }
-
-            TextField("Registered email (optional)", text: $emailDraft)
-                .textFieldStyle(.roundedBorder)
-
-            Picker("License type", selection: $licenseType) {
-                Text("Not set").tag(LicenseType?.none)
-                ForEach(LicenseType.allCases) { type in
-                    Text(type.displayName).tag(LicenseType?.some(type))
-                }
-            }
-            .pickerStyle(.menu)
-
-            HStack {
-                Button("Cancel") { onDone(false) }
-                    .keyboardShortcut(.escape)
-                Spacer()
-                Button("Clear") { draft = ""; onDone(true) }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                Button("Save") { onDone(true) }
-                    .keyboardShortcut(.return, modifiers: .command)
-                    .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(20)
-        .frame(width: 400)
-        .onAppear { focused = true }
-    }
-}
-
-// MARK: - Subscription Sheet
-
-enum SubscriptionSheetAction { case cancel, save, clear }
-
-struct SubscriptionSheet: View {
-    let appName: String
-    @Binding var price: String
-    @Binding var currency: String
-    @Binding var cycle: BillingCycle
-    @Binding var renewal: Date
-    @Binding var email: String
-    let onDone: (SubscriptionSheetAction) -> Void
-
-    @FocusState private var focused: Bool
-
-    private static let currencies = ["USD", "EUR", "GBP", "ILS", "CAD", "AUD", "JPY", "CHF"]
-
-    /// Always include the record's current currency even if it is not in the
-    /// short list, so the picker can display it without losing the value.
-    static func currencyOptions(including current: String) -> [String] {
-        if current.isEmpty || currencies.contains(current) { return currencies }
-        return [current] + currencies
-    }
-
-    private var parsedAmount: Double? {
-        Double(price.replacingOccurrences(of: ",", with: "."))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Subscription for \(appName)")
-                .font(.headline)
-            Text("Track what you pay and when it renews next.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack {
-                TextField("Amount", text: $price)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 140)
-                    .focused($focused)
-                Picker("", selection: $currency) {
-                    ForEach(Self.currencyOptions(including: currency), id: \.self) { code in
-                        Text(code).tag(code)
-                    }
-                }
-                .labelsHidden()
-                .frame(maxWidth: 110)
-            }
-
-            Picker("Billing", selection: $cycle) {
-                ForEach(BillingCycle.allCases) { c in
-                    Text(c.label).tag(c)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            DatePicker("Next renewal", selection: $renewal, displayedComponents: .date)
-
-            TextField("Billing email (optional)", text: $email)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                Button("Cancel") { onDone(.cancel) }
-                    .keyboardShortcut(.escape)
-                Spacer()
-                Button("Clear") { onDone(.clear) }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                Button("Save") { onDone(.save) }
-                    .keyboardShortcut(.return, modifiers: .command)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(parsedAmount == nil)
-            }
-        }
-        .padding(20)
-        .frame(width: 400)
-        .onAppear { focused = true }
     }
 }
 
