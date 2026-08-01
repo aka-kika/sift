@@ -208,7 +208,7 @@ struct AppDetailView: View {
     /// rows (6 → 3+3, 7 → 4+3, 8 → 4+4, 9 → 5+4), so no ragged tail like the
     /// old fixed 5-column layout produced.
     private var cubeCount: Int {
-        var count = 6
+        var count = 5
         if case .loaded = app.aiState { count += 1 }
         if developerMode { count += 2 }
         return count
@@ -231,7 +231,6 @@ struct AppDetailView: View {
                 if case .loaded = app.aiState {
                     stripInfo(reanalyzeChip, "Re-analyze the AI description")
                 }
-                stripInfo(crossAppCard, crossAppHelp)
                 stripInfo(notesCard, notesHelp)
                 stripInfo(moneyCard, moneyStripLabel)
                 stripInfo(linkCard, linkHelp)
@@ -286,36 +285,6 @@ struct AppDetailView: View {
         ensured.isMyApp.toggle()
         viewModel.setMyApp(bundleID: app.bundleID, value: ensured.isMyApp)
         saveRecord()
-    }
-
-    // MARK: - Cross-App
-
-    /// Cross-App finds which of your OTHER installed apps overlap with this one.
-    /// It only makes sense once the whole library is analyzed (so every app has
-    /// something to compare), and it's frozen along with a locked analysis.
-    private var crossAppCard: some View {
-        UtilityCard(tint: .purple, active: crossAppEnabled, disabled: !crossAppEnabled, action: { runFindSimilar() }) {
-            cardIcon("square.on.square", tint: crossAppEnabled ? .purple : .secondary)
-        }
-        .help(crossAppHelp)
-    }
-
-    private var libraryFullyAnalyzed: Bool {
-        !viewModel.apps.isEmpty && viewModel.apps.allSatisfy {
-            if case .loaded = $0.aiState { return true }
-            return false
-        }
-    }
-
-    private var crossAppEnabled: Bool {
-        guard !app.isAnalysisLocked, case .loaded = app.aiState else { return false }
-        return libraryFullyAnalyzed
-    }
-
-    private var crossAppHelp: String {
-        if app.isAnalysisLocked { return "Cross-App is locked with this analysis" }
-        if !libraryFullyAnalyzed { return "Analyze your whole library first — Cross-App compares across every app" }
-        return "Cross-App — find similar apps you have"
     }
 
     @ViewBuilder
