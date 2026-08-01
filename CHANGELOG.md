@@ -12,8 +12,14 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
-<!-- SF Symbol: hammer -->
-Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+<!-- SF Symbol: trash -->
+### Added
+- Uninstall from the sidebar: right-click → Uninstall… sweeps the app and its leftovers (caches, preferences, containers, launch agents) to the Trash — recoverable, license keys and notes kept. Homebrew casks can run brew uninstall instead. Apple system apps and Sift itself are protected.
+
+### Changed
+- Removed the Cross-App cube — the Similar-apps section keeps its own refresh; the cube grid is now symmetric (3+3 or 4+4) in everyday states.
+
+Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 
 ## [1.6.0] — 2026-08-01
 
