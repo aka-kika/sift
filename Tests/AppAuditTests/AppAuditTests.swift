@@ -1652,3 +1652,27 @@ struct MoneyCubeStateTests {
         #expect(!MoneyCubeState.none.isActive)
     }
 }
+
+@Suite("Money Cube + Dev Mode Rules")
+struct MoneyDevRulesTests {
+    @Test("Money cube is disabled only for My Apps")
+    func moneyRule() {
+        #expect(UtilityCardRules.moneyDisabled(isMyApp: true))
+        #expect(!UtilityCardRules.moneyDisabled(isMyApp: false))
+    }
+
+    @Test("My App UI shows only when marked AND developer mode is on")
+    func showsMyAppUI() {
+        #expect(DevModeRules.showsMyAppUI(isMyApp: true, developerMode: true))
+        #expect(!DevModeRules.showsMyAppUI(isMyApp: true, developerMode: false))
+        #expect(!DevModeRules.showsMyAppUI(isMyApp: false, developerMode: true))
+        #expect(!DevModeRules.showsMyAppUI(isMyApp: false, developerMode: false))
+    }
+
+    @Test("Leaving developer mode clears the My Apps filter")
+    func filterClears() {
+        #expect(DevModeRules.filterMyApps(current: true, developerMode: true))
+        #expect(!DevModeRules.filterMyApps(current: true, developerMode: false))
+        #expect(!DevModeRules.filterMyApps(current: false, developerMode: true))
+    }
+}
