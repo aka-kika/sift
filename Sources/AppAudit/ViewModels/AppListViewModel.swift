@@ -439,6 +439,13 @@ final class AppListViewModel {
         apps[idx].licenseTypeRaw = rawValue
     }
 
+    /// Drops an uninstalled app from the in-memory list. Its AppRecord is
+    /// deliberately kept — license keys, notes, and marks survive, and the
+    /// License Vault lists it under "No longer installed".
+    func removeApp(bundleID: String) {
+        apps.removeAll { $0.bundleID == bundleID }
+    }
+
     /// Reconcile each record's `hasLicenseKey` flag with the Keychain. Runs at
     /// launch so the License Vault is accurate without reading secrets at render
     /// time. For the app that owns the Keychain items this does not prompt.

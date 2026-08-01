@@ -12,6 +12,7 @@ struct AppRow: View {
     @Environment(AppListViewModel.self) private var viewModel
     private let licenseKeyStore = LicenseKeyStore.shared
     @State private var editingLicenseKey = false
+    @State private var uninstallSheetPresented = false
     @State private var draftLicenseKey = ""
     @State private var draftLicenseEmail = ""
     @State private var homebrewCommandCopied = false
@@ -233,6 +234,24 @@ struct AppRow: View {
                 NSPasteboard.general.setString(app.bundleID, forType: .string)
             } label: {
                 Label("Copy Bundle ID", systemImage: "doc.on.doc")
+            }
+
+            // Group 6: Uninstall — never for Apple system apps or Sift itself.
+            if !UninstallRules.isProtected(bundleID: app.bundleID) {
+                Divider()
+                Button(role: .destructive) {
+                    uninstallSheetPresented = true
+                } label: {
+                    Label("Uninstall…", systemImage: "trash")
+                }
+            }
+        }
+        .sheet(isPresented: $uninstallSheetPresented) {
+            UninstallSheet(app: app) { removedBundle in
+                if removedBundle {
+                    viewModel.removeApp(bundleID: app.bundleID)
+                }
+                uninstallSheetPresented = false
             }
         }
         .sheet(isPresented: $editingLicenseKey) {
