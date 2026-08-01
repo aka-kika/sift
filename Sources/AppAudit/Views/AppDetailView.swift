@@ -791,7 +791,6 @@ struct AppDetailView: View {
                 draftSubCycle: $draftSubCycle,
                 draftSubRenewal: $draftSubRenewal,
                 draftSubEmail: $draftSubEmail,
-                onTogglePaid: { togglePaid() },
                 onToggleFree: { toggleFree() },
                 onSaveLicense: { saveLicenseFromDrafts() },
                 onCopyKey: { if let key = currentLicenseKey { copyLicenseKey(key) } },

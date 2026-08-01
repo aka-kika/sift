@@ -28,7 +28,6 @@ struct MoneyPopover: View {
     @Binding var draftSubRenewal: Date
     @Binding var draftSubEmail: String
 
-    let onTogglePaid: () -> Void
     let onToggleFree: () -> Void
     let onSaveLicense: () -> Void
     let onCopyKey: () -> Void
@@ -98,10 +97,11 @@ struct MoneyPopover: View {
 
     // MARK: - Header
 
-    /// The Paid/Free marks only carry information while nothing stronger is
-    /// recorded — a saved key or a subscription already proves the purchase,
-    /// so the pills disappear and the status text speaks alone.
-    private var showsMarks: Bool {
+    /// Only the Free mark earns a pill — it drives real behavior (green
+    /// gift, gated money fields). Paid is implied by a key or subscription;
+    /// for the rare keyless purchase it lives in the cube's right-click.
+    /// The pill hides once a key or subscription proves the app costs money.
+    private var showsFreeMark: Bool {
         !hasKey && !hasSubscription
     }
 
@@ -110,8 +110,7 @@ struct MoneyPopover: View {
             Text("License — \(appName)")
                 .font(.headline)
             HStack(spacing: 6) {
-                if showsMarks {
-                    markPill("Paid", active: isPaid, tint: .indigo, action: onTogglePaid)
+                if showsFreeMark {
                     markPill("Free", active: isFree, tint: .green, action: onToggleFree)
                 }
                 Spacer()
