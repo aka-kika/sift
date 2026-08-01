@@ -1685,3 +1685,52 @@ struct MoneyDevRulesTests {
         #expect(!DevModeRules.filterMyApps(current: false, developerMode: true))
     }
 }
+
+@Suite("Uninstall Rules")
+struct UninstallRulesTests {
+    @Test("Apple system apps, Sift, and the side-build are protected")
+    func protection() {
+        #expect(UninstallRules.isProtected(bundleID: "com.apple.finder"))
+        #expect(UninstallRules.isProtected(bundleID: "com.apple.dt.Xcode"))
+        #expect(UninstallRules.isProtected(bundleID: "com.kikaapp.appaudit"))
+        #expect(UninstallRules.isProtected(bundleID: "com.kikaapp.sift2"))
+        #expect(!UninstallRules.isProtected(bundleID: "com.asiafu.Bloom"))
+        #expect(!UninstallRules.isProtected(bundleID: "net.shinyfrog.bear"))
+    }
+}
+
+@Suite("Leftover Matcher")
+struct LeftoverMatcherTests {
+    @Test("Bundle-identifier shapes match")
+    func identifierShapes() {
+        let id = "com.asiafu.Bloom"
+        #expect(LeftoverMatcher.matches(name: "com.asiafu.Bloom", bundleID: id))
+        #expect(LeftoverMatcher.matches(name: "com.asiafu.Bloom.plist", bundleID: id))
+        #expect(LeftoverMatcher.matches(name: "com.asiafu.Bloom.plist.lockfile", bundleID: id))
+        #expect(LeftoverMatcher.matches(name: "com.asiafu.Bloom.helper", bundleID: id))
+        #expect(LeftoverMatcher.matches(name: "com.asiafu.Bloom.savedState", bundleID: id))
+        // ByHost shape: <id>.<uuid>.plist
+        #expect(LeftoverMatcher.matches(name: "com.asiafu.Bloom.ABC-123.plist", bundleID: id))
+    }
+
+    @Test("Unrelated identifiers do not match")
+    func unrelated() {
+        let id = "com.asiafu.Bloom"
+        #expect(!LeftoverMatcher.matches(name: "com.other.app", bundleID: id))
+        #expect(!LeftoverMatcher.matches(name: "org.bloom.tools", bundleID: id))
+        #expect(!LeftoverMatcher.matches(name: "Bloom", bundleID: id)) // bare names need the name-match path
+    }
+
+    @Test("Display-name match is gated by category and length")
+    func displayName() {
+        #expect(LeftoverMatcher.nameMatchAllowed(for: .applicationSupport))
+        #expect(LeftoverMatcher.nameMatchAllowed(for: .logs))
+        #expect(!LeftoverMatcher.nameMatchAllowed(for: .caches))
+        #expect(!LeftoverMatcher.nameMatchAllowed(for: .preferences))
+        #expect(LeftoverMatcher.matchesDisplayName("bloom", appName: "Bloom"))
+        #expect(LeftoverMatcher.matchesDisplayName("Bloom", appName: "Bloom"))
+        #expect(!LeftoverMatcher.matchesDisplayName("Bloomberg", appName: "Bloom"))
+        #expect(!LeftoverMatcher.matchesDisplayName("IINA", appName: "IINA") == false) // 4 chars passes
+        #expect(!LeftoverMatcher.matchesDisplayName("Mo", appName: "Mo"))   // too short, generic
+    }
+}
