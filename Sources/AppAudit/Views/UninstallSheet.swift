@@ -59,7 +59,7 @@ struct UninstallSheet: View {
             }
         }
         .padding(16)
-        .frame(width: 460)
+        .frame(width: 560)
         .task {
             await scan()
         }
@@ -163,7 +163,7 @@ struct UninstallSheet: View {
             }
             .padding(.vertical, 2)
         }
-        .frame(maxHeight: 300)
+        .frame(maxHeight: 440)
     }
 
     private var footer: some View {

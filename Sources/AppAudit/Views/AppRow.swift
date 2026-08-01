@@ -11,10 +11,7 @@ struct AppRow: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppListViewModel.self) private var viewModel
     private let licenseKeyStore = LicenseKeyStore.shared
-    @State private var editingLicenseKey = false
     @State private var uninstallSheetPresented = false
-    @State private var draftLicenseKey = ""
-    @State private var draftLicenseEmail = ""
     @State private var homebrewCommandCopied = false
 
     var body: some View {
@@ -150,56 +147,38 @@ struct AppRow: View {
                 }
             }
 
-            Button {
-                toggleSubscription()
-            } label: {
-                if app.isSubscribed {
-                    Label("Unmark Subscription", systemImage: "creditcard.trianglebadge.exclamationmark")
-                } else {
-                    Label("Mark as Subscription", systemImage: "creditcard")
-                }
-            }
-
             Divider()
 
-            // Group 3: Key items. App Store installs carry no key — their
-            // license is the Apple ID, same rule as the License popover.
-            if app.isAppStoreInstall {
-                Label("Mac App Store — tied to your Apple ID", systemImage: "checkmark.seal.fill")
-            } else if let licenseKey = existingLicenseKey {
-                Button {
-                    Task { @MainActor in
-                        if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(licenseKey, forType: .string)
+            // Group 3: one License entry — everything money lives in the
+            // detail view's License popover. App Store installs need nothing
+            // here (the sidebar seal already tells the story).
+            if !app.isAppStoreInstall {
+                if let licenseKey = existingLicenseKey {
+                    Button {
+                        Task { @MainActor in
+                            if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(licenseKey, forType: .string)
+                            }
                         }
+                    } label: {
+                        Label("Copy Key", systemImage: "doc.on.doc")
                     }
-                } label: {
-                    Label("Copy Key", systemImage: "key.horizontal")
+                    Button {
+                        requestLicensePopover()
+                    } label: {
+                        Label("Edit License…", systemImage: "pencil")
+                    }
+                } else {
+                    Button {
+                        requestLicensePopover()
+                    } label: {
+                        Label("Add License…", systemImage: "key.horizontal")
+                    }
                 }
 
-                Button {
-                    prepareLicenseKeyDraft()
-                    editingLicenseKey = true
-                } label: {
-                    Label("Edit Key", systemImage: "pencil")
-                }
-
-                Button(role: .destructive) {
-                    removeLicenseKey()
-                } label: {
-                    Label("Remove Key", systemImage: "trash")
-                }
-            } else {
-                Button {
-                    prepareLicenseKeyDraft()
-                    editingLicenseKey = true
-                } label: {
-                    Label("Add Key", systemImage: "key.horizontal")
-                }
+                Divider()
             }
-
-            Divider()
 
             // Group 4: Show in Finder, Open App, update items
             Button {
@@ -254,14 +233,12 @@ struct AppRow: View {
                 uninstallSheetPresented = false
             }
         }
-        .sheet(isPresented: $editingLicenseKey) {
-            LicenseKeySheet(appName: app.name, draft: $draftLicenseKey, emailDraft: $draftLicenseEmail) { saved in
-                if saved {
-                    saveLicenseKey()
-                }
-                editingLicenseKey = false
-            }
-        }
+    }
+
+    /// Selects the app and asks the detail view to open its License popover.
+    private func requestLicensePopover() {
+        viewModel.selectedAppID = app.bundleID
+        viewModel.licensePopoverRequestID = app.bundleID
     }
 
     private var subtitleText: String {
@@ -330,28 +307,6 @@ struct AppRow: View {
         }
     }
 
-    private func toggleSubscription() {
-        let bundleID = app.bundleID
-        if let existing = fetchRecord(for: bundleID) {
-            existing.hasSubscription.toggle()
-            if !existing.hasSubscription {
-                existing.subscriptionPrice = nil
-                existing.subscriptionCurrency = nil
-                existing.subscriptionCycle = nil
-                existing.subscriptionRenewalDate = nil
-                existing.subscriptionEmail = nil
-            }
-            try? modelContext.save()
-            viewModel.setSubscription(bundleID: bundleID, value: existing.hasSubscription)
-        } else {
-            let rec = makeStubRecord()
-            rec.hasSubscription = true
-            modelContext.insert(rec)
-            try? modelContext.save()
-            viewModel.setSubscription(bundleID: bundleID, value: true)
-        }
-    }
-
     private func toggleAnalysisLock() {
         let record = fetchRecord(for: app.bundleID) ?? {
             let record = makeStubRecord()
@@ -390,40 +345,6 @@ struct AppRow: View {
         case .licensed(let type): return type.map { "\($0.displayName) license" } ?? "License key saved"
         case .free: return "Free app"
         case .none: return ""
-        }
-    }
-
-    private func prepareLicenseKeyDraft() {
-        draftLicenseKey = existingLicenseKey ?? ""
-        draftLicenseEmail = fetchRecord(for: app.bundleID)?.licenseEmail ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
-    }
-
-    private func saveLicenseKey() {
-        let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let record = fetchRecord(for: app.bundleID) ?? {
-            let record = makeStubRecord()
-            modelContext.insert(record)
-            return record
-        }()
-
-        licenseKeyStore.save(trimmed, bundleID: app.bundleID)
-        record.licenseKey = nil
-        record.hasLicenseKey = !trimmed.isEmpty
-        let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        record.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
-        if !trimmed.isEmpty, record.iconPNG == nil {
-            record.iconPNG = app.icon?.pngData()
-        }
-        try? modelContext.save()
-    }
-
-    private func removeLicenseKey() {
-        licenseKeyStore.delete(bundleID: app.bundleID)
-        if let record = fetchRecord(for: app.bundleID) {
-            record.licenseKey = nil
-            record.hasLicenseKey = false
-            record.licenseEmail = nil
-            try? modelContext.save()
         }
     }
 
@@ -547,47 +468,6 @@ private extension AppInfo.UpdateSource {
         case .homebrew:
             return "Brew"
         }
-    }
-}
-
-private struct LicenseKeySheet: View {
-    let appName: String
-    @Binding var draft: String
-    @Binding var emailDraft: String
-    let onDone: (Bool) -> Void
-
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("License key for \(appName)")
-                .font(.headline)
-            Text("Store the purchased key for this app so you can copy it later from the context menu.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            SecureField("Enter license key", text: $draft)
-                .textFieldStyle(.roundedBorder)
-                .focused($focused)
-
-            TextField("Registered email (optional)", text: $emailDraft)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                Button("Cancel") { onDone(false) }
-                    .keyboardShortcut(.escape)
-                Spacer()
-                Button("Clear") { draft = ""; onDone(true) }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                Button("Save") { onDone(true) }
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(20)
-        .frame(width: 400)
-        .onAppear { focused = true }
     }
 }
 

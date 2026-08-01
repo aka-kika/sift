@@ -13,6 +13,9 @@ final class AppListViewModel {
     var apps: [AppInfo] = []
     var scanState: ScanState = .idle
     var selectedAppID: String? = nil
+    /// Set by the sidebar's "Add/Edit License…" — the detail view opens its
+    /// License popover for this bundle ID, then clears the request.
+    var licensePopoverRequestID: String? = nil
     var workflowProfile: WorkflowProfile = .current()
     var searchText = ""
     var sortOrder: SortOrder = .relevance

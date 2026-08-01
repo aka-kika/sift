@@ -65,6 +65,10 @@ struct AppDetailView: View {
             loadLicenseKey()
             similarResults = nil
             findingSimilar = false
+            consumeLicensePopoverRequest()
+        }
+        .onChange(of: viewModel.licensePopoverRequestID) { _, _ in
+            consumeLicensePopoverRequest()
         }
         .sheet(isPresented: $editingDescription) {
             EditDescriptionSheet(appName: app.name, draft: $draftDescription) { saved in
@@ -922,6 +926,13 @@ struct AppDetailView: View {
         moneyPopoverPresented = true
     }
 
+    /// Honors the sidebar's "Add/Edit License…" request for this app.
+    private func consumeLicensePopoverRequest() {
+        guard viewModel.licensePopoverRequestID == app.bundleID else { return }
+        viewModel.licensePopoverRequestID = nil
+        openMoneyPopover()
+    }
+
     private func copyLicenseKey(_ key: String) {
         Task { @MainActor in
             if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
@@ -1085,6 +1096,11 @@ struct AppDetailView: View {
     private func togglePaid() {
         let ensured = ensureRecord()
         PricingMarks.setPaid(ensured, to: !ensured.isPaidApp)
+        // Paid apps enter the License Vault — capture the icon so the vault
+        // row has a face even after the app is uninstalled.
+        if ensured.isPaidApp, ensured.iconPNG == nil {
+            ensured.iconPNG = app.icon?.pngData()
+        }
         viewModel.setPaidApp(bundleID: app.bundleID, value: ensured.isPaidApp)
         viewModel.setFreeApp(bundleID: app.bundleID, value: ensured.isFreeApp)
         saveRecord()

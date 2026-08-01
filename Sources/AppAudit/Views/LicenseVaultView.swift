@@ -84,6 +84,13 @@ struct LicenseVaultView: View {
                     .resizable()
                     .frame(width: 28, height: 28)
                     .cornerRadius(6)
+            } else if let live = viewModel.apps.first(where: { $0.bundleID == record.bundleID })?.icon {
+                // Older records (e.g. App Store apps marked paid before icons
+                // were captured) fall back to the installed app's live icon.
+                Image(nsImage: live.image)
+                    .resizable()
+                    .frame(width: 28, height: 28)
+                    .cornerRadius(6)
             } else {
                 Image(systemName: record.hasLicenseKey ? "key.horizontal.fill" : "bag.fill")
                     .foregroundStyle(.secondary)
