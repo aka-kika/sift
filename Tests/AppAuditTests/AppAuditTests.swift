@@ -1677,6 +1677,50 @@ struct MoneyCubeStateTests {
     }
 }
 
+@Suite("Trash Service")
+struct TrashServiceTests {
+    /// The exact error a root-owned Mac App Store bundle produces.
+    @Test("A permission refusal is recognised, so it can be routed to Finder")
+    func permissionErrors() {
+        #expect(TrashService.isPermissionDenied(
+            NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)))
+        #expect(TrashService.isPermissionDenied(
+            NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)))
+        #expect(TrashService.isPermissionDenied(
+            NSError(domain: NSCocoaErrorDomain, code: NSFileWriteVolumeReadOnlyError)))
+    }
+
+    @Test("Other failures are not mistaken for permission problems")
+    func otherErrors() {
+        #expect(!TrashService.isPermissionDenied(
+            NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError)))
+        #expect(!TrashService.isPermissionDenied(
+            NSError(domain: NSOSStatusErrorDomain, code: -5000)))
+    }
+
+    @Test("A plain path becomes a Finder delete command")
+    func scriptShape() {
+        #expect(TrashService.finderDeleteScript(for: "/Applications/Bear.app")
+                == "tell application \"Finder\" to delete POSIX file \"/Applications/Bear.app\"")
+    }
+
+    @Test("Quotes and backslashes in a path survive into the script")
+    func scriptEscaping() {
+        let script = TrashService.finderDeleteScript(for: #"/Applications/We"ird\App.app"#)
+        #expect(script.contains(#"We\"ird"#))
+        #expect(script.contains(#"\\App.app"#))
+        #expect(script.hasSuffix("\""))
+    }
+
+    @Test("A failure always carries a readable reason")
+    func reasons() {
+        let denied = NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)
+        #expect(TrashService.reason(for: denied).contains("Finder"))
+        let missing = NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError)
+        #expect(!TrashService.reason(for: missing).isEmpty)
+    }
+}
+
 @Suite("Vault Link")
 struct VaultLinkTests {
     @Test("A saved link wins over a suggestion")

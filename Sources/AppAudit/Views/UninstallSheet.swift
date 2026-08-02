@@ -16,7 +16,7 @@ struct UninstallSheet: View {
         case scanning
         case list
         case working(current: String)
-        case done(failures: [String], removedBundle: Bool)
+        case done(failures: [TrashService.Failure], removedBundle: Bool)
     }
 
     @State private var phase: Phase = .scanning
@@ -180,7 +180,7 @@ struct UninstallSheet: View {
         }
     }
 
-    private func doneView(failures: [String], removedBundle: Bool) -> some View {
+    private func doneView(failures: [TrashService.Failure], removedBundle: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if failures.isEmpty {
                 Label("Moved to Trash — recoverable there, and the license record stays in your vault.",
@@ -192,12 +192,27 @@ struct UninstallSheet: View {
                       systemImage: "exclamationmark.triangle.fill")
                     .font(.callout)
                     .foregroundStyle(.orange)
-                ForEach(failures, id: \.self) { path in
-                    Text(abbreviate(path))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                ForEach(failures, id: \.path) { failure in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(abbreviate(failure.path))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Text(failure.reason)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                        #if canImport(AppKit)
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting(
+                                [URL(fileURLWithPath: failure.path)])
+                        }
+                        .controlSize(.small)
+                        #endif
+                    }
                 }
             }
             HStack {
@@ -250,20 +265,17 @@ struct UninstallSheet: View {
         }
     }
 
+    @MainActor
     private func execute() async {
         let targets = items.filter { checked.contains($0.id) }
-        var failures: [String] = []
+        var failures: [TrashService.Failure] = []
         var removedBundle = brewOutput != nil
         for item in targets {
             phase = .working(current: item.url.lastPathComponent)
-            do {
-                try await Task.detached {
-                    var resulting: NSURL?
-                    try FileManager.default.trashItem(at: item.url, resultingItemURL: &resulting)
-                }.value
-                if item.isAppBundle { removedBundle = true }
-            } catch {
-                failures.append(item.url.path)
+            if let failure = await TrashService.trash(item.url) {
+                failures.append(failure)
+            } else if item.isAppBundle {
+                removedBundle = true
             }
         }
         phase = .done(failures: failures, removedBundle: removedBundle)

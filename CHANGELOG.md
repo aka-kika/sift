@@ -14,6 +14,8 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 <!-- SF Symbol: infinity -->
 ### Fixed
+- Uninstall works on Mac App Store apps. Store bundles are owned by root, and macOS requires write permission on a directory to move it — so every store app landed in "could not be moved". A permission refusal is now handed to Finder, which owns that path (and puts up its own prompt if one is needed); Sift never touches a password.
+- The sweep says why an item was refused instead of listing a bare path, and each refusal gets a Show in Finder button.
 - Mac App Store apps are no longer stuck on the seal: the License popover keeps its Key | Subscription tabs (banner above them), so a store purchase can be recorded as Lifetime, One-time, Annual or Other — and a mis-detected install can still take a key.
 - The license type saves on its own. Save no longer requires a key, so a type can be set, corrected, or cleared back to Not set at any time.
 - A keyless licensed app now reaches the License Vault. Records carrying only a license type were invisible there; they now list with their type, and the vault's trash clears the type along with the Paid mark.

@@ -54,6 +54,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
     <key>NSHumanReadableCopyright</key><string>© $(date +%Y) Veronica Loren</string>
+    <!-- Uninstall hands root-owned bundles (App Store installs) to Finder,
+         which macOS gates behind an Automation consent prompt. -->
+    <key>NSAppleEventsUsageDescription</key><string>Sift asks Finder to move App Store apps to the Trash, because macOS only lets Finder move apps it owns.</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>GitCommit</key><string>${GIT_COMMIT}</string>
