@@ -24,7 +24,23 @@ SOFTWARE.
 
 Third-party attribution
 
-The leftover-discovery strategy in Sources/AppAudit/Services/LeftoverScanner.swift
-is adapted from uninstally (https://github.com/gostonx/uninstally),
-MIT License, Copyright (c) 2026 Codenta. Attribution is preserved in the
-source file.
+Sift contains no third-party code and has no package dependencies. Two projects
+informed its design, and both are acknowledged here with thanks.
+
+uninstally — https://github.com/gostonx/uninstally
+MIT License, Copyright (c) 2026 Codenta.
+The leftover-discovery strategy in
+Sources/AppAudit/Services/LeftoverScanner.swift is adapted from uninstally.
+Attribution is preserved in that source file. Its MIT terms are compatible
+with the licence above.
+
+Mole — https://github.com/tw93/Mole
+GNU General Public License v3.0, Copyright (c) tw93.
+Mole is the reason Sift shows a running-app indicator and offers a sort by
+last-used date, and it was studied for its protection-list and Homebrew-path
+concepts. No Mole source is present in Sift: Mole is written in Go, Sift in
+Swift, and these behaviours are independent implementations against Apple's
+own APIs (NSRunningApplication and Spotlight's kMDItemLastUsedDate). What was
+taken is the idea, which carries no licence obligation; Mole remains
+separately licensed under the GPL-3.0 and no part of it is redistributed
+here.

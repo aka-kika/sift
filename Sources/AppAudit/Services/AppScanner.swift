@@ -96,6 +96,10 @@ actor AppScanner {
 
     /// Reads Spotlight's last-used timestamp for an app bundle. Returns nil when
     /// Spotlight has no record (e.g. never launched, or indexing disabled).
+    ///
+    /// Surfacing last-used (and the running-app indicator alongside it) is an
+    /// idea taken from Mole (https://github.com/tw93/Mole, GPL-3.0) — the
+    /// implementation is our own against Apple's API, no Mole source involved.
     private func lastUsedDate(forPath path: String) -> Date? {
         guard let item = MDItemCreate(nil, path as CFString),
               let value = MDItemCopyAttribute(item, kMDItemLastUsedDate) else {

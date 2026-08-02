@@ -188,9 +188,14 @@ working across the rename. These internal identifiers are not user-visible.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). The leftover-discovery strategy is adapted from
-[uninstally](https://github.com/gostonx/uninstally) (MIT, © 2026 Codenta), with
-attribution preserved in the source.
+MIT — see [LICENSE](LICENSE).
+
+With thanks to two projects that shaped Sift: the leftover-discovery strategy is
+adapted from [uninstally](https://github.com/gostonx/uninstally) (MIT, © 2026
+Codenta), and [Mole](https://github.com/tw93/Mole) (GPL-3.0, © tw93) is the
+reason Sift shows a running-app indicator and sorts by last-used date. Mole is
+written in Go and none of its source is present here — those behaviours are
+independent Swift implementations against Apple's own APIs.
 
 <div align="center">
 
