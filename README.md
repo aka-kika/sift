@@ -60,7 +60,10 @@ bash Scripts/build_sift2.sh
 - [Feature list](FEATURES.md)
 - [User and developer guide](docs/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Privacy and permissions](docs/privacy.md)
+- [Environment setup](docs/environment.md)
 - [Release and notarization checklist](docs/RELEASE.md)
+- [Decision records](docs/decisions/) · [Release records](docs/releases/) · [Roadmap](docs/roadmap.md)
 
 ## Note on naming
 
