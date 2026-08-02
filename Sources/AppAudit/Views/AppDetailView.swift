@@ -455,7 +455,7 @@ struct AppDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    microLabel("Why this score")
+                    microLabel("Tip")
                     Text(reason)
                         .font(.body)
                         .lineSpacing(3)
@@ -536,7 +536,7 @@ struct AppDetailView: View {
         if explanation != nil || userDescription != nil {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
-                    sectionTitle("What is this?", systemImage: "sparkles")
+                    sectionTitle("What is this?", systemImage: "text.alignleft")
                     Spacer()
                     Button {
                         draftDescription = record?.userDescription ?? ""
@@ -1344,7 +1344,7 @@ struct AppDetailView: View {
     private func updateActionIcon(source: AppInfo.UpdateSource) -> String {
         switch source {
         case .appStore: return "bag.fill"
-        case .sparkle: return "sparkles"
+        case .sparkle: return "arrow.down.circle.fill"
         case .homebrew: return "terminal.fill"
         }
     }

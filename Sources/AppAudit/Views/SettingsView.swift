@@ -4,7 +4,7 @@ struct SettingsView: View {
     @State private var selectedTab = SettingsTab.models
 
     enum SettingsTab: Hashable {
-        case models, profile, general
+        case models, profile, general, about
     }
 
     var body: some View {
@@ -20,6 +20,10 @@ struct SettingsView: View {
             ScanningSettingsTab()
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag(SettingsTab.general)
+
+            AboutSettingsTab()
+                .tabItem { Label("About", systemImage: "heart") }
+                .tag(SettingsTab.about)
         }
         .frame(width: 480, height: tabHeight)
         .fixedSize()
@@ -31,6 +35,7 @@ struct SettingsView: View {
         case .models: return 400
         case .profile: return 480
         case .general: return 290
+        case .about: return 500
         }
     }
 }

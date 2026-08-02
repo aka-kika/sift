@@ -410,7 +410,7 @@ struct AppRow: View {
         case .appStore:
             return "bag.fill"
         case .sparkle:
-            return "sparkles"
+            return "arrow.down.circle.fill"
         case .homebrew:
             return "terminal.fill"
         }
