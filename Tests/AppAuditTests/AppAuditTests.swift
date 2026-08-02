@@ -1614,6 +1614,21 @@ struct MoneyCubeStateTests {
         #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: true,
                                       hasSubscription: false, renewalNear: false, isFreeApp: false)
                 == .appStore)
+        // ...until you record what kind of purchase it was.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false,
+                                      licenseType: .lifetime)
+                == .licensed(.lifetime))
+        // A license type alone is enough to count as licensed — no key needed.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false,
+                                      licenseType: .oneTime)
+                == .licensed(.oneTime))
+        // Subscription still outranks a typed App Store purchase.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: false,
+                                      licenseType: .lifetime)
+                == .subscription(renewalNear: false))
         // Key or paid mark → licensed, carrying the license type.
         #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: true, isPaidApp: false,
                                       hasSubscription: false, renewalNear: false, isFreeApp: false)
@@ -1659,6 +1674,41 @@ struct MoneyCubeStateTests {
         #expect(MoneyCubeState.licensed(.annual).symbol == "calendar")
         #expect(MoneyCubeState.licensed(.other).symbol == "key.horizontal")
         #expect(MoneyCubeState.licensed(nil).symbol == "key.horizontal")
+    }
+}
+
+@Suite("License Draft Rules")
+struct LicenseDraftRulesTests {
+    @Test("Nothing typed and nothing changed is not saveable")
+    func emptyDraft() {
+        #expect(!LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: nil,
+                                                      hasKey: false, currentType: nil))
+        #expect(!LicenseDraftRules.hasSomethingToSave(key: "   ", email: "  ", type: .lifetime,
+                                                      hasKey: false, currentType: .lifetime))
+    }
+
+    @Test("A license type saves on its own — the App Store case")
+    func typeOnly() {
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: .lifetime,
+                                                     hasKey: false, currentType: nil))
+    }
+
+    @Test("Correcting or clearing a wrong type is saveable")
+    func changingType() {
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: .annual,
+                                                     hasKey: false, currentType: .lifetime))
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: nil,
+                                                     hasKey: false, currentType: .lifetime))
+    }
+
+    @Test("A key, an existing key, or an email all keep Save live")
+    func otherPayloads() {
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "ABC-123", email: "", type: nil,
+                                                     hasKey: false, currentType: nil))
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: nil,
+                                                     hasKey: true, currentType: nil))
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "me@example.com", type: nil,
+                                                     hasKey: false, currentType: nil))
     }
 }
 

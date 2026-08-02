@@ -30,6 +30,24 @@ enum UtilityCardRules {
     }
 }
 
+/// What counts as a saveable license edit. The key is not the only payload:
+/// the license type stands on its own, so an App Store purchase — which never
+/// carries a key — can still be recorded as Lifetime, and a wrong type can be
+/// corrected or cleared back to Not set.
+enum LicenseDraftRules {
+    static func hasSomethingToSave(key: String,
+                                   email: String,
+                                   type: LicenseType?,
+                                   hasKey: Bool,
+                                   currentType: LicenseType?) -> Bool {
+        if !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
+        if hasKey { return true }
+        if type != currentType { return true }
+        if !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
+        return false
+    }
+}
+
 /// Free and Paid are mutually exclusive marks; applying one clears the other.
 /// Unmarking never sets the opposite.
 enum PricingMarks {
