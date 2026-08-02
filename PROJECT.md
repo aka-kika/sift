@@ -6,7 +6,7 @@ obsidian_log: N/A
 status: shipped
 tags: [macos, swiftui, app-audit]
 created: 2026-06-17
-updated: 2026-07-05
+updated: 2026-08-02
 ---
 
 # Sift
@@ -46,7 +46,7 @@ audit exportable to CSV. Ships as a Developer ID–signed, notarized DMG.
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status
-`shipped` — v1.7.0 live; installed as my daily app. Next feature (receipt extraction) is specced and deferred.
+`shipped` — v1.8.0 live; installed as my daily app. Next feature (receipt extraction) is specced and deferred.
 
 ## Key paths
 - **entry**: `Sources/AppAudit/AppAuditApp.swift`
@@ -71,6 +71,7 @@ Store installs; unranked-My-Apps and receipt-extraction are designed but unbuilt
 
 ## Log
 - 2026-08-01 — v1.7.0: uninstall sweep (trash-first, uninstally-adapted), Cross-App cube removed, one-entry License menu, vault icon fixes.
+- 2026-08-02 — v1.8.0: App Store fixes found by living in the app — uninstall hands root-owned bundles to Finder, licence types save without a key and reach the vault. Vault names link out; detail page gains a facts row, named blocks, and an About tab.
 - 2026-08-01 — v1.6.0: License cube merge + tabbed popover, instant label strip, Developer Mode, per-type license colors mirrored in the sidebar.
 - 2026-07-05 — v1.5.1: My App cube + Docs gating, fixed 2-row grid, top-down header, first notarized DMG.
 - 2026-07-04 — v1.4.0 → v1.5.0: notes-as-evidence, utility cubes, docs evidence, Cross-App, dark-mode pastels, menu-bar move.

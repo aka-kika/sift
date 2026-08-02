@@ -12,6 +12,11 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
+<!-- SF Symbol: hammer -->
+Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+
+## [1.8.0] — 2026-08-02
+
 <!-- SF Symbol: infinity -->
 ### Fixed
 - Uninstall works on Mac App Store apps. Store bundles are owned by root, and macOS requires write permission on a directory to move it — so every store app landed in "could not be moved". A permission refusal is now handed to Finder, which owns that path (and puts up its own prompt if one is needed); Sift never touches a password.
@@ -32,8 +37,6 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 - One micro-label style across the detail page: small, uppercase, tertiary, above every fact cell and prose block.
 - Long-form analysis text got a little line spacing, so the page reads less cramped.
 - The License cube wears the license type once one is recorded — an App Store app marked Lifetime shows the infinity face, and its hover reads "Mac App Store — Lifetime, tied to your Apple ID".
-
-Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 
 ## [1.7.0] — 2026-08-01
 
@@ -106,7 +109,10 @@ Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 - Foundations: app scan and 1–5 workflow scoring, update detection (App Store / Sparkle / Homebrew), Keychain license keys + vault, subscription tracking, CSV export, last-used sort, instant appearance switching. See `docs/releases/` for per-version records.
 
 <!-- Link references — point each version at its compare/diff range. -->
-[Unreleased]: https://github.com/aka-kika/sift/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/aka-kika/sift/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/aka-kika/sift/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/aka-kika/sift/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/aka-kika/sift/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/aka-kika/sift/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/aka-kika/sift/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/aka-kika/sift/compare/v1.3.3...v1.4.0

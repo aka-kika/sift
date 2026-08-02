@@ -77,6 +77,11 @@ spctl --assess --type open --verbose=4 Sift-1.1.0.dmg
   (or `sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer` once).
 - Notarization credentials are stored in the login Keychain under the
   `AC_PASSWORD` profile (`xcrun notarytool store-credentials`).
+- The login Keychain holds two valid `Developer ID Application: Veronica Loren
+  (P5RB3W3D58)` certificates, so passing `APP_IDENTITY` by name fails with
+  "ambiguous". Pass the SHA-1 hash instead — list them with
+  `security find-identity -v -p codesigning`:
+  `APP_IDENTITY=ADC1CB6085203C50EB344490FD8FC03345838EFB`.
 
 - `Scripts/package_app.sh` defaults to ad-hoc signing for local builds.
 - Set `SIGNING_MODE=developer` and `APP_IDENTITY` for release signing.
