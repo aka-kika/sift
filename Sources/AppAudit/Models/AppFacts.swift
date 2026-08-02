@@ -13,13 +13,12 @@ struct AppFact: Identifiable, Equatable {
 }
 
 enum AppFacts {
+    /// Four cells at most, so the row always fits one line. Cost is left out
+    /// on purpose — the License cube already tells that story in colour.
     static func build(sizeBytes: Int64?,
                       lastUsed: Date?,
                       now: Date,
                       installSource: String,
-                      licenseType: LicenseType?,
-                      hasSubscription: Bool,
-                      isFreeApp: Bool,
                       analyzedAt: Date?) -> [AppFact] {
         var facts: [AppFact] = []
 
@@ -28,11 +27,6 @@ enum AppFacts {
         }
         facts.append(AppFact(label: "Last used", value: lastUsedText(lastUsed, now: now)))
         facts.append(AppFact(label: "Source", value: sourceText(installSource)))
-        if let cost = costText(licenseType: licenseType,
-                               hasSubscription: hasSubscription,
-                               isFreeApp: isFreeApp) {
-            facts.append(AppFact(label: "Cost", value: cost))
-        }
         if let analyzedAt {
             facts.append(AppFact(label: "Analyzed", value: relative(analyzedAt, now: now)))
         }
@@ -63,17 +57,6 @@ enum AppFacts {
     /// means nothing to a reader, so name what actually happened.
     static func sourceText(_ label: String) -> String {
         label == "Other" ? "Direct download" : label
-    }
-
-    /// One line for the money story, strongest evidence first. Nothing
-    /// recorded means nothing shown — the License cube is where you set it.
-    static func costText(licenseType: LicenseType?,
-                         hasSubscription: Bool,
-                         isFreeApp: Bool) -> String? {
-        if hasSubscription { return "Subscription" }
-        if let licenseType { return "\(licenseType.displayName) license" }
-        if isFreeApp { return "Free" }
-        return nil
     }
 
     private static func relative(_ date: Date, now: Date) -> String {

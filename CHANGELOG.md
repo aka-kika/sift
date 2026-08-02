@@ -22,10 +22,13 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 - Sidebar right-click offers License… for App Store apps too (Set License Type… when nothing is recorded yet).
 
 ### Added
-- A quiet facts row closes the detail page — on disk, last used, source, cost, analyzed — filling the empty space under the analysis with things the prose never says. Anything Sift doesn't know is left out rather than shown blank.
+- A quiet facts row closes the detail page — on disk, last used, source, analyzed — filling the empty space under the analysis with things the prose never says. Four cells at most, so it always sits on one line; anything Sift doesn't know is left out rather than shown blank.
 - App names in the License Vault are links out to the maker's site — the saved link first, then Sift's suggestion, and a web search when neither is on record, so a vault entry never leaves you googling for where you bought it.
 
 ### Changed
+- "What is this?" is a proper section heading now, with a sparkles glyph in place of the info circle.
+- The two prose blocks under the score are labelled — Good for, Why this score — so the grey line at the end reads as a finding rather than a trailing remark.
+- One micro-label style across the detail page: small, uppercase, tertiary, above every fact cell and prose block.
 - Long-form analysis text got a little line spacing, so the page reads less cramped.
 - The License cube wears the license type once one is recorded — an App Store app marked Lifetime shows the infinity face, and its hover reads "Mac App Store — Lifetime, tied to your Apple ID".
 

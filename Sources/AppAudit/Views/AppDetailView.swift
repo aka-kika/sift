@@ -150,6 +150,32 @@ struct AppDetailView: View {
         }
     }
 
+    // MARK: - Shared type
+
+    /// The one micro-label style on this page: small, uppercase, tertiary.
+    /// Used above every fact cell and above each block of analysis prose, so
+    /// a caption always reads as a caption and never competes with the text
+    /// it introduces.
+    private func microLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .tracking(0.6)
+            .textCase(.uppercase)
+            .foregroundStyle(.tertiary)
+    }
+
+    /// Section headings across the detail page: one size, one weight, with a
+    /// quiet glyph that names the section rather than decorating it.
+    private func sectionTitle(_ text: String, systemImage: String) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.title3.weight(.semibold))
+        }
+    }
+
     // MARK: - Facts
 
     /// Closes the page with what the prose above never says: room taken, last
@@ -163,23 +189,16 @@ struct AppDetailView: View {
             lastUsed: app.lastUsedDate,
             now: Date(),
             installSource: app.installSourceLabel,
-            licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:)),
-            hasSubscription: record?.hasSubscription == true,
-            isFreeApp: record?.isFreeApp == true,
             analyzedAt: record?.generatedAt
         )
         return VStack(alignment: .leading, spacing: 12) {
             Divider()
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 130), spacing: 20, alignment: .leading)],
-                alignment: .leading,
-                spacing: 12
-            ) {
+            // Four cells share the width evenly and never wrap — the row is a
+            // single line by construction, not by luck.
+            HStack(alignment: .top, spacing: 16) {
                 ForEach(facts) { fact in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(fact.label)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                        microLabel(fact.label)
                         Text(fact.value)
                             .font(.callout)
                             .foregroundStyle(.secondary)
@@ -420,22 +439,31 @@ struct AppDetailView: View {
                         .foregroundStyle(colorForScore(score))
                 }
 
+                // Two different claims wearing the same grey: what the app is
+                // good for, and why it scored what it scored. Naming each one
+                // stops the second from reading as a stray afterthought.
                 if !bestUse.isEmpty {
-                    Text(bestUse)
+                    VStack(alignment: .leading, spacing: 4) {
+                        microLabel("Good for")
+                        Text(bestUse)
+                            .font(.body)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    microLabel("Why this score")
+                    Text(reason)
                         .font(.body)
                         .lineSpacing(3)
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Text(reason)
-                    .font(.body)
-                    .lineSpacing(3)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -508,8 +536,7 @@ struct AppDetailView: View {
         if explanation != nil || userDescription != nil {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
-                    Label("What is this?", systemImage: "info.circle.fill")
-                        .font(.subheadline.weight(.semibold))
+                    sectionTitle("What is this?", systemImage: "sparkles")
                     Spacer()
                     Button {
                         draftDescription = record?.userDescription ?? ""
@@ -529,9 +556,7 @@ struct AppDetailView: View {
                 if let explanation {
                     VStack(alignment: .leading, spacing: 4) {
                         if userDescription != nil {
-                            Text("AI explanation")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                            microLabel("AI explanation")
                         }
                         Text(explanation)
                             .font(.body)
@@ -553,10 +578,8 @@ struct AppDetailView: View {
             HStack(spacing: 4) {
                 Image(systemName: "person.fill")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text("Your description")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
+                microLabel("Your description")
             }
             Text(text)
                 .font(.body)

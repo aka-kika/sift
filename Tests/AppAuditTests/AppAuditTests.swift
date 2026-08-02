@@ -1684,21 +1684,15 @@ struct AppFactsTests {
     private func facts(sizeBytes: Int64? = 12_345_678,
                        lastUsed: Date? = nil,
                        source: String = "App Store",
-                       licenseType: LicenseType? = nil,
-                       hasSubscription: Bool = false,
-                       isFreeApp: Bool = false,
                        analyzedAt: Date? = nil) -> [AppFact] {
         AppFacts.build(sizeBytes: sizeBytes, lastUsed: lastUsed, now: Self.now,
-                       installSource: source, licenseType: licenseType,
-                       hasSubscription: hasSubscription, isFreeApp: isFreeApp,
-                       analyzedAt: analyzedAt)
+                       installSource: source, analyzedAt: analyzedAt)
     }
 
     @Test("Unknown facts are left out rather than shown empty")
     func omitsUnknowns() {
         let row = facts(sizeBytes: nil)
         #expect(!row.contains { $0.label == "On disk" })
-        #expect(!row.contains { $0.label == "Cost" })
         #expect(!row.contains { $0.label == "Analyzed" })
         // Last used and Source always have an answer.
         #expect(row.map(\.label) == ["Last used", "Source"])
@@ -1724,22 +1718,12 @@ struct AppFactsTests {
         #expect(AppFacts.sourceText("App Store") == "App Store")
     }
 
-    @Test("Cost reports the strongest evidence first")
-    func cost() {
-        #expect(AppFacts.costText(licenseType: .lifetime, hasSubscription: true,
-                                  isFreeApp: false) == "Subscription")
-        #expect(AppFacts.costText(licenseType: .lifetime, hasSubscription: false,
-                                  isFreeApp: false) == "Lifetime license")
-        #expect(AppFacts.costText(licenseType: nil, hasSubscription: false,
-                                  isFreeApp: true) == "Free")
-        #expect(AppFacts.costText(licenseType: nil, hasSubscription: false,
-                                  isFreeApp: false) == nil)
-    }
-
-    @Test("A full row keeps its reading order")
+    /// Four cells is the cap that lets the row stay on one line.
+    @Test("A full row is four cells in reading order")
     func order() {
-        let row = facts(lastUsed: Self.now, licenseType: .lifetime, analyzedAt: Self.now)
-        #expect(row.map(\.label) == ["On disk", "Last used", "Source", "Cost", "Analyzed"])
+        let row = facts(lastUsed: Self.now, analyzedAt: Self.now)
+        #expect(row.map(\.label) == ["On disk", "Last used", "Source", "Analyzed"])
+        #expect(row.count <= 4)
     }
 }
 
