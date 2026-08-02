@@ -81,8 +81,9 @@ struct LeftoverScanner: Sendable {
         return bundle + rest
     }
 
-    /// Recursive on-disk size; a single file answers directly.
-    private static func size(of url: URL) -> Int64 {
+    /// Recursive on-disk size; a single file answers directly. Shared with the
+    /// detail view's facts row, which measures the bundle the same way.
+    static func size(of url: URL) -> Int64 {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { return 0 }

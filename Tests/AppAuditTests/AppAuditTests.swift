@@ -1677,6 +1677,72 @@ struct MoneyCubeStateTests {
     }
 }
 
+@Suite("App Facts")
+struct AppFactsTests {
+    private static let now = Date(timeIntervalSince1970: 1_770_000_000)
+
+    private func facts(sizeBytes: Int64? = 12_345_678,
+                       lastUsed: Date? = nil,
+                       source: String = "App Store",
+                       licenseType: LicenseType? = nil,
+                       hasSubscription: Bool = false,
+                       isFreeApp: Bool = false,
+                       analyzedAt: Date? = nil) -> [AppFact] {
+        AppFacts.build(sizeBytes: sizeBytes, lastUsed: lastUsed, now: Self.now,
+                       installSource: source, licenseType: licenseType,
+                       hasSubscription: hasSubscription, isFreeApp: isFreeApp,
+                       analyzedAt: analyzedAt)
+    }
+
+    @Test("Unknown facts are left out rather than shown empty")
+    func omitsUnknowns() {
+        let row = facts(sizeBytes: nil)
+        #expect(!row.contains { $0.label == "On disk" })
+        #expect(!row.contains { $0.label == "Cost" })
+        #expect(!row.contains { $0.label == "Analyzed" })
+        // Last used and Source always have an answer.
+        #expect(row.map(\.label) == ["Last used", "Source"])
+    }
+
+    @Test("A zero or missing size is not a fact")
+    func zeroSize() {
+        #expect(!facts(sizeBytes: 0).contains { $0.label == "On disk" })
+    }
+
+    @Test("Never-opened apps say so — the most useful cell for an audit")
+    func lastUsed() {
+        #expect(AppFacts.lastUsedText(nil, now: Self.now) == "Never")
+        #expect(AppFacts.lastUsedText(Self.now, now: Self.now) == "Today")
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Self.now)!
+        #expect(AppFacts.lastUsedText(yesterday, now: Self.now) == "Yesterday")
+    }
+
+    @Test("\"Other\" is named as what actually happened")
+    func source() {
+        #expect(AppFacts.sourceText("Other") == "Direct download")
+        #expect(AppFacts.sourceText("Homebrew") == "Homebrew")
+        #expect(AppFacts.sourceText("App Store") == "App Store")
+    }
+
+    @Test("Cost reports the strongest evidence first")
+    func cost() {
+        #expect(AppFacts.costText(licenseType: .lifetime, hasSubscription: true,
+                                  isFreeApp: false) == "Subscription")
+        #expect(AppFacts.costText(licenseType: .lifetime, hasSubscription: false,
+                                  isFreeApp: false) == "Lifetime license")
+        #expect(AppFacts.costText(licenseType: nil, hasSubscription: false,
+                                  isFreeApp: true) == "Free")
+        #expect(AppFacts.costText(licenseType: nil, hasSubscription: false,
+                                  isFreeApp: false) == nil)
+    }
+
+    @Test("A full row keeps its reading order")
+    func order() {
+        let row = facts(lastUsed: Self.now, licenseType: .lifetime, analyzedAt: Self.now)
+        #expect(row.map(\.label) == ["On disk", "Last used", "Source", "Cost", "Analyzed"])
+    }
+}
+
 @Suite("Trash Service")
 struct TrashServiceTests {
     /// The exact error a root-owned Mac App Store bundle produces.

@@ -39,6 +39,7 @@ struct AppDetailView: View {
     @State private var homebrewUpdateMessage: String? = nil
     @State private var docsMessage: String? = nil
     @State private var hoveredCubeInfo: String? = nil
+    @State private var bundleSizeBytes: Int64? = nil
 
     var body: some View {
         ScrollView {
@@ -53,6 +54,7 @@ struct AppDetailView: View {
                         similarSection
                     }
                 }
+                factsSection
             }
             .frame(maxWidth: 720, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -145,6 +147,56 @@ struct AppDetailView: View {
             Button("OK") {}
         } message: {
             Text(docsMessage ?? "")
+        }
+    }
+
+    // MARK: - Facts
+
+    /// Closes the page with what the prose above never says: room taken, last
+    /// opened, where it came from, what it costs. Everything is already on
+    /// hand except the bundle size, which is measured off the main thread.
+    /// Labels stay tertiary and there are no boxes — the row should read as a
+    /// footnote, not a second dashboard.
+    private var factsSection: some View {
+        let facts = AppFacts.build(
+            sizeBytes: bundleSizeBytes,
+            lastUsed: app.lastUsedDate,
+            now: Date(),
+            installSource: app.installSourceLabel,
+            licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:)),
+            hasSubscription: record?.hasSubscription == true,
+            isFreeApp: record?.isFreeApp == true,
+            analyzedAt: record?.generatedAt
+        )
+        return VStack(alignment: .leading, spacing: 12) {
+            Divider()
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 130), spacing: 20, alignment: .leading)],
+                alignment: .leading,
+                spacing: 12
+            ) {
+                ForEach(facts) { fact in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(fact.label)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        Text(fact.value)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: app.bundleID) {
+            bundleSizeBytes = nil
+            let path = app.path
+            bundleSizeBytes = await Task.detached {
+                LeftoverScanner.size(of: URL(fileURLWithPath: path))
+            }.value
         }
     }
 
@@ -371,6 +423,7 @@ struct AppDetailView: View {
                 if !bestUse.isEmpty {
                     Text(bestUse)
                         .font(.body)
+                        .lineSpacing(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -378,6 +431,7 @@ struct AppDetailView: View {
 
                 Text(reason)
                     .font(.body)
+                    .lineSpacing(3)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .multilineTextAlignment(.leading)
@@ -481,6 +535,7 @@ struct AppDetailView: View {
                         }
                         Text(explanation)
                             .font(.body)
+                            .lineSpacing(3)
                             .foregroundStyle(userDescription != nil ? .secondary : .primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .multilineTextAlignment(.leading)
