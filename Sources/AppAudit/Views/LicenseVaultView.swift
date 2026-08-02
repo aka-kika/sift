@@ -101,7 +101,7 @@ struct LicenseVaultView: View {
                     .frame(width: 28, height: 28)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(record.appName).font(.body)
+                nameLink(record)
                 Text(record.bundleID)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
@@ -154,6 +154,35 @@ struct LicenseVaultView: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// The name is the way back to the maker's site — the page that sells the
+    /// app, holds the receipt, or lets you re-download it. A saved link wins,
+    /// then Sift's suggestion, and failing both the name goes to a search
+    /// rather than leaving you to look it up by hand.
+    private func nameLink(_ record: AppRecord) -> some View {
+        let destination = VaultLink.destination(appURL: record.appURL,
+                                                suggestedAppURL: record.suggestedAppURL,
+                                                appName: record.appName)
+        return Button {
+            #if canImport(AppKit)
+            NSWorkspace.shared.open(destination.url)
+            #endif
+        } label: {
+            HStack(spacing: 4) {
+                Text(record.appName).font(.body)
+                Image(systemName: destination.isSearch ? "magnifyingglass" : "arrow.up.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .help(VaultLink.help(for: destination, appName: record.appName))
+        #if canImport(AppKit)
+        .onHover { inside in
+            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+        #endif
     }
 
     private func copyKey(for bundleID: String) {

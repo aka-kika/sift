@@ -19,6 +19,9 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 - A keyless licensed app now reaches the License Vault. Records carrying only a license type were invisible there; they now list with their type, and the vault's trash clears the type along with the Paid mark.
 - Sidebar right-click offers License… for App Store apps too (Set License Type… when nothing is recorded yet).
 
+### Added
+- App names in the License Vault are links out to the maker's site — the saved link first, then Sift's suggestion, and a web search when neither is on record, so a vault entry never leaves you googling for where you bought it.
+
 ### Changed
 - The License cube wears the license type once one is recorded — an App Store app marked Lifetime shows the infinity face, and its hover reads "Mac App Store — Lifetime, tied to your Apple ID".
 

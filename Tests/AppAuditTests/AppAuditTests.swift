@@ -1677,6 +1677,58 @@ struct MoneyCubeStateTests {
     }
 }
 
+@Suite("Vault Link")
+struct VaultLinkTests {
+    @Test("A saved link wins over a suggestion")
+    func savedWins() {
+        let destination = VaultLink.destination(appURL: "https://raycast.com",
+                                                suggestedAppURL: "https://example.com",
+                                                appName: "Raycast")
+        #expect(destination == .saved(URL(string: "https://raycast.com")!))
+    }
+
+    @Test("The suggestion is followed when nothing is saved")
+    func suggestionFallback() {
+        let destination = VaultLink.destination(appURL: nil,
+                                                suggestedAppURL: "https://kosshi.app",
+                                                appName: "Kosshi")
+        #expect(destination == .suggested(URL(string: "https://kosshi.app")!))
+        #expect(!destination.isSearch)
+    }
+
+    @Test("Blank and whitespace-only links do not count as links")
+    func blankLinks() {
+        let destination = VaultLink.destination(appURL: "  ", suggestedAppURL: "",
+                                                appName: "Kosshi")
+        #expect(destination.isSearch)
+    }
+
+    @Test("A bare host gets an https scheme so it actually opens")
+    func schemeless() {
+        let destination = VaultLink.destination(appURL: "raycast.com", suggestedAppURL: nil,
+                                                appName: "Raycast")
+        #expect(destination == .saved(URL(string: "https://raycast.com")!))
+    }
+
+    @Test("No link on record falls back to a web search for the app name")
+    func searchFallback() {
+        let destination = VaultLink.destination(appURL: nil, suggestedAppURL: nil,
+                                                appName: "Folder Quick Look")
+        #expect(destination.isSearch)
+        #expect(destination.url.absoluteString.contains("Folder"))
+        #expect(destination.url.host() == "www.google.com")
+    }
+
+    @Test("Help text names the destination")
+    func helpText() {
+        let saved = VaultLink.destination(appURL: "https://raycast.com", suggestedAppURL: nil,
+                                          appName: "Raycast")
+        #expect(VaultLink.help(for: saved, appName: "Raycast") == "Open raycast.com")
+        let search = VaultLink.destination(appURL: nil, suggestedAppURL: nil, appName: "Kosshi")
+        #expect(VaultLink.help(for: search, appName: "Kosshi").contains("Kosshi"))
+    }
+}
+
 @Suite("License Draft Rules")
 struct LicenseDraftRulesTests {
     @Test("Nothing typed and nothing changed is not saveable")
