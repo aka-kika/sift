@@ -3,7 +3,9 @@ import Foundation
 /// The face of the merged License cube — one cube owns App Store ownership,
 /// license keys, paid/free marks, and subscriptions. Precedence:
 /// subscription > App Store > licensed/paid > free > none. App Store
-/// outranks licensed because store installs never carry license keys.
+/// outranks licensed because store installs never carry license keys —
+/// unless you have recorded what kind of purchase it was, in which case
+/// "Lifetime" is the more useful face and the seal moves to the popover.
 enum MoneyCubeState: Equatable {
     case subscription(renewalNear: Bool)
     case appStore
@@ -19,8 +21,11 @@ enum MoneyCubeState: Equatable {
                        isFreeApp: Bool,
                        licenseType: LicenseType? = nil) -> MoneyCubeState {
         if hasSubscription { return .subscription(renewalNear: renewalNear) }
-        if isAppStoreInstall { return .appStore }
-        if hasLicenseKey || isPaidApp { return .licensed(licenseType) }
+        if isAppStoreInstall {
+            if let licenseType { return .licensed(licenseType) }
+            return .appStore
+        }
+        if hasLicenseKey || isPaidApp || licenseType != nil { return .licensed(licenseType) }
         if isFreeApp { return .free }
         return .none
     }

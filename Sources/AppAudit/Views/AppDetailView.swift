@@ -841,16 +841,27 @@ struct AppDetailView: View {
     }
 
     private var licenseHelp: String {
+        let type = record?.licenseType.flatMap(LicenseType.init(rawValue:))
         if app.isAppStoreInstall {
+            if let type {
+                return "Mac App Store — \(type.displayName), tied to your Apple ID"
+            }
             return record?.isPaidApp == true
                 ? "Mac App Store — paid, tied to your Apple ID"
                 : "Mac App Store — tied to your Apple ID"
         }
         if let key = currentLicenseKey, !key.isEmpty {
             var parts = ["License key saved"]
-            if let type = record?.licenseType.flatMap(LicenseType.init(rawValue:)) {
+            if let type {
                 parts.append(type.displayName)
             }
+            if let email = record?.licenseEmail, !email.isEmpty {
+                parts.append(email)
+            }
+            return parts.joined(separator: " · ")
+        }
+        if let type {
+            var parts = ["\(type.displayName) license"]
             if let email = record?.licenseEmail, !email.isEmpty {
                 parts.append(email)
             }
@@ -868,6 +879,12 @@ struct AppDetailView: View {
 
         if app.isAppStoreInstall {
             Label("Mac App Store — tied to your Apple ID", systemImage: "checkmark.seal.fill")
+            Button {
+                openMoneyPopover()
+            } label: {
+                Label(record?.licenseType == nil ? "Set License Type…" : "Edit License…",
+                      systemImage: "pencil")
+            }
         } else if let key = currentLicenseKey, !key.isEmpty {
             Button {
                 copyLicenseKey(key)
@@ -885,7 +902,8 @@ struct AppDetailView: View {
                 Label("Remove Key", systemImage: "trash")
             }
         } else {
-            if !hasSub {
+            // Paid/Free only while nothing stronger is on record.
+            if !hasSub, record?.licenseType == nil {
                 Button {
                     togglePaid()
                 } label: {
@@ -903,7 +921,8 @@ struct AppDetailView: View {
             Button {
                 openMoneyPopover()
             } label: {
-                Label("Add License Key…", systemImage: "key.horizontal")
+                Label(record?.licenseType == nil ? "Add License Key…" : "Edit License…",
+                      systemImage: record?.licenseType == nil ? "key.horizontal" : "pencil")
             }
         }
         if hasSub {
@@ -954,18 +973,26 @@ struct AppDetailView: View {
         saveRecord()
     }
 
+    /// A license is worth keeping even without a key — an App Store purchase
+    /// carries no key at all, but "Lifetime, bought with this Apple ID" is
+    /// exactly what the vault is for. So the type and email persist on their
+    /// own, and only an emptied key field clears the keychain entry.
     private func saveLicenseFromDrafts() {
         let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let ensuredRecord = ensureRecord()
-        licenseKeyStore.save(trimmed, bundleID: app.bundleID)
+        if trimmed.isEmpty {
+            licenseKeyStore.delete(bundleID: app.bundleID)
+        } else {
+            licenseKeyStore.save(trimmed, bundleID: app.bundleID)
+        }
         currentLicenseKey = trimmed.isEmpty ? nil : trimmed
         ensuredRecord.licenseKey = nil
         ensuredRecord.hasLicenseKey = !trimmed.isEmpty
         let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        ensuredRecord.licenseEmail = (trimmed.isEmpty || email.isEmpty) ? nil : email
+        ensuredRecord.licenseEmail = email.isEmpty ? nil : email
         ensuredRecord.licenseType = draftLicenseType?.rawValue
         viewModel.setLicenseType(bundleID: app.bundleID, rawValue: ensuredRecord.licenseType)
-        if !trimmed.isEmpty, ensuredRecord.iconPNG == nil {
+        if (!trimmed.isEmpty || draftLicenseType != nil), ensuredRecord.iconPNG == nil {
             ensuredRecord.iconPNG = app.icon?.pngData()
         }
         saveRecord()

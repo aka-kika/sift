@@ -12,8 +12,20 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
-<!-- SF Symbol: hammer -->
-Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+<!-- SF Symbol: infinity -->
+### Fixed
+- Mac App Store apps are no longer stuck on the seal: the License popover keeps its Key | Subscription tabs (banner above them), so a store purchase can be recorded as Lifetime, One-time, Annual or Other — and a mis-detected install can still take a key.
+- The license type saves on its own. Save no longer requires a key, so a type can be set, corrected, or cleared back to Not set at any time.
+- A keyless licensed app now reaches the License Vault. Records carrying only a license type were invisible there; they now list with their type, and the vault's trash clears the type along with the Paid mark.
+- Sidebar right-click offers License… for App Store apps too (Set License Type… when nothing is recorded yet).
+
+### Added
+- App names in the License Vault are links out to the maker's site — the saved link first, then Sift's suggestion, and a web search when neither is on record, so a vault entry never leaves you googling for where you bought it.
+
+### Changed
+- The License cube wears the license type once one is recorded — an App Store app marked Lifetime shows the infinity face, and its hover reads "Mac App Store — Lifetime, tied to your Apple ID".
+
+Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 
 ## [1.7.0] — 2026-08-01
 

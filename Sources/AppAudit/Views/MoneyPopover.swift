@@ -5,8 +5,10 @@ import SwiftUI
 /// Dumb view — state arrives as values/bindings, changes leave as callbacks.
 ///
 /// Layout keeps one section visible at a time (Key | Subscription tabs) so
-/// the panel stays small; App Store installs swap the Key tab for a seal
-/// banner since their license lives with the Apple ID.
+/// the panel stays small; App Store installs get a seal banner above the
+/// tabs since their license lives with the Apple ID — but they keep every
+/// field, so a store purchase can still be recorded as Lifetime and a
+/// mis-detected install is never locked out of its key.
 struct MoneyPopover: View {
     let appName: String
     let isAppStoreInstall: Bool
@@ -61,6 +63,20 @@ struct MoneyPopover: View {
         UtilityCardRules.licenseDisabled(isMyApp: isMyApp, isFreeApp: isFree)
     }
 
+    /// Save stays live whenever the panel holds something worth writing.
+    /// A key is not the only thing worth saving: correcting the license type
+    /// — or recording "Lifetime" for a keyless App Store purchase — is a
+    /// save on its own, and clearing the type back to Not set is too.
+    private var licenseSaveDisabled: Bool {
+        !LicenseDraftRules.hasSomethingToSave(
+            key: draftLicenseKey,
+            email: draftLicenseEmail,
+            type: draftLicenseType,
+            hasKey: hasKey,
+            currentType: currentLicenseType
+        )
+    }
+
     private var subscriptionDisabled: Bool {
         UtilityCardRules.subscriptionDisabled(isMyApp: isMyApp, isFreeApp: isFree,
                                               licenseType: currentLicenseType)
@@ -72,20 +88,19 @@ struct MoneyPopover: View {
 
             if isAppStoreInstall {
                 appStoreBanner
-                subscriptionSection
-            } else {
-                Picker("", selection: $tab) {
-                    ForEach(Tab.allCases, id: \.self) { t in
-                        Text(t.rawValue).tag(t)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+            }
 
-                switch tab {
-                case .key: licenseSection
-                case .subscription: subscriptionSection
+            Picker("", selection: $tab) {
+                ForEach(Tab.allCases, id: \.self) { t in
+                    Text(t.rawValue).tag(t)
                 }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            switch tab {
+            case .key: licenseSection
+            case .subscription: subscriptionSection
             }
         }
         .padding(16)
@@ -100,9 +115,10 @@ struct MoneyPopover: View {
     /// Only the Free mark earns a pill — it drives real behavior (green
     /// gift, gated money fields). Paid is implied by a key or subscription;
     /// for the rare keyless purchase it lives in the cube's right-click.
-    /// The pill hides once a key or subscription proves the app costs money.
+    /// The pill hides once a key, a license type, or a subscription proves
+    /// the app costs money.
     private var showsFreeMark: Bool {
-        !hasKey && !hasSubscription
+        !hasKey && !hasSubscription && currentLicenseType == nil
     }
 
     private var header: some View {
@@ -229,7 +245,7 @@ struct MoneyPopover: View {
                 }
                     .controlSize(.small)
                     .buttonStyle(.borderedProminent)
-                    .disabled(draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !hasKey)
+                    .disabled(licenseSaveDisabled)
             }
         }
         .disabled(licenseDisabled)

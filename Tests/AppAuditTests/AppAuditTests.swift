@@ -1614,6 +1614,21 @@ struct MoneyCubeStateTests {
         #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: true,
                                       hasSubscription: false, renewalNear: false, isFreeApp: false)
                 == .appStore)
+        // ...until you record what kind of purchase it was.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false,
+                                      licenseType: .lifetime)
+                == .licensed(.lifetime))
+        // A license type alone is enough to count as licensed — no key needed.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: false, renewalNear: false, isFreeApp: false,
+                                      licenseType: .oneTime)
+                == .licensed(.oneTime))
+        // Subscription still outranks a typed App Store purchase.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: false,
+                                      licenseType: .lifetime)
+                == .subscription(renewalNear: false))
         // Key or paid mark → licensed, carrying the license type.
         #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: true, isPaidApp: false,
                                       hasSubscription: false, renewalNear: false, isFreeApp: false)
@@ -1659,6 +1674,93 @@ struct MoneyCubeStateTests {
         #expect(MoneyCubeState.licensed(.annual).symbol == "calendar")
         #expect(MoneyCubeState.licensed(.other).symbol == "key.horizontal")
         #expect(MoneyCubeState.licensed(nil).symbol == "key.horizontal")
+    }
+}
+
+@Suite("Vault Link")
+struct VaultLinkTests {
+    @Test("A saved link wins over a suggestion")
+    func savedWins() {
+        let destination = VaultLink.destination(appURL: "https://raycast.com",
+                                                suggestedAppURL: "https://example.com",
+                                                appName: "Raycast")
+        #expect(destination == .saved(URL(string: "https://raycast.com")!))
+    }
+
+    @Test("The suggestion is followed when nothing is saved")
+    func suggestionFallback() {
+        let destination = VaultLink.destination(appURL: nil,
+                                                suggestedAppURL: "https://kosshi.app",
+                                                appName: "Kosshi")
+        #expect(destination == .suggested(URL(string: "https://kosshi.app")!))
+        #expect(!destination.isSearch)
+    }
+
+    @Test("Blank and whitespace-only links do not count as links")
+    func blankLinks() {
+        let destination = VaultLink.destination(appURL: "  ", suggestedAppURL: "",
+                                                appName: "Kosshi")
+        #expect(destination.isSearch)
+    }
+
+    @Test("A bare host gets an https scheme so it actually opens")
+    func schemeless() {
+        let destination = VaultLink.destination(appURL: "raycast.com", suggestedAppURL: nil,
+                                                appName: "Raycast")
+        #expect(destination == .saved(URL(string: "https://raycast.com")!))
+    }
+
+    @Test("No link on record falls back to a web search for the app name")
+    func searchFallback() {
+        let destination = VaultLink.destination(appURL: nil, suggestedAppURL: nil,
+                                                appName: "Folder Quick Look")
+        #expect(destination.isSearch)
+        #expect(destination.url.absoluteString.contains("Folder"))
+        #expect(destination.url.host() == "www.google.com")
+    }
+
+    @Test("Help text names the destination")
+    func helpText() {
+        let saved = VaultLink.destination(appURL: "https://raycast.com", suggestedAppURL: nil,
+                                          appName: "Raycast")
+        #expect(VaultLink.help(for: saved, appName: "Raycast") == "Open raycast.com")
+        let search = VaultLink.destination(appURL: nil, suggestedAppURL: nil, appName: "Kosshi")
+        #expect(VaultLink.help(for: search, appName: "Kosshi").contains("Kosshi"))
+    }
+}
+
+@Suite("License Draft Rules")
+struct LicenseDraftRulesTests {
+    @Test("Nothing typed and nothing changed is not saveable")
+    func emptyDraft() {
+        #expect(!LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: nil,
+                                                      hasKey: false, currentType: nil))
+        #expect(!LicenseDraftRules.hasSomethingToSave(key: "   ", email: "  ", type: .lifetime,
+                                                      hasKey: false, currentType: .lifetime))
+    }
+
+    @Test("A license type saves on its own — the App Store case")
+    func typeOnly() {
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: .lifetime,
+                                                     hasKey: false, currentType: nil))
+    }
+
+    @Test("Correcting or clearing a wrong type is saveable")
+    func changingType() {
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: .annual,
+                                                     hasKey: false, currentType: .lifetime))
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: nil,
+                                                     hasKey: false, currentType: .lifetime))
+    }
+
+    @Test("A key, an existing key, or an email all keep Save live")
+    func otherPayloads() {
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "ABC-123", email: "", type: nil,
+                                                     hasKey: false, currentType: nil))
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "", type: nil,
+                                                     hasKey: true, currentType: nil))
+        #expect(LicenseDraftRules.hasSomethingToSave(key: "", email: "me@example.com", type: nil,
+                                                     hasKey: false, currentType: nil))
     }
 }
 

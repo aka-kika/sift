@@ -17,7 +17,11 @@ struct LicenseVaultView: View {
     @Environment(AppListViewModel.self) private var viewModel
     private let licenseKeyStore = LicenseKeyStore.shared
 
-    @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey || $0.isPaidApp }, sort: \AppRecord.appName)
+    /// A recorded license type counts as a purchase on its own — that is the
+    /// only trace a keyless App Store buy ever leaves, and losing it here
+    /// would defeat the point of installing an app just to vault its license.
+    @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey || $0.isPaidApp || $0.licenseType != nil },
+           sort: \AppRecord.appName)
     private var ownedRecords: [AppRecord]
 
     @State private var copiedBundleID: String? = nil
@@ -51,7 +55,7 @@ struct LicenseVaultView: View {
                 ContentUnavailableView {
                     Label("Nothing Bought Yet", systemImage: "bag")
                 } description: {
-                    Text("Save a license key to an app, or mark a Mac App Store app as paid, and it appears here. Items stay in this vault even after you uninstall the app.")
+                    Text("Save a license key, set a license type, or mark a Mac App Store app as paid, and it appears here. Items stay in this vault even after you uninstall the app.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -97,7 +101,7 @@ struct LicenseVaultView: View {
                     .frame(width: 28, height: 28)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(record.appName).font(.body)
+                nameLink(record)
                 Text(record.bundleID)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
@@ -132,14 +136,16 @@ struct LicenseVaultView: View {
                 .controlSize(.small)
                 .help("Remove this key from the vault")
             } else {
-                Text("Mac App Store · Paid")
+                let type = record.licenseType.flatMap(LicenseType.init(rawValue:))
+                let tint = type.map { MoneyCubeState.licensed($0).tint } ?? .green
+                Text(type?.displayName ?? "Mac App Store · Paid")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(tint)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.green.opacity(0.14), in: Capsule())
+                    .background(tint.opacity(0.14), in: Capsule())
                 Button(role: .destructive) {
-                    unmarkPaid(record)
+                    removePurchase(record)
                 } label: {
                     Image(systemName: "trash")
                 }
@@ -148,6 +154,35 @@ struct LicenseVaultView: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// The name is the way back to the maker's site — the page that sells the
+    /// app, holds the receipt, or lets you re-download it. A saved link wins,
+    /// then Sift's suggestion, and failing both the name goes to a search
+    /// rather than leaving you to look it up by hand.
+    private func nameLink(_ record: AppRecord) -> some View {
+        let destination = VaultLink.destination(appURL: record.appURL,
+                                                suggestedAppURL: record.suggestedAppURL,
+                                                appName: record.appName)
+        return Button {
+            #if canImport(AppKit)
+            NSWorkspace.shared.open(destination.url)
+            #endif
+        } label: {
+            HStack(spacing: 4) {
+                Text(record.appName).font(.body)
+                Image(systemName: destination.isSearch ? "magnifyingglass" : "arrow.up.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .help(VaultLink.help(for: destination, appName: record.appName))
+        #if canImport(AppKit)
+        .onHover { inside in
+            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+        #endif
     }
 
     private func copyKey(for bundleID: String) {
@@ -174,9 +209,13 @@ struct LicenseVaultView: View {
         try? modelContext.save()
     }
 
-    private func unmarkPaid(_ record: AppRecord) {
+    /// Clears both traces of a keyless purchase — the Paid mark and the
+    /// license type — so one trash click actually removes the row.
+    private func removePurchase(_ record: AppRecord) {
         record.isPaidApp = false
         viewModel.setPaidApp(bundleID: record.bundleID, value: false)
+        record.licenseType = nil
+        viewModel.setLicenseType(bundleID: record.bundleID, rawValue: nil)
         try? modelContext.save()
     }
 }

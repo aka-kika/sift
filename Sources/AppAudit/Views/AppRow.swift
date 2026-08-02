@@ -150,35 +150,41 @@ struct AppRow: View {
             Divider()
 
             // Group 3: one License entry — everything money lives in the
-            // detail view's License popover. App Store installs need nothing
-            // here (the sidebar seal already tells the story).
-            if !app.isAppStoreInstall {
-                if let licenseKey = existingLicenseKey {
-                    Button {
-                        Task { @MainActor in
-                            if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(licenseKey, forType: .string)
-                            }
+            // detail view's License popover. App Store installs get it too:
+            // the seal says where it came from, not what kind of purchase it
+            // was, and that is the part worth recording.
+            if let licenseKey = existingLicenseKey {
+                Button {
+                    Task { @MainActor in
+                        if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(licenseKey, forType: .string)
                         }
-                    } label: {
-                        Label("Copy Key", systemImage: "doc.on.doc")
                     }
-                    Button {
-                        requestLicensePopover()
-                    } label: {
-                        Label("Edit License…", systemImage: "pencil")
-                    }
-                } else {
-                    Button {
-                        requestLicensePopover()
-                    } label: {
-                        Label("Add License…", systemImage: "key.horizontal")
-                    }
+                } label: {
+                    Label("Copy Key", systemImage: "doc.on.doc")
                 }
-
-                Divider()
+                Button {
+                    requestLicensePopover()
+                } label: {
+                    Label("Edit License…", systemImage: "pencil")
+                }
+            } else if app.licenseType != nil {
+                Button {
+                    requestLicensePopover()
+                } label: {
+                    Label("Edit License…", systemImage: "pencil")
+                }
+            } else {
+                Button {
+                    requestLicensePopover()
+                } label: {
+                    Label(app.isAppStoreInstall ? "Set License Type…" : "Add License…",
+                          systemImage: app.isAppStoreInstall ? "checkmark.seal" : "key.horizontal")
+                }
             }
+
+            Divider()
 
             // Group 4: Show in Finder, Open App, update items
             Button {
