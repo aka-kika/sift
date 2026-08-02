@@ -23,7 +23,7 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ### Added
 - A quiet facts row closes the detail page — on disk, last used, source, analyzed — filling the empty space under the analysis with things the prose never says. Four cells at most, so it always sits on one line; anything Sift doesn't know is left out rather than shown blank.
-- An About tab in Settings: app icon, version, the line, and links out to akakika.com, undrdr.com, X, and the Sift repo — each a full-width row that lights up on hover.
+- An About tab in Settings: app icon, version, the line, and links out to akakika.com, undrdr.com, X, and the Sift repo — each a full-width row that lights up on hover, wearing the real brand mark (bundled vector PDFs, tinted as templates so they follow light and dark).
 - App names in the License Vault are links out to the maker's site — the saved link first, then Sift's suggestion, and a web search when neither is on record, so a vault entry never leaves you googling for where you bought it.
 
 ### Changed

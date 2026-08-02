@@ -107,6 +107,11 @@ if [[ -f "$ICON_ICNS" ]]; then
   cp "$ICON_ICNS" "$APP/Contents/Resources/AppIcon.icns"
 fi
 
+# Bundle the About tab's brand glyphs (vector PDFs, tinted as templates)
+if [[ -d "$ROOT/Resources/socials" ]]; then
+  cp "$ROOT"/Resources/socials/*.pdf "$APP/Contents/Resources/"
+fi
+
 # Copy entitlements
 ENTITLEMENTS="$ROOT/Sources/AppAudit/AppAudit.entitlements"
 if [[ ! -f "$ENTITLEMENTS" ]]; then

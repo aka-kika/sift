@@ -7,23 +7,31 @@ import AppKit
 /// Deliberately not a Form — About pages read as a page, not a settings list.
 struct AboutSettingsTab: View {
     /// Every link in one place, so adding one is a line rather than a layout.
+    /// `glyph` names a bundled vector mark (real brand shapes, one icon
+    /// family); `fallbackSymbol` keeps the row honest if the resource is
+    /// missing from the bundle, which SwiftUI would otherwise render as a gap.
     private struct Destination: Identifiable {
         let title: String
         let detail: String
-        let symbol: String
+        let glyph: String
+        let fallbackSymbol: String
         let url: URL
         var id: String { url.absoluteString }
     }
 
     private let destinations: [Destination] = [
         Destination(title: "akakika.com", detail: "Where the work gets written up",
-                    symbol: "globe", url: URL(string: "https://akakika.com")!),
+                    glyph: "social-globe", fallbackSymbol: "globe",
+                    url: URL(string: "https://akakika.com")!),
         Destination(title: "undrdr.com", detail: "The next one, nearly out",
-                    symbol: "arrow.up.forward.app", url: URL(string: "https://undrdr.com")!),
+                    glyph: "social-link", fallbackSymbol: "link",
+                    url: URL(string: "https://undrdr.com")!),
         Destination(title: "@akakikaaa", detail: "X",
-                    symbol: "at", url: URL(string: "https://x.com/akakikaaa")!),
+                    glyph: "social-x", fallbackSymbol: "at",
+                    url: URL(string: "https://x.com/akakikaaa")!),
         Destination(title: "aka-kika/sift", detail: "GitHub — private for now",
-                    symbol: "chevron.left.forwardslash.chevron.right",
+                    glyph: "social-github",
+                    fallbackSymbol: "chevron.left.forwardslash.chevron.right",
                     url: URL(string: "https://github.com/aka-kika/sift")!),
     ]
 
@@ -36,7 +44,8 @@ struct AboutSettingsTab: View {
                     ForEach(destinations) { destination in
                         DestinationRow(title: destination.title,
                                        detail: destination.detail,
-                                       symbol: destination.symbol,
+                                       glyph: destination.glyph,
+                                       fallbackSymbol: destination.fallbackSymbol,
                                        url: destination.url)
                     }
                 }
@@ -113,10 +122,34 @@ struct AboutSettingsTab: View {
 private struct DestinationRow: View {
     let title: String
     let detail: String
-    let symbol: String
+    let glyph: String
+    let fallbackSymbol: String
     let url: URL
 
     @State private var hovering = false
+
+    /// Vector PDFs bundled beside the app icon, flagged as templates so they
+    /// take the foreground colour and follow light and dark like a symbol.
+    private var mark: some View {
+        Group {
+            #if canImport(AppKit)
+            if let image = NSImage(named: glyph) {
+                Image(nsImage: image)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 15, height: 15)
+            } else {
+                Image(systemName: fallbackSymbol)
+                    .font(.system(size: 14, weight: .medium))
+            }
+            #else
+            Image(systemName: fallbackSymbol)
+                .font(.system(size: 14, weight: .medium))
+            #endif
+        }
+        .foregroundStyle(hovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+    }
 
     var body: some View {
         Button {
@@ -125,9 +158,7 @@ private struct DestinationRow: View {
             #endif
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.secondary)
+                mark
                     .frame(width: 28, height: 28)
                     .background(.quaternary.opacity(0.4),
                                 in: RoundedRectangle(cornerRadius: 7, style: .continuous))

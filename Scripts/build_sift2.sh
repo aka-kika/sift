@@ -37,6 +37,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$SRCBIN" "$APP/Contents/MacOS/${APP_NAME}"
 chmod +x "$APP/Contents/MacOS/${APP_NAME}"
 [[ -f "$ROOT/Icon.icns" ]] && cp "$ROOT/Icon.icns" "$APP/Contents/Resources/AppIcon.icns"
+[[ -d "$ROOT/Resources/socials" ]] && cp "$ROOT"/Resources/socials/*.pdf "$APP/Contents/Resources/" || true
 
 GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
 cat > "$APP/Contents/Info.plist" <<PLIST
