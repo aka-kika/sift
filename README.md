@@ -24,7 +24,7 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 </div>
 
 <p align="center">
-  <img src="docs/assets/screenshot-sift.jpg" alt="Sift macOS app auditor — detail view explaining Sift itself with a 4 out of 5 relevance score, Good for and Tip sections, and on-disk / last-used facts" width="920">
+  <img src="docs/assets/screenshot-sift.png" alt="Sift macOS app auditor — detail view explaining Sift itself with a 4 out of 5 relevance score, Good for and Tip sections, and on-disk / last-used facts" width="920">
 </p>
 
 <p align="center"><sub>Sift reading Sift. A 1–5 relevance score, a plain-English explanation, a concrete use, and the quiet facts Finder never surfaces.</sub></p>
@@ -46,7 +46,7 @@ For every installed Mac app it answers three questions:
 Then it keeps the answers, so the second launch is instant and the audit becomes something you consult rather than something you rerun.
 
 <p align="center">
-  <img src="docs/assets/screenshot-ollama.jpg" alt="Sift scoring Ollama 5 out of 5 Essential as a local LLM runtime next to Claude and Goose in a developer stack" width="920">
+  <img src="docs/assets/screenshot-ollama.png" alt="Sift scoring Ollama 5 out of 5 Essential as a local LLM runtime next to Claude and Goose in a developer stack" width="920">
 </p>
 
 <p align="center"><sub>Relevance is personal. Ollama is a 5 here because this Mac already runs Claude and Goose — the same app can be a 2 on someone else's.</sub></p>
@@ -60,7 +60,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 **It runs on your Mac.** [Ollama](https://ollama.com) is the default provider, so prompts never leave the machine. Anthropic and OpenAI are available if you want them, under your own key, entirely by choice. There is no Sift server, no account, no telemetry.
 
 <p align="center">
-  <img src="docs/assets/screenshot-reshelf.jpg" alt="Sift auditing reshelf, a local-first macOS repo catalog app, marked Likely useful with Sparkle update status and last-used Never" width="920">
+  <img src="docs/assets/screenshot-reshelf.png" alt="Sift auditing reshelf, a local-first macOS repo catalog app, marked Likely useful with Sparkle update status and last-used Never" width="920">
 </p>
 
 <p align="center"><sub>Updates from Sparkle, the Mac App Store, and Homebrew casks show up on the same page as the explanation.</sub></p>
