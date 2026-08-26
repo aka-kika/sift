@@ -981,7 +981,12 @@ function select(id){
   sidebar.querySelectorAll('.row').forEach(r=>{
     const on=r.dataset.id===sel;
     r.classList.toggle('active',on);r.setAttribute('aria-selected',on);
-    if(on)r.scrollIntoView({block:'nearest',behavior:'smooth'});
+    if(on){
+      /* scroll only the sidebar — scrollIntoView also scrolls the page */
+      const pr=sidebar.getBoundingClientRect(),rr=r.getBoundingClientRect();
+      if(rr.top<pr.top)sidebar.scrollBy({top:rr.top-pr.top,behavior:'smooth'});
+      else if(rr.bottom>pr.bottom)sidebar.scrollBy({top:rr.bottom-pr.bottom,behavior:'smooth'});
+    }
   });
   detail.classList.add('swap-out');
   setTimeout(()=>{
