@@ -1,15 +1,14 @@
 <div align="center">
 
-<img src="docs/assets/icon.png" alt="Sift app icon" width="128" height="128">
+<img src="docs/assets/icon.png" alt="Sift — macOS app auditor icon" width="128" height="128">
 
 # Sift
 
+### A local-first macOS app auditor
+
 **Know what every app on your Mac is, what it costs you, and whether it earns its place.**
 
-A native macOS app auditor powered by a local AI model. It explains each app in
-plain English, scores how well it fits *your* workflow, tracks the licences and
-subscriptions you pay for, and sweeps the ones you don't need into the Trash —
-without a single byte leaving your machine.
+Sift is a native SwiftUI app for macOS that inventories installed applications, explains each one in plain English with a local LLM (Ollama by default), scores how well it fits *your* workflow, tracks licences and subscriptions, finds updates, and uninstalls leftovers to the Trash — without a Sift account, and without telemetry.
 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-black?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Apple Silicon](https://img.shields.io/badge/arch-Apple%20Silicon-black?style=flat-square)](#requirements)
@@ -20,16 +19,23 @@ without a single byte leaving your machine.
 [![Local first](https://img.shields.io/badge/AI-local%20first-6E56CF?style=flat-square)](#privacy)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
+[Download the notarized DMG](https://github.com/aka-kika/sift/releases/latest) · [What it does](#what-sift-does) · [Privacy](#privacy) · [Docs](#docs)
+
 </div>
+
+<p align="center">
+  <img src="docs/assets/screenshot-sift.jpg" alt="Sift macOS app auditor — detail view explaining Sift itself with a 4 out of 5 relevance score, Good for and Tip sections, and on-disk / last-used facts" width="920">
+</p>
+
+<p align="center"><sub>Sift reading Sift. A 1–5 relevance score, a plain-English explanation, a concrete use, and the quiet facts Finder never surfaces.</sub></p>
 
 ---
 
 ## What Sift does
 
-Your Applications folder fills up faster than you can remember why. Sift reads it
-the way you would if you had the time — one app at a time, with context.
+Your `/Applications` folder fills up faster than you can remember why. Sift reads it the way you would if you had the time — one app at a time, with context.
 
-For every installed app it answers three questions:
+For every installed Mac app it answers three questions:
 
 | Question | What you get |
 |---|---|
@@ -37,26 +43,27 @@ For every installed app it answers three questions:
 | **Good for** | A concrete use, written against the apps you actually run. |
 | **Do you need it?** | A 1–5 relevance score with the reasoning behind it. |
 
-Then it keeps the answers, so the second launch is instant and the audit becomes
-something you consult rather than something you rerun.
+Then it keeps the answers, so the second launch is instant and the audit becomes something you consult rather than something you rerun.
+
+<p align="center">
+  <img src="docs/assets/screenshot-ollama.jpg" alt="Sift scoring Ollama 5 out of 5 Essential as a local LLM runtime next to Claude and Goose in a developer stack" width="920">
+</p>
+
+<p align="center"><sub>Relevance is personal. Ollama is a 5 here because this Mac already runs Claude and Goose — the same app can be a 2 on someone else's.</sub></p>
 
 ## Why it's different
 
-**The analysis is grounded, not guessed.** There's no bundled catalogue of
-"known apps". Every judgement is made from real evidence: the app's own
-metadata, notes you write, the fetched words of the maker's own page, and — for
-apps you build yourself — a local project folder's README and manifests. If Sift
-doesn't know something, it says so and offers to go find out.
+**The analysis is grounded, not guessed.** There is no bundled catalogue of "known apps". Every judgement is made from real evidence: the app's own metadata, notes you write, the fetched words of the maker's own page, and — for apps you build yourself — a local project folder's README and manifests. If Sift doesn't know something, it says so and offers to go find out.
 
-**It scores against you, not against the average user.** Relevance is measured
-against a workflow profile Sift derives from your machine — what categories you
-have, what you opened recently, what's running now. The same app can be a 5 for
-you and a 2 for someone else. That's the point.
+**It scores against you, not against the average user.** Relevance is measured against a workflow profile Sift derives from your machine — what categories you have, what you opened recently, what's running now.
 
-**It runs on your Mac.** [Ollama](https://ollama.ai) is the default provider, so
-prompts never leave the machine. Anthropic and OpenAI are available if you want
-them, under your own key, entirely by choice. There is no Sift server, no
-account, no telemetry.
+**It runs on your Mac.** [Ollama](https://ollama.com) is the default provider, so prompts never leave the machine. Anthropic and OpenAI are available if you want them, under your own key, entirely by choice. There is no Sift server, no account, no telemetry.
+
+<p align="center">
+  <img src="docs/assets/screenshot-reshelf.jpg" alt="Sift auditing reshelf, a local-first macOS repo catalog app, marked Likely useful with Sparkle update status and last-used Never" width="920">
+</p>
+
+<p align="center"><sub>Updates from Sparkle, the Mac App Store, and Homebrew casks show up on the same page as the explanation.</sub></p>
 
 ## Features
 
@@ -71,7 +78,7 @@ account, no telemetry.
 - One **License cube** per app whose face tells you the state at a glance: subscription, App Store, lifetime, one-time, annual, free
 - Licence keys in the **macOS Keychain**, device-bound, never iCloud-synced, revealed only with **Touch ID**
 - Subscriptions with amount, currency, cycle, renewal date, and a countdown that turns orange as it approaches
-- **License Vault** (`⇧⌘L`) — everything you've bought, split into installed and no-longer-installed, so a key never disappears with the app. Each entry links out to where you bought it.
+- **License Vault** (`⇧⌘L`) — everything you've bought, split into installed and no-longer-installed, so a key never disappears with the app
 
 ### Updates
 - Detects available versions via the **Mac App Store**, **Sparkle** feeds, and **Homebrew** casks
@@ -81,12 +88,8 @@ account, no telemetry.
 - Right-click → **Uninstall…** finds the bundle plus every leftover matched to its bundle ID across twelve Library locations, each with a size and the reason it matched
 - **Everything goes to the Trash** — recoverable by design; nothing is deleted
 - The licence record **survives the uninstall** and stays in your vault
-- Works on Mac App Store apps, which macOS only lets Finder move — Sift hands those to Finder rather than asking you for a password
+- Works on Mac App Store apps by handing root-owned bundles to Finder rather than asking you for a password
 - Apple system apps and Sift itself are refused outright
-
-## Screenshots
-
-> Coming with the public launch.
 
 ## Requirements
 
@@ -94,12 +97,13 @@ account, no telemetry.
 |---|---|
 | **OS** | macOS 14.0 or later |
 | **Chip** | Apple Silicon |
-| **Model** | [Ollama](https://ollama.ai) running locally — or an Anthropic / OpenAI / ollama.com key |
+| **Model** | [Ollama](https://ollama.com) running locally — or an Anthropic / OpenAI / ollama.com key |
+
+Analysis needs a model. Scanning, licences, updates, and uninstall work without one.
 
 ## Install
 
-Download the notarized DMG from the [latest release](https://github.com/aka-kika/sift/releases/latest),
-open it, and drag Sift to Applications.
+Download the notarized DMG from the [latest release](https://github.com/aka-kika/sift/releases/latest), open it, and drag Sift to Applications.
 
 ```bash
 # the local model Sift uses by default
@@ -108,54 +112,44 @@ ollama serve
 ollama pull llama3.2
 ```
 
-Building from source? See **[docs/environment.md](docs/environment.md)** — zero to
-running on a fresh machine.
+Building from source? See **[docs/environment.md](docs/environment.md)** — zero to running on a fresh machine.
 
 ## Privacy
 
-Sift collects nothing. No analytics, no crash reporting, no accounts, and no
-server of its own exists.
+Sift collects nothing. No analytics, no crash reporting, no accounts, and no server of its own exists.
 
 - **Analysis** runs locally on Ollama by default. Switching to a cloud provider is your explicit choice, under your own API key.
 - **Licence keys** live in the macOS Keychain, never in the app's database and never in a CSV export.
 - **Network calls** happen only for update checks, fetching a page you linked, and a cloud provider you opted into.
 - **Nothing is deleted.** The uninstall sweep is a Trash move you can undo.
 
-Full declaration, including every OS permission and how to revoke it:
-**[docs/privacy.md](docs/privacy.md)**.
+Full declaration, including every OS permission and how to revoke it: **[docs/privacy.md](docs/privacy.md)**.
 
 ## FAQ
 
 **Does Sift send my app list anywhere?**
-No. With the default local Ollama provider nothing leaves your Mac. If you
-switch to Anthropic or OpenAI, only that app's analysis prompt goes to the
-provider you chose, under your own key.
+No. With the default local Ollama provider nothing leaves your Mac. If you switch to Anthropic or OpenAI, only that app's analysis prompt goes to the provider you chose, under your own key.
 
 **Do I need Ollama?**
-For analysis, yes — or a cloud API key instead. Without either, Sift still
-scans, lists, tracks licences, checks updates, and uninstalls; only the AI
-explanation and score are unavailable.
+For analysis, yes — or a cloud API key instead. Without either, Sift still scans, lists, tracks licences, checks updates, and uninstalls; only the AI explanation and score are unavailable.
 
 **Is it safe to uninstall with Sift?**
-Everything moves to the Trash, so any sweep is reversible until you empty it.
-Apple system apps and Sift itself are protected, and each leftover is listed
-with the reason it matched before you confirm.
+Everything moves to the Trash, so any sweep is reversible until you empty it. Apple system apps and Sift itself are protected, and each leftover is listed with the reason it matched before you confirm.
 
 **What happens to my licence keys when I remove an app?**
-They stay. The record moves to "No longer installed" in the License Vault and
-moves back if you reinstall — that's the whole reason the vault exists.
+They stay. The record moves to "No longer installed" in the License Vault and moves back if you reinstall — that's the whole reason the vault exists.
 
 **Why does it ask to control Finder?**
-Only when uninstalling a Mac App Store app. Store bundles are owned by root and
-macOS permits only Finder to move them, so Sift asks Finder to do it. No
-password passes through Sift. The reasoning is written up in
-[ADR 0003](docs/decisions/0003-finder-does-privileged-trash-moves.md).
+Only when uninstalling a Mac App Store app. Store bundles are owned by root and macOS permits only Finder to move them, so Sift asks Finder to do it. No password passes through Sift. The reasoning is written up in [ADR 0003](docs/decisions/0003-finder-does-privileged-trash-moves.md).
 
 **Does it work on Intel Macs?**
 The shipped build is Apple Silicon. The source builds for Intel, but it isn't tested there.
 
 **Is Sift free?**
 Yes, and open source under the MIT licence.
+
+**Is this AppAudit?**
+Same app. The product name is Sift; the bundle ID stays `com.kikaapp.appaudit` so existing SwiftData and Keychain data survive the rename.
 
 ## Docs
 
