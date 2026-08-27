@@ -3,7 +3,8 @@
 Single-file marketing site for Sift, hosted on Vercel from this folder.
 
 - Source of truth: [`index.html`](index.html)
-- Live at: https://sift-site-two.vercel.app (Vercel project `sift-site`, team `dot-realitytests-projects`)
+- Live at: https://sift.akakika.com (Vercel project `sift-site`, team `dot-realitytests-projects`; fallback https://sift-site-two.vercel.app)
+- DNS: Cloudflare CNAME `sift` → `cname.vercel-dns.com`, DNS-only
 - Config: [`vercel.json`](vercel.json) — `/Sift.dmg` and `/download` redirect to the
   current versioned DMG in [`downloads/`](downloads/)
 

@@ -19,7 +19,7 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 [![Local first](https://img.shields.io/badge/AI-local%20first-6E56CF?style=flat-square)](#privacy)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-[Website](https://sift-site-two.vercel.app) · [Download the notarized DMG](https://github.com/aka-kika/sift/releases/latest) · [What it does](#what-sift-does) · [Privacy](#privacy) · [Docs](#docs)
+[Website](https://sift.akakika.com) · [Download the notarized DMG](https://github.com/aka-kika/sift/releases/latest) · [What it does](#what-sift-does) · [Privacy](#privacy) · [Docs](#docs)
 
 </div>
 
@@ -155,7 +155,7 @@ Same app. The product name is Sift; the bundle ID stays `com.kikaapp.appaudit` s
 
 | | |
 |---|---|
-| [Landing page](site/) | Marketing site — live at [sift-site-two.vercel.app](https://sift-site-two.vercel.app), deployed from this folder (see site/README.md) |
+| [Landing page](site/) | Marketing site — live at [sift.akakika.com](https://sift.akakika.com), deployed from this folder (see site/README.md) |
 | [User and developer guide](docs/README.md) | Every feature, menu, and shortcut |
 | [Feature list](FEATURES.md) | The short version |
 | [Architecture](docs/ARCHITECTURE.md) | How it's put together |
