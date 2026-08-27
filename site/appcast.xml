@@ -3,6 +3,15 @@
     <channel>
         <title>Sift</title>
         <item>
+            <title>1.10.0</title>
+            <pubDate>Thu, 27 Aug 2026 10:27:46 +0300</pubDate>
+            <sparkle:version>20</sparkle:version>
+            <sparkle:shortVersionString>1.10.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://sift.akakika.com/downloads/Sift-1.10.0.dmg" length="4939318" type="application/octet-stream" sparkle:edSignature="8SJeREpOtrsYJc6QClHLDsJYD7LpjefeKwyuDsxoIdqP4rOuxNPkIQODuvftctKswRCsPp2KOZtfVX5G7VwxAw=="/>
+        </item>
+        <item>
             <title>1.9.0</title>
             <pubDate>Thu, 27 Aug 2026 09:23:46 +0300</pubDate>
             <sparkle:version>19</sparkle:version>

@@ -1,8 +1,8 @@
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/Sift.dmg", "destination": "/downloads/Sift-1.9.0.dmg", "permanent": false },
-    { "source": "/download", "destination": "/downloads/Sift-1.9.0.dmg", "permanent": false }
+    { "source": "/Sift.dmg", "destination": "/downloads/Sift-1.10.0.dmg", "permanent": false },
+    { "source": "/download", "destination": "/downloads/Sift-1.10.0.dmg", "permanent": false }
   ],
   "headers": [
     { "source": "/downloads/(.*)", "headers": [ { "key": "Content-Type", "value": "application/x-apple-diskimage" } ] }
