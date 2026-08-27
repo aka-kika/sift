@@ -12,3 +12,7 @@
 Package.resolved
 .claude/settings.local.json
 .superpowers/
+
+# Vercel CLI link state
+.vercel/
+!site/downloads/*.dmg
