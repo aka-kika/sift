@@ -12,6 +12,11 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
+<!-- SF Symbol: hammer -->
+Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`); pricing decision after the 14-day free beta.
+
+## [1.11.0] — 2026-08-27
+
 <!-- SF Symbol: stethoscope -->
 ### Fixed
 - Uninstall no longer lists a sibling app's files as leftovers: removing Chrome used to pre-check Chrome Canary's and Chrome Beta's preferences and caches (any bundle ID that extends the uninstalled one — Edge Canary, JetBrains CE editions). A file that belongs to another installed app is never claimed.
@@ -35,8 +40,6 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 - Dead code: the Ollama "legacy compatibility" block, `WorkflowProfile`'s never-filled arrays, wrapper parsers, and every `#if canImport(AppKit)` guard in a macOS-only package — about 250 lines.
 - One source each for things that were written twice: update-action symbols and copy (`UpdateSource`), the 1–5 score palette (`ScoreScale`), the Sift/Sift2 build distinction (`BuildVariant`), the stub `AppRecord`, the provider-to-service mapping (`AnalysisServices.make`), the `/models` response shape, and HTTP error wording. Anthropic's analyze/complete are one request path. Providers read their preference keys from `AnalysisProviderKind` instead of repeating the strings.
 - Stale files: `PROJECTS_MAP.md`, the unsigned 1.8.0 DMG and its appcast entry, two merged worktrees; executed plans/specs archived under `docs/archive/`; roadmap rewritten; version strings, provider lists and dependency claims refreshed across the docs.
-
-Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 
 ## [1.10.0] — 2026-08-27
 
@@ -153,7 +156,8 @@ Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 - Foundations: app scan and 1–5 workflow scoring, update detection (App Store / Sparkle / Homebrew), Keychain license keys + vault, subscription tracking, CSV export, last-used sort, instant appearance switching. See `docs/releases/` for per-version records.
 
 <!-- Link references — point each version at its compare/diff range. -->
-[Unreleased]: https://github.com/aka-kika/sift/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/aka-kika/sift/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/aka-kika/sift/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/aka-kika/sift/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/aka-kika/sift/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/aka-kika/sift/compare/v1.7.0...v1.8.0
