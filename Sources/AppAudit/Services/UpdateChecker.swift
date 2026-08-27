@@ -6,7 +6,9 @@ protocol UpdateMetadataClient: Sendable {
 
 struct LiveUpdateMetadataClient: UpdateMetadataClient {
     func data(for url: URL) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(from: url)
+        // Abandoned apps have dead feeds; 60 s per host would stall the whole refresh.
+        let request = URLRequest(url: url, timeoutInterval: 15)
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200..<300).contains(httpResponse.statusCode) else {
             throw URLError(.badServerResponse)
@@ -76,6 +78,10 @@ actor UpdateChecker {
             return .upToDate(source: .sparkle)
         }
 
+        // Precedence: App Store > Homebrew (only when brew reports it outdated) >
+        // Sparkle > "brew-installed and current". A current cask app that also has
+        // a Sparkle feed therefore takes Sparkle's verdict — deliberate, since
+        // many casks lag the vendor's own feed.
         if app.homebrewCaskToken != nil {
             return .upToDate(source: .homebrew)
         }
@@ -160,6 +166,15 @@ actor UpdateChecker {
     static func parseSparkleMetadata(from data: Data) throws -> UpdateMetadata? {
         guard let xml = String(data: data, encoding: .utf8) else { return nil }
 
+        // Per <item>: the human version (shortVersionString, attribute or element)
+        // beats the build number (sparkle:version), and anything on a named
+        // channel (beta, nightly) is not an update for a release install.
+        let items = matches(for: #"(?s)(<item\b.*?</item>)"#, in: xml).compactMap(\.first)
+        let itemVersions = items.compactMap(parseSparkleItem)
+        if let newestItem = newestMetadata(in: itemVersions) {
+            return newestItem
+        }
+
         let enclosureVersions = enclosureTags(in: xml).compactMap(parseSparkleEnclosure)
         if let newestEnclosure = newestMetadata(in: enclosureVersions) {
             return newestEnclosure
@@ -230,6 +245,24 @@ actor UpdateChecker {
             guard let tagRange = Range(match.range(at: 0), in: xml) else { return nil }
             return String(xml[tagRange])
         }
+    }
+
+    private static func parseSparkleItem(_ item: String) -> UpdateMetadata? {
+        if let channel = firstCapturedValue(for: #"<sparkle:channel>\s*([^<]+?)\s*</sparkle:channel>"#, in: item),
+           !channel.isEmpty {
+            return nil
+        }
+        let enclosure = enclosureTags(in: item).first
+        let version =
+            enclosure.flatMap { firstCapturedValue(for: #"sparkle:shortVersionString="([^"]+)""#, in: $0) } ??
+            firstCapturedValue(for: #"<sparkle:shortVersionString>([^<]+)</sparkle:shortVersionString>"#, in: item) ??
+            enclosure.flatMap { firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: $0) } ??
+            firstCapturedValue(for: #"<sparkle:version>([^<]+)</sparkle:version>"#, in: item)
+        guard let version = version?.trimmingCharacters(in: .whitespacesAndNewlines), !version.isEmpty else {
+            return nil
+        }
+        let url = enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) }
+        return UpdateMetadata(version: version, url: url)
     }
 
     private static func parseSparkleEnclosure(from tag: String) -> UpdateMetadata? {

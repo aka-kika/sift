@@ -213,9 +213,12 @@ struct AppDetailView: View {
         .task(id: app.bundleID) {
             bundleSizeBytes = nil
             let path = app.path
-            bundleSizeBytes = await Task.detached {
+            let size = await Task.detached {
                 LeftoverScanner.size(of: URL(fileURLWithPath: path))
             }.value
+            // .task(id:) cancelled us if the selection changed; don't write into the new app.
+            guard !Task.isCancelled else { return }
+            bundleSizeBytes = size
         }
     }
 
@@ -683,7 +686,7 @@ struct AppDetailView: View {
         Task {
             let results = await viewModel.findSimilarApps(to: bundleID)
             // Ignore a stale result if the user switched apps mid-request.
-            guard app.bundleID == bundleID else { return }
+            guard viewModel.selectedAppID == bundleID else { return }
             similarResults = results
             findingSimilar = false
         }

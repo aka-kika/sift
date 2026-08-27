@@ -76,7 +76,7 @@ actor OllamaService: AnalysisService {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private let systemPrompt = AppAnalysisPrompt.system + "\nAlways respond in the exact structured format requested. No extra commentary before or after."
+    private let systemPrompt = AnalysisHTTP.systemPrompt
 
     private func chat(messages: [OllamaRequest.Message]) async -> OllamaResult {
         guard let url = URL(string: "\(baseURL)/api/chat") else {
@@ -96,7 +96,15 @@ actor OllamaService: AnalysisService {
 
         do {
             request.httpBody = try JSONEncoder().encode(requestBody)
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, httpResponse) = try await URLSession.shared.data(for: request)
+            if let http = httpResponse as? HTTPURLResponse, http.statusCode != 200 {
+                // Ollama puts the reason in {"error": "..."} — surface it verbatim.
+                struct OllamaError: Decodable { let error: String }
+                if let reason = try? JSONDecoder().decode(OllamaError.self, from: data).error, !reason.isEmpty {
+                    return .unavailable("Ollama: \(reason)")
+                }
+                return .unavailable(AnalysisHTTP.describe(status: http.statusCode, provider: "Ollama"))
+            }
             let response = try JSONDecoder().decode(OllamaResponse.self, from: data)
             return .success(response.message.content.trimmingCharacters(in: .whitespacesAndNewlines))
         } catch let error as URLError where error.code == .cannotConnectToHost || error.code == .networkConnectionLost {

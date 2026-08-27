@@ -1096,8 +1096,10 @@ final class MemorySecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
         values[account]
     }
 
-    func write(_ value: String, account: String) {
+    @discardableResult
+    func write(_ value: String, account: String) -> Bool {
         values[account] = value
+        return true
     }
 
     func delete(account: String) {
@@ -2081,5 +2083,90 @@ struct HomebrewOutcomeTests {
         #expect(!HomebrewService.BrewOutcome(exitStatus: 1, output: "Error: Cask 'x' is not installed.").succeeded)
         #expect(!HomebrewService.BrewOutcome(exitStatus: nil, output: "").succeeded)
         #expect(HomebrewService.BrewOutcome(exitStatus: 1, output: "Error: Cask 'x' is not installed.").message.contains("not installed"))
+    }
+}
+
+// MARK: - Audit tier B (2026-08-27)
+
+@Suite("Homebrew cask token collisions")
+struct HomebrewCaskCollisionTests {
+    @Test("Two installed casks that normalise to the same token do not trap")
+    func collidingTokens() {
+        let casks = ["google-chrome-beta", "google-chrome@beta", "google-chrome"]
+        let token = HomebrewService().caskToken(forAppName: "Google Chrome",
+                                                path: "/Applications/Google Chrome.app",
+                                                installedCasks: casks)
+        #expect(token == "google-chrome")
+    }
+}
+
+@Suite("Sparkle appcast precedence")
+struct SparkleAppcastPrecedenceTests {
+    @Test("An item's shortVersionString wins over the enclosure's build number")
+    func shortVersionWins() throws {
+        let xml = """
+        <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
+        <item><title>1.2.3</title>
+          <sparkle:shortVersionString>1.2.3</sparkle:shortVersionString>
+          <sparkle:version>2045</sparkle:version>
+          <enclosure url="https://example.com/App-1.2.3.zip" sparkle:version="2045" length="1" type="application/octet-stream"/>
+        </item>
+        </channel></rss>
+        """
+        let meta = try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8))
+        #expect(meta?.version == "1.2.3")
+        #expect(meta?.url == "https://example.com/App-1.2.3.zip")
+    }
+
+    @Test("Items on a named channel (beta) are ignored")
+    func betaChannelIgnored() throws {
+        let xml = """
+        <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
+        <item><title>2.0 beta</title>
+          <sparkle:channel>beta</sparkle:channel>
+          <enclosure url="https://example.com/App-2.0b1.zip" sparkle:shortVersionString="2.0b1" sparkle:version="300"/>
+        </item>
+        <item><title>1.9</title>
+          <enclosure url="https://example.com/App-1.9.zip" sparkle:shortVersionString="1.9" sparkle:version="290"/>
+        </item>
+        </channel></rss>
+        """
+        let meta = try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8))
+        #expect(meta?.version == "1.9")
+        #expect(meta?.url == "https://example.com/App-1.9.zip")
+    }
+}
+
+/// A backend whose writes vanish — what a denied or locked Keychain looks like.
+final class DroppingSecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
+    func read(account: String) -> String? { nil }
+    @discardableResult func write(_ value: String, account: String) -> Bool { false }
+    func delete(account: String) {}
+}
+
+@Suite("License key migration honesty")
+struct LicenseKeyMigrationHonestyTests {
+    @Test("resolveKey does not claim a migration the backend did not perform")
+    func noFalseMigrationClaim() {
+        let store = LicenseKeyStore(backend: DroppingSecretStoreBackend())
+        let resolution = store.resolveKey(bundleID: "com.example.app", legacyValue: "LEGACY-KEY")
+        #expect(!resolution.didMigrateLegacyValue)
+        #expect(resolution.value == "LEGACY-KEY")   // still usable this session, from the legacy field
+    }
+
+    @Test("migrateLegacyKey reports absence when the write failed")
+    func migrationReportsFailure() {
+        let store = LicenseKeyStore(backend: DroppingSecretStoreBackend())
+        #expect(!store.migrateLegacyKey("LEGACY-KEY", bundleID: "com.example.app"))
+    }
+}
+
+@Suite("Shared provider error wording")
+struct SharedProviderErrorTests {
+    @Test("All HTTP providers share one status vocabulary")
+    func sharedDescribe() {
+        #expect(AnalysisHTTP.describe(status: 429, provider: "Ollama").contains("quota"))
+        #expect(AnalysisHTTP.describe(status: 404, provider: "Anthropic").contains("model"))
+        #expect(AnalysisHTTP.describe(status: 401, provider: "Anthropic").contains("API key"))
     }
 }

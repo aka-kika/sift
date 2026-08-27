@@ -57,7 +57,7 @@ actor AnthropicService: AnalysisService {
             request.httpBody = try JSONEncoder().encode(body)
             let (data, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                return .unavailable("Anthropic error (\(http.statusCode)). Check your API key and model.")
+                return .unavailable(AnalysisHTTP.describe(status: http.statusCode, provider: "Anthropic"))
             }
             let decoded = try JSONDecoder().decode(Response.self, from: data)
             let text = decoded.content.compactMap(\.text).joined()
@@ -93,7 +93,7 @@ actor AnthropicService: AnalysisService {
             request.httpBody = try JSONEncoder().encode(body)
             let (data, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                return .unavailable("Anthropic error (\(http.statusCode)).")
+                return .unavailable(AnalysisHTTP.describe(status: http.statusCode, provider: "Anthropic"))
             }
             let decoded = try JSONDecoder().decode(Response.self, from: data)
             let text = decoded.content.compactMap(\.text).joined()

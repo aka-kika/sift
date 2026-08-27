@@ -335,7 +335,8 @@ struct AppRow: View {
     private var licenseBadgeState: MoneyCubeState {
         MoneyCubeState.derive(
             isAppStoreInstall: app.isAppStoreInstall,
-            hasLicenseKey: existingLicenseKey != nil,
+            // The synced flag, not a Keychain read — this runs on every row render.
+            hasLicenseKey: fetchRecord(for: app.bundleID)?.hasLicenseKey == true,
             isPaidApp: app.isPaidApp,
             hasSubscription: app.isSubscribed,
             renewalNear: false,

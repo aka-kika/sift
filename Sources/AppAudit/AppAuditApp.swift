@@ -49,7 +49,23 @@ struct AppAuditApp: App {
         try? FileManager.default.createDirectory(at: storeDir, withIntermediateDirectories: true)
         let storeURL = storeDir.appendingPathComponent("AppAudit.store")
         let config = ModelConfiguration(url: storeURL)
-        return try! ModelContainer(for: AppRecord.self, configurations: config)
+        if let container = try? ModelContainer(for: AppRecord.self, configurations: config) {
+            return container
+        }
+        // The store could not be opened (schema from a newer build, corruption).
+        // Set it aside — never delete — and start fresh, so the app still launches
+        // and the old data can be recovered by hand.
+        let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        for suffix in ["", "-wal", "-shm"] {
+            let from = storeDir.appendingPathComponent("AppAudit.store" + suffix)
+            let to = storeDir.appendingPathComponent("AppAudit.store.broken-\(stamp)" + suffix)
+            try? FileManager.default.moveItem(at: from, to: to)
+        }
+        do {
+            return try ModelContainer(for: AppRecord.self, configurations: config)
+        } catch {
+            fatalError("Sift cannot open or recreate its data store at \(storeURL.path): \(error)")
+        }
     }()
 
     /// Folder under Application Support for this build's SwiftData store. The side-build

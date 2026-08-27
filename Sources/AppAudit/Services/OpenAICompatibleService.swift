@@ -127,15 +127,8 @@ actor OpenAICompatibleService: AnalysisService {
         }
     }
 
-    /// Free tiers fail in one specific way — a quota hit — and that deserves a
-    /// message that says so instead of "check your key".
     static func describe(status: Int, provider: String) -> String {
-        switch status {
-        case 401, 403: return "\(provider) rejected the API key (\(status))."
-        case 404: return "\(provider) does not know this model (404). Pick another in Settings → Models."
-        case 429: return "\(provider) rate limit or daily free quota reached (429). Try again later or pick a smaller model."
-        default: return "\(provider) error (\(status)). Check your API key and model."
-        }
+        AnalysisHTTP.describe(status: status, provider: provider)
     }
 
     func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, userNotes: String? = nil, docsEvidence: String? = nil) async -> AnalysisResult {

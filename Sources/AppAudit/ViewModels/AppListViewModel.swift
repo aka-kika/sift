@@ -512,8 +512,11 @@ final class AppListViewModel {
         for record in cache.allRecords() {
             guard let legacy = record.licenseKey, !legacy.isEmpty else { continue }
             let present = store.migrateLegacyKey(legacy, bundleID: record.bundleID)
+            // Only drop the plaintext once the Keychain verifiably holds the key —
+            // a denied prompt here must not be the moment the key is lost.
+            guard present else { continue }
             record.licenseKey = nil
-            record.hasLicenseKey = present
+            record.hasLicenseKey = true
             changed = true
         }
         if changed { cache.persist() }
@@ -845,14 +848,33 @@ final class AppListViewModel {
     private func refreshUpdates(for scannedApps: [AppInfo], token: UUID) async {
         await updateChecker.resetHomebrewCache()
 
-        for app in scannedApps where !app.version.isEmpty && app.canCheckForUpdates {
-            let acknowledgedVersion = cacheService?.load(bundleID: app.bundleID)?.acknowledgedUpdateVersion
-            let state = await updateChecker.check(app: app, acknowledgedVersion: acknowledgedVersion)
-            guard token == updateScanToken,
-                  let idx = apps.firstIndex(where: { $0.bundleID == app.bundleID }) else {
-                continue
+        // A few apps at a time: dead vendor feeds (abandoned apps are exactly what an
+        // audit tool sees) would otherwise stack their timeouts end to end.
+        let candidates = scannedApps.filter { !$0.version.isEmpty && $0.canCheckForUpdates }
+        let batchSize = 4
+        var start = 0
+        while start < candidates.count {
+            let batch = Array(candidates[start..<min(start + batchSize, candidates.count)])
+            start += batchSize
+            let acknowledged = Dictionary(uniqueKeysWithValues: batch.map {
+                ($0.bundleID, cacheService?.load(bundleID: $0.bundleID)?.acknowledgedUpdateVersion)
+            })
+            let checker = updateChecker
+            let results = await withTaskGroup(of: (String, AppInfo.UpdateState).self) { group in
+                for app in batch {
+                    let acknowledgedVersion = acknowledged[app.bundleID] ?? nil
+                    group.addTask { (app.bundleID, await checker.check(app: app, acknowledgedVersion: acknowledgedVersion)) }
+                }
+                var collected: [(String, AppInfo.UpdateState)] = []
+                for await result in group { collected.append(result) }
+                return collected
             }
-            apps[idx].updateState = state
+            guard token == updateScanToken else { return }
+            for (bundleID, state) in results {
+                if let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) {
+                    apps[idx].updateState = state
+                }
+            }
         }
 
         guard token == updateScanToken else { return }

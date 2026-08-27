@@ -3,7 +3,10 @@ import Security
 
 protocol SecretStoreBackend: Sendable {
     func read(account: String) -> String?
-    func write(_ value: String, account: String)
+    /// Returns whether the value is now stored. A denied ACL prompt or a locked
+    /// keychain must not read as success — callers delete plaintext on that basis.
+    @discardableResult
+    func write(_ value: String, account: String) -> Bool
     func delete(account: String)
 }
 
@@ -43,7 +46,8 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
         return value
     }
 
-    func write(_ value: String, account: String) {
+    @discardableResult
+    func write(_ value: String, account: String) -> Bool {
         let data = Data(value.utf8)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -62,8 +66,9 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
             var createQuery = query
             createQuery[kSecValueData as String] = data
             createQuery[kSecAttrAccessible as String] = accessibility
-            SecItemAdd(createQuery as CFDictionary, nil)
+            return SecItemAdd(createQuery as CFDictionary, nil) == errSecSuccess
         }
+        return status == errSecSuccess
     }
 
     func delete(account: String) {
@@ -100,8 +105,8 @@ final class LicenseKeyStore: @unchecked Sendable {
             return LicenseKeyResolution(value: nil, didMigrateLegacyValue: false)
         }
 
-        backend.write(trimmedLegacy, account: bundleID)
-        return LicenseKeyResolution(value: trimmedLegacy, didMigrateLegacyValue: true)
+        let migrated = backend.write(trimmedLegacy, account: bundleID) && hasKey(bundleID: bundleID)
+        return LicenseKeyResolution(value: trimmedLegacy, didMigrateLegacyValue: migrated)
     }
 
     func save(_ value: String?, bundleID: String) {

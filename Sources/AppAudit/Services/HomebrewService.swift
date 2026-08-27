@@ -53,7 +53,8 @@ struct HomebrewService: Sendable {
         }
 
         let normalizedLookup = Dictionary(
-            uniqueKeysWithValues: installedCasks.map { (Self.normalizedToken($0), $0) }
+            installedCasks.map { (Self.normalizedToken($0), $0) },
+            uniquingKeysWith: { first, _ in first }   // "x-beta" and "x@beta" normalise alike
         )
 
         let appNameCandidate = Self.normalizedToken(appName)

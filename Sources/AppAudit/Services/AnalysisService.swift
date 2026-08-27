@@ -36,4 +36,16 @@ enum AnalysisHTTP {
     /// System prompt shared by every provider.
     static let systemPrompt = AppAnalysisPrompt.system
         + "\nAlways respond in the exact structured format requested. No extra commentary before or after."
+
+    /// One wording for HTTP failures across providers. Free tiers fail in one
+    /// specific way — a quota hit — and that deserves a message that says so
+    /// instead of "check your key".
+    static func describe(status: Int, provider: String) -> String {
+        switch status {
+        case 401, 403: return "\(provider) rejected the API key (\(status))."
+        case 404: return "\(provider) does not know this model (404). Pick another in Settings → Models."
+        case 429: return "\(provider) rate limit or daily free quota reached (429). Try again later or pick a smaller model."
+        default: return "\(provider) error (\(status)). Check your API key and model."
+        }
+    }
 }

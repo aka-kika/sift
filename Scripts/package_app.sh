@@ -13,12 +13,20 @@ MACOS_MIN_VERSION=${MACOS_MIN_VERSION:-14.0}
 SIGNING_MODE=${SIGNING_MODE:-adhoc}
 APP_IDENTITY=${APP_IDENTITY:-}
 
+# SwiftPM product (binary) name; the bundle may be named differently (Sift2 side-build).
+PRODUCT=${PRODUCT:-Sift}
+
+# Environment overrides win over version.env — the side-build blanks the feed.
+ENV_SPARKLE_FEED_URL=${SPARKLE_FEED_URL-__unset__}
+ENV_SPARKLE_PUBLIC_KEY=${SPARKLE_PUBLIC_KEY-__unset__}
 if [[ -f "$ROOT/version.env" ]]; then
   source "$ROOT/version.env"
 else
   MARKETING_VERSION=${MARKETING_VERSION:-1.0.0}
   BUILD_NUMBER=${BUILD_NUMBER:-1}
 fi
+[[ "$ENV_SPARKLE_FEED_URL" != "__unset__" ]] && SPARKLE_FEED_URL=$ENV_SPARKLE_FEED_URL
+[[ "$ENV_SPARKLE_PUBLIC_KEY" != "__unset__" ]] && SPARKLE_PUBLIC_KEY=$ENV_SPARKLE_PUBLIC_KEY
 
 ARCH_LIST=( ${ARCHES:-} )
 if [[ ${#ARCH_LIST[@]} -eq 0 ]]; then
@@ -107,7 +115,7 @@ install_binary() {
   chmod +x "$dest"
 }
 
-install_binary "$APP_NAME" "$APP/Contents/MacOS/$APP_NAME"
+install_binary "$PRODUCT" "$APP/Contents/MacOS/$APP_NAME"
 
 # Embed Sparkle.framework (SwiftPM binary artifact). The executable is linked with
 # an @executable_path/../Frameworks rpath (see Package.swift) so it finds it here.

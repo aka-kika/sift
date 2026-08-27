@@ -21,6 +21,15 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 - Opening Settings → Models no longer silently switches you to the first listed model when you were on the provider default — which then flagged every analysis as "generated with a different model".
 - A packaged build without a Sparkle feed no longer writes an empty `SUFeedURL`; Check for Updates is offered only when a real feed is configured.
 - Site and docs: version badge, "Launching September" copy, and download links that pointed into the private GitHub repo now point at sift.akakika.com.
+- Sidebar rows no longer read the Keychain on every render; the license badge uses the flag synced at launch. On a build signed differently from the one that stored the keys, that was one macOS prompt per row.
+- Two installed casks that differ only in punctuation (`x-beta` vs `x@beta`) no longer crash the scan.
+- Sparkle feeds are read per item: the human version wins over the build number (no more "Update to 2045"), and beta/nightly channels are not offered to a release install.
+- A license key is only removed from the old plaintext field once the Keychain verifiably holds it — a denied prompt used to be the moment the key was lost.
+- Ollama HTTP errors say what Ollama said ("model 'x' not found") instead of "the data couldn't be read"; Anthropic, OpenAI, Gemini and OpenRouter share one wording, and a 429 reads as quota, not key.
+- Update checks run four at a time with a 15 s cap per feed; a handful of dead vendor feeds no longer turns a refresh into minutes of "Checking…".
+- Switching apps while "Find similar" or the size lookup is still running no longer writes the old app's result into the new one.
+- A data store the app cannot open (downgrade, corruption) is set aside as `AppAudit.store.broken-<date>` and a fresh one created, instead of crashing before the window appears. Nothing is deleted.
+- `Scripts/build_sift2.sh` is a five-line wrapper around the real packaging script instead of a drifting copy.
 
 Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 
