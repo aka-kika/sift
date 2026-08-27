@@ -29,7 +29,7 @@ struct AboutSettingsTab: View {
         Destination(title: "@akakikaaa", detail: "X",
                     glyph: "social-x", fallbackSymbol: "at",
                     url: URL(string: "https://x.com/akakikaaa")!),
-        Destination(title: "aka-kika/sift", detail: "GitHub — private for now",
+        Destination(title: "aka-kika/sift", detail: "GitHub",
                     glyph: "social-github",
                     fallbackSymbol: "chevron.left.forwardslash.chevron.right",
                     url: URL(string: "https://github.com/aka-kika/sift")!),
