@@ -668,6 +668,9 @@ final class AppListViewModel {
         apps[idx].aiState = .loading
         let provider = AnalysisProviderKind.current()
         let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes, docsEvidence: docsEvidence)
+        // `apps` may have been rescanned or shrunk (⌘R, Uninstall) while we waited —
+        // the old index could now point at another app, or past the end.
+        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
               !apps[idx].isAnalysisLocked else {
             return

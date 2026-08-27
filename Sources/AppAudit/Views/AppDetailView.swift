@@ -1231,19 +1231,11 @@ struct AppDetailView: View {
         if let record {
             return record
         }
-
-        let created = AppRecord(
-            bundleID: app.bundleID,
-            appName: app.name,
-            explanation: "",
-            relevanceScore: 0,
-            relevanceReason: "",
-            bestUse: "",
-            ollamaModel: ""
-        )
-        modelContext.insert(created)
-        record = created
-        return created
+        // Re-fetch rather than trusting our own stale nil — an analysis may have
+        // created the record since this view loaded.
+        let found = CacheService(context: modelContext).ensureRecord(bundleID: app.bundleID, appName: app.name)
+        record = found
+        return found
     }
 
     private func clearSubscription() {

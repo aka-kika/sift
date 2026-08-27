@@ -1975,3 +1975,111 @@ struct OpenAICompatibleModelListTests {
         #expect(OpenAICompatibleService.describe(status: 404, provider: "OpenAI").contains("model"))
     }
 }
+
+// MARK: - Pre-launch audit fixes (2026-08-27)
+
+@Suite("Leftover matcher respects sibling apps")
+struct LeftoverMatcherSiblingTests {
+    @Test("A sibling app's files are not swept as leftovers of the shorter bundle ID")
+    func siblingExcluded() {
+        let others = ["com.google.Chrome.canary", "com.google.Chrome.beta", "com.other.app"]
+        #expect(!LeftoverMatcher.matches(name: "com.google.Chrome.canary.plist", bundleID: "com.google.Chrome", otherBundleIDs: others))
+        #expect(!LeftoverMatcher.matches(name: "com.google.Chrome.canary", bundleID: "com.google.Chrome", otherBundleIDs: others))
+        #expect(!LeftoverMatcher.matches(name: "com.google.Chrome.beta.savedState", bundleID: "com.google.Chrome", otherBundleIDs: others))
+    }
+
+    @Test("The app's own files still match with siblings present")
+    func ownFilesStillMatch() {
+        let others = ["com.google.Chrome.canary"]
+        #expect(LeftoverMatcher.matches(name: "com.google.Chrome.plist", bundleID: "com.google.Chrome", otherBundleIDs: others))
+        #expect(LeftoverMatcher.matches(name: "com.google.Chrome.helper", bundleID: "com.google.Chrome", otherBundleIDs: others))
+        #expect(LeftoverMatcher.matches(name: "com.google.Chrome", bundleID: "com.google.Chrome", otherBundleIDs: others))
+    }
+
+    @Test("Uninstalling the sibling itself is unaffected")
+    func siblingOwnSweep() {
+        let others = ["com.google.Chrome"]
+        #expect(LeftoverMatcher.matches(name: "com.google.Chrome.canary.plist", bundleID: "com.google.Chrome.canary", otherBundleIDs: others))
+    }
+}
+
+@Suite("Settings model auto-selection")
+struct ModelAutoSelectionTests {
+    @Test("Keeps the provider default when it is available and nothing is stored")
+    func keepsDefault() {
+        let defaults = UserDefaults(suiteName: "AppAuditTests.ModelAutoSelection.keep")!
+        defaults.removeObject(forKey: AnalysisProviderKind.gemini.modelDefaultsKey)
+        let pick = AnalysisProviderKind.gemini.modelToSelect(from: ["gemini-2.5-pro", AnalysisProviderKind.gemini.defaultModel], userDefaults: defaults)
+        #expect(pick == nil)
+    }
+
+    @Test("Keeps a stored choice that is available")
+    func keepsStored() {
+        let defaults = UserDefaults(suiteName: "AppAuditTests.ModelAutoSelection.stored")!
+        defaults.set("gemini-2.5-pro", forKey: AnalysisProviderKind.gemini.modelDefaultsKey)
+        #expect(AnalysisProviderKind.gemini.modelToSelect(from: ["gemini-2.5-flash", "gemini-2.5-pro"], userDefaults: defaults) == nil)
+    }
+
+    @Test("Falls back to the first listed model only when the effective choice is missing")
+    func fallsBack() {
+        let defaults = UserDefaults(suiteName: "AppAuditTests.ModelAutoSelection.fallback")!
+        defaults.removeObject(forKey: AnalysisProviderKind.gemini.modelDefaultsKey)
+        #expect(AnalysisProviderKind.gemini.modelToSelect(from: ["gemini-2.5-pro"], userDefaults: defaults) == "gemini-2.5-pro")
+        defaults.set("gone-model", forKey: AnalysisProviderKind.gemini.modelDefaultsKey)
+        #expect(AnalysisProviderKind.gemini.modelToSelect(from: ["gemini-2.5-pro"], userDefaults: defaults) == "gemini-2.5-pro")
+        #expect(AnalysisProviderKind.gemini.modelToSelect(from: [], userDefaults: defaults) == nil)
+    }
+}
+
+@Suite("Sparkle feed configuration")
+struct SparkleFeedConfigurationTests {
+    @Test("Only a non-empty feed string counts as configured")
+    func feedConfigured() {
+        #expect(!UpdateService.feedIsConfigured(nil))
+        #expect(!UpdateService.feedIsConfigured(""))
+        #expect(!UpdateService.feedIsConfigured("   "))
+        #expect(!UpdateService.feedIsConfigured(42))
+        #expect(UpdateService.feedIsConfigured("https://sift.akakika.com/appcast.xml"))
+    }
+}
+
+@Suite("Cache ensureRecord")
+struct CacheEnsureRecordTests {
+    @Test("ensureRecord returns the existing analysed record instead of inserting a blank twin")
+    @MainActor
+    func returnsExisting() throws {
+        let container = try ModelContainer(for: AppRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let cache = CacheService(context: container.mainContext)
+        cache.save(bundleID: "com.example.real", appName: "Real", explanation: "A real analysis",
+                   score: 4, reason: "Useful", bestUse: "Daily", ollamaModel: "ollama:x")
+
+        let record = cache.ensureRecord(bundleID: "com.example.real", appName: "Real")
+
+        #expect(record.explanation == "A real analysis")
+        #expect(record.relevanceScore == 4)
+        #expect(cache.allRecords().count == 1)
+    }
+
+    @Test("ensureRecord creates a stub when nothing exists, once")
+    @MainActor
+    func createsOnce() throws {
+        let container = try ModelContainer(for: AppRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let cache = CacheService(context: container.mainContext)
+        let first = cache.ensureRecord(bundleID: "com.example.new", appName: "New")
+        let second = cache.ensureRecord(bundleID: "com.example.new", appName: "New")
+        #expect(first.explanation.isEmpty)
+        #expect(first === second)
+        #expect(cache.allRecords().count == 1)
+    }
+}
+
+@Suite("Homebrew outcome")
+struct HomebrewOutcomeTests {
+    @Test("A non-zero exit or missing brew is a failure, never a success")
+    func outcome() {
+        #expect(HomebrewService.BrewOutcome(exitStatus: 0, output: "==> Uninstalling Cask x").succeeded)
+        #expect(!HomebrewService.BrewOutcome(exitStatus: 1, output: "Error: Cask 'x' is not installed.").succeeded)
+        #expect(!HomebrewService.BrewOutcome(exitStatus: nil, output: "").succeeded)
+        #expect(HomebrewService.BrewOutcome(exitStatus: 1, output: "Error: Cask 'x' is not installed.").message.contains("not installed"))
+    }
+}

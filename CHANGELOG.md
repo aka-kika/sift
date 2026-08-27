@@ -12,8 +12,17 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
-<!-- SF Symbol: hammer -->
-Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+<!-- SF Symbol: stethoscope -->
+### Fixed
+- Uninstall no longer lists a sibling app's files as leftovers: removing Chrome used to pre-check Chrome Canary's and Chrome Beta's preferences and caches (any bundle ID that extends the uninstalled one — Edge Canary, JetBrains CE editions). A file that belongs to another installed app is never claimed.
+- `brew uninstall` failures are failures. A wrong cask name, a cask that needs sudo, or no brew at all used to read as "Homebrew finished" and hide the app from the list while it was still installed; the sheet now shows brew's message and keeps the app bundle in the sweep.
+- Re-analyze could crash, or paint its result on the wrong row, if a rescan (⌘R) or an uninstall shrank the list while the model was thinking. The result is matched back by bundle ID.
+- Clicking a cube on an app whose analysis had just arrived could replace the fresh analysis with a blank record (the detail page held a stale "no record yet"). It now re-checks before creating anything.
+- Opening Settings → Models no longer silently switches you to the first listed model when you were on the provider default — which then flagged every analysis as "generated with a different model".
+- A packaged build without a Sparkle feed no longer writes an empty `SUFeedURL`; Check for Updates is offered only when a real feed is configured.
+- Site and docs: version badge, "Launching September" copy, and download links that pointed into the private GitHub repo now point at sift.akakika.com.
+
+Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 
 ## [1.10.0] — 2026-08-27
 

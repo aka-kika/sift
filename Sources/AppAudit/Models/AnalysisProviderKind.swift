@@ -79,6 +79,16 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         return "\(rawValue):\(model)"
     }
 
+    /// After fetching a provider's model list: the model to store, or nil when the
+    /// effective choice (stored value, else this provider's default) is already
+    /// available. Never replaces a working default just because nothing was stored.
+    func modelToSelect(from models: [String], userDefaults: UserDefaults = .standard) -> String? {
+        let stored = userDefaults.string(forKey: modelDefaultsKey)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let effective = stored.isEmpty ? defaultModel : stored
+        if models.contains(effective) { return nil }
+        return models.first
+    }
+
     static let storageKey = "analysisProviderKind"
 
     static func current(userDefaults: UserDefaults = .standard) -> AnalysisProviderKind {

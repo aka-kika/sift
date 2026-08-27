@@ -60,11 +60,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>BuildTimestamp</key><string>${BUILD_TIMESTAMP}</string>
     <key>GitCommit</key><string>${GIT_COMMIT}</string>
+$(if [[ -n "${SPARKLE_FEED_URL:-}" ]]; then cat <<SPARKLE
     <!-- Sparkle self-update: feed + EdDSA public key come from version.env. -->
-    <key>SUFeedURL</key><string>${SPARKLE_FEED_URL:-}</string>
+    <key>SUFeedURL</key><string>${SPARKLE_FEED_URL}</string>
     <key>SUPublicEDKey</key><string>${SPARKLE_PUBLIC_KEY:-}</string>
     <key>SUEnableAutomaticChecks</key><true/>
     <key>SUScheduledCheckInterval</key><integer>86400</integer>
+SPARKLE
+fi)
 </dict>
 </plist>
 PLIST

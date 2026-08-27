@@ -24,6 +24,25 @@ struct HomebrewService: Sendable {
         runBrew(arguments: ["upgrade", "--cask", token], includeStandardError: true)
     }
 
+    /// What `brew` actually did. `exitStatus` is nil when brew could not be run at all.
+    struct BrewOutcome: Sendable {
+        let exitStatus: Int32?
+        let output: String
+        var succeeded: Bool { exitStatus == 0 }
+        /// Something to show the user when it failed.
+        var message: String {
+            if exitStatus == nil { return "Homebrew is not installed or could not be run." }
+            let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "brew exited with status \(exitStatus ?? -1)." : trimmed
+        }
+    }
+
+    /// Runs `brew uninstall --cask <token>` and reports whether it worked — brew's
+    /// exit status, not the presence of output, is the verdict.
+    func uninstall(cask token: String) -> BrewOutcome {
+        runBrewChecked(arguments: ["uninstall", "--cask", token])
+    }
+
     func uninstallCask(_ token: String) -> String {
         runBrew(arguments: ["uninstall", "--cask", token], includeStandardError: true)
     }
@@ -67,6 +86,25 @@ struct HomebrewService: Sendable {
             return nil
         }
         return components[index + 1]
+    }
+
+    private func runBrewChecked(arguments: [String]) -> BrewOutcome {
+        guard let brewPath = Self.brewExecutablePath() else { return BrewOutcome(exitStatus: nil, output: "") }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: brewPath)
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do {
+            try process.run()
+            // Drain before waiting: a chatty brew would otherwise fill the pipe and hang.
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            return BrewOutcome(exitStatus: process.terminationStatus, output: String(data: data, encoding: .utf8) ?? "")
+        } catch {
+            return BrewOutcome(exitStatus: nil, output: error.localizedDescription)
+        }
     }
 
     private func runBrew(arguments: [String], includeStandardError: Bool = false) -> String {

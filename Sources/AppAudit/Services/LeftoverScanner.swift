@@ -8,7 +8,7 @@ import Foundation
 /// (https://github.com/gostonx/uninstally, MIT License © 2026 Codenta).
 struct LeftoverScanner: Sendable {
 
-    func scan(appName: String, bundleID: String, appPath: String) async -> [LeftoverItem] {
+    func scan(appName: String, bundleID: String, appPath: String, otherBundleIDs: [String] = []) async -> [LeftoverItem] {
         let fm = FileManager.default
         let library = fm.homeDirectoryForCurrentUser
             .appending(path: "Library", directoryHint: .isDirectory)
@@ -56,7 +56,7 @@ struct LeftoverScanner: Sendable {
             for child in children {
                 let name = child.lastPathComponent
                 var reason: String?
-                if LeftoverMatcher.matches(name: name, bundleID: bundleID) {
+                if LeftoverMatcher.matches(name: name, bundleID: bundleID, otherBundleIDs: otherBundleIDs) {
                     reason = "Matches \(bundleID)"
                 } else if LeftoverMatcher.nameMatchAllowed(for: category),
                           LeftoverMatcher.matchesDisplayName(name, appName: appName) {

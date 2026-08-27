@@ -23,7 +23,7 @@ final class UpdateService {
 
     private init() {
         #if canImport(Sparkle)
-        let hasFeed = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil
+        let hasFeed = Self.feedIsConfigured(Bundle.main.object(forInfoDictionaryKey: "SUFeedURL"))
         controller = SPUStandardUpdaterController(startingUpdater: hasFeed,
                                                   updaterDelegate: nil,
                                                   userDriverDelegate: nil)
@@ -32,7 +32,14 @@ final class UpdateService {
 
     /// True when the app was packaged with a feed (i.e. not a bare `swift run`).
     var isAvailable: Bool {
-        Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil
+        Self.feedIsConfigured(Bundle.main.object(forInfoDictionaryKey: "SUFeedURL"))
+    }
+
+    /// An Info.plist value counts as a feed only when it is a non-blank string —
+    /// the packaging script may write the key with an empty value.
+    nonisolated static func feedIsConfigured(_ value: Any?) -> Bool {
+        guard let string = value as? String else { return false }
+        return !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Whether Sparkle would accept a user-initiated check right now.

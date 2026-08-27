@@ -232,7 +232,7 @@ struct AppRow: View {
             }
         }
         .sheet(isPresented: $uninstallSheetPresented) {
-            UninstallSheet(app: app) { removedBundle in
+            UninstallSheet(app: app, otherBundleIDs: viewModel.apps.map(\.bundleID).filter { $0 != app.bundleID }) { removedBundle in
                 if removedBundle {
                     viewModel.removeApp(bundleID: app.bundleID)
                 }

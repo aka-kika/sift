@@ -11,7 +11,7 @@ Style: no emojis. Monochrome.
 | Version | Supported |
 |---|---|
 | 1.8.x | Yes |
-| < 1.8 | No — update to the [latest release](https://github.com/aka-kika/sift/releases/latest) |
+| < 1.8 | No — update to the [latest release](https://sift.akakika.com/Sift.dmg) |
 
 Sift ships as a Developer ID–signed, Apple-notarized DMG. Only builds obtained
 from the GitHub releases page are supported.

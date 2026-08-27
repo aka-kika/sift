@@ -50,12 +50,21 @@ enum LeftoverMatcher {
     /// True when `name` (a directory entry) belongs to `bundleID`:
     /// exact, `<id>.<anything>` (helpers, plists, ByHost, lockfiles),
     /// or extension-stripped equality.
-    static func matches(name: String, bundleID: String) -> Bool {
+    ///
+    /// `otherBundleIDs` are the other installed apps. A name that belongs to one
+    /// of them is never claimed — `com.google.Chrome.canary.plist` is Canary's,
+    /// not stable Chrome's, even though it starts with `com.google.Chrome.`.
+    static func matches(name: String, bundleID: String, otherBundleIDs: [String] = []) -> Bool {
         guard !bundleID.isEmpty else { return false }
         let bare = (name as NSString).deletingPathExtension
         for id in identifierCandidates(bundleID: bundleID) {
-            if name == id || bare == id { return true }
-            if name.hasPrefix(id + ".") { return true }
+            let own = name == id || bare == id || name.hasPrefix(id + ".")
+            guard own else { continue }
+            let claimedBySibling = otherBundleIDs.contains { other in
+                other != bundleID && other.count > id.count && other.hasPrefix(id + ".")
+                    && (name == other || bare == other || name.hasPrefix(other + "."))
+            }
+            return !claimedBySibling
         }
         return false
     }

@@ -10,6 +10,9 @@ import AppKit
 struct UninstallSheet: View {
     let app: AppInfo
     /// Called on close; `removedBundle` is true when the .app left the disk.
+    /// Every other installed app, so a sibling's files (Chrome Canary next to
+    /// Chrome) are never listed as this app's leftovers.
+    var otherBundleIDs: [String] = []
     let onFinished: (_ removedBundle: Bool) -> Void
 
     private enum Phase {
@@ -24,6 +27,7 @@ struct UninstallSheet: View {
     @State private var checked: Set<String> = []
     @State private var isRunning = false
     @State private var brewOutput: String? = nil
+    @State private var brewFailure: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -110,11 +114,13 @@ struct UninstallSheet: View {
         HStack(spacing: 8) {
             Image(systemName: "terminal")
                 .foregroundStyle(.secondary)
-            Text(brewOutput == nil
-                 ? "Installed with Homebrew — you can let brew remove the app instead"
-                 : "Homebrew finished; leftovers below can still be swept")
+            Text(brewOutput != nil
+                 ? "Homebrew finished; leftovers below can still be swept"
+                 : brewFailure.map { "brew could not remove it — \($0) The app bundle stays in the list below." }
+                   ?? "Installed with Homebrew — you can let brew remove the app instead")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(brewFailure == nil ? .secondary : .primary)
+                .lineLimit(3)
             Spacer()
             if brewOutput == nil {
                 Button("brew uninstall") {
@@ -227,7 +233,7 @@ struct UninstallSheet: View {
 
     private func scan() async {
         let scanner = LeftoverScanner()
-        let found = await scanner.scan(appName: app.name, bundleID: app.bundleID, appPath: app.path)
+        let found = await scanner.scan(appName: app.name, bundleID: app.bundleID, appPath: app.path, otherBundleIDs: otherBundleIDs)
         items = found
         checked = Set(found.map(\.id))
         refreshRunningState()
@@ -255,10 +261,14 @@ struct UninstallSheet: View {
     private func runBrewUninstall() {
         guard let token = app.homebrewCaskToken else { return }
         Task {
-            let output = await Task.detached {
-                HomebrewService().uninstallCask(token)
+            let outcome = await Task.detached {
+                HomebrewService().uninstall(cask: token)
             }.value
-            brewOutput = output
+            guard outcome.succeeded else {
+                brewFailure = outcome.message
+                return
+            }
+            brewOutput = outcome.output
             // brew removed the bundle; drop it from the sweep list.
             items.removeAll(where: \.isAppBundle)
             checked = checked.intersection(Set(items.map(\.id)))

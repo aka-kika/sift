@@ -245,11 +245,9 @@ struct AnalysisSettingsTab: View {
         switch result {
         case .models(let models):
             availableModels = models
-            // Auto-select the first model if the current selection isn't available.
-            let key = provider.modelDefaultsKey
-            let current = UserDefaults.standard.string(forKey: key) ?? ""
-            if !models.contains(current), let first = models.first {
-                UserDefaults.standard.set(first, forKey: key)
+            // Auto-select the first model only if the effective choice isn't available.
+            if let replacement = provider.modelToSelect(from: models) {
+                UserDefaults.standard.set(replacement, forKey: provider.modelDefaultsKey)
             }
             fetchState = .loaded
         case .failure(let message):

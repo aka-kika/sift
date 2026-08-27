@@ -19,7 +19,7 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 [![Local first](https://img.shields.io/badge/AI-local%20first-6E56CF?style=flat-square)](#privacy)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-[Website](https://sift.akakika.com) · [Download the notarized DMG](https://github.com/aka-kika/sift/releases/latest) · [What it does](#what-sift-does) · [Privacy](#privacy) · [Docs](#docs)
+[Website](https://sift.akakika.com) · [Download the notarized DMG](https://sift.akakika.com/Sift.dmg) · [What it does](#what-sift-does) · [Privacy](#privacy) · [Docs](#docs)
 
 </div>
 
@@ -104,7 +104,7 @@ Analysis needs a model. Scanning, licences, updates, and uninstall work without 
 
 ## Install
 
-Download the notarized DMG from the [latest release](https://github.com/aka-kika/sift/releases/latest), open it, and drag Sift to Applications.
+Download the notarized DMG from [sift.akakika.com/Sift.dmg](https://sift.akakika.com/Sift.dmg), open it, and drag Sift to Applications. Sift updates itself from there.
 
 ```bash
 # the local model Sift uses by default

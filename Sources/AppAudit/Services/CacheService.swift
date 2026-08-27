@@ -16,6 +16,19 @@ final class CacheService {
         return try? context.fetch(descriptor).first
     }
 
+    /// The record for `bundleID`, creating an empty one only if none exists. Always
+    /// re-fetches: `bundleID` is unique, so inserting a twin would upsert over — and
+    /// blank out — an analysis that arrived while a view held a stale `nil`.
+    func ensureRecord(bundleID: String, appName: String) -> AppRecord {
+        if let existing = load(bundleID: bundleID) { return existing }
+        let record = AppRecord(
+            bundleID: bundleID, appName: appName, explanation: "",
+            relevanceScore: 0, relevanceReason: "", bestUse: "", ollamaModel: ""
+        )
+        context.insert(record)
+        return record
+    }
+
     func allRecords() -> [AppRecord] {
         (try? context.fetch(FetchDescriptor<AppRecord>())) ?? []
     }
