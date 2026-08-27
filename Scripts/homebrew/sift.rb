@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 cask "sift" do
-  version "1.10.0"
-  sha256 "8231030b1c5f2ee514c0e56fad8ec8f8cc94a2232730c20b0c42a81c88d1a884"
+  version "1.11.0"
+  sha256 "19e26a55ebfc3d2a20b0366d1a14f856f370114d44322131322618f547c6b89a"
 
   url "https://sift.akakika.com/downloads/Sift-#{version}.dmg"
   name "Sift"
