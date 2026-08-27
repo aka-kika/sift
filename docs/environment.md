@@ -35,11 +35,13 @@ export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 <!-- SF Symbol: arrow.down.to.line.compact -->
 ## Installation
 
-No package dependencies — the target is pure SwiftPM with system frameworks
-only. Cloning is the install.
+One package dependency — Sparkle 2 (self-update, since 1.9.0), pulled by SwiftPM
+from `Package.swift`. Everything else is system frameworks. Cloning plus a resolve
+is the install:
 
 ```bash
 git clone https://github.com/aka-kika/sift.git && cd sift
+swift package resolve
 ```
 
 ---
@@ -93,7 +95,7 @@ Nothing lives in the repo, and no `.env` is used.
 
 | Secret | Where it lives | Needed for |
 |---|---|---|
-| Anthropic / OpenAI API key | Entered in Settings → Models, stored in the app's own store | Optional cloud analysis; Ollama is the default and needs no key |
+| Anthropic / OpenAI / Google Gemini / OpenRouter API key | Entered in Settings → Models, stored in the app's own store | Optional cloud analysis; Ollama is the default and needs no key |
 | Licence keys | macOS Keychain, keyed to the bundle ID | The License Vault at runtime |
 | Notarization credentials | Login Keychain profile `AC_PASSWORD` (`xcrun notarytool store-credentials`) | Release only |
 | Developer ID certificate | Login Keychain | Release only |

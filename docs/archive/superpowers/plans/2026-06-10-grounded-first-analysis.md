@@ -8,7 +8,7 @@
 
 **Tech Stack:** SwiftUI/SwiftData, Swift Testing. Every command needs `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` (standalone CLT broken on macOS 27). Ignore SourceKit/IDE diagnostics; only build/test output counts.
 
-Spec: `docs/superpowers/specs/2026-06-10-grounded-first-analysis-design.md`
+Spec: `docs/archive/superpowers/specs/2026-06-10-grounded-first-analysis-design.md`
 
 ---
 
@@ -305,7 +305,7 @@ In `ContentView`'s `.task`, call `await viewModel.applyFirstRunProviderDefault()
 - docs/README.md → Workflow Context section: rewrite to describe automatic digest + override; Detail Panel: "What is this?" first; Models Tab: note the first-run default; CSV section: add Category to the column list.
 - docs/ARCHITECTURE.md → AI Prompt/profile note: profile resolution order custom → digest → neutral.
 - docs/roadmap.md → Now: replace the (shipped) glass line with `- **Grounded-first analysis** — facts before opinions: auto profile from installed apps, category evidence, zero-setup Apple Intelligence default.` Move glass to Recently shipped.
-- Spec `docs/superpowers/specs/2026-06-10-grounded-first-analysis-design.md` status → `Implemented (this plan)`.
+- Spec `docs/archive/superpowers/specs/2026-06-10-grounded-first-analysis-design.md` status → `Implemented (this plan)`.
 
 - [ ] **Step 4: Tests (53) + Sift2 rebuild + commit:** `git add -A && git commit -m "Category evidence in prompts and CSV; grounded-first docs"`
 

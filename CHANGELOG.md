@@ -148,7 +148,9 @@ Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 - Foundations: app scan and 1–5 workflow scoring, update detection (App Store / Sparkle / Homebrew), Keychain license keys + vault, subscription tracking, CSV export, last-used sort, instant appearance switching. See `docs/releases/` for per-version records.
 
 <!-- Link references — point each version at its compare/diff range. -->
-[Unreleased]: https://github.com/aka-kika/sift/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/aka-kika/sift/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/aka-kika/sift/compare/v1.9.0...v1.10.0
+[1.9.0]: https://github.com/aka-kika/sift/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/aka-kika/sift/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/aka-kika/sift/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/aka-kika/sift/compare/v1.5.1...v1.6.0

@@ -47,5 +47,5 @@ app's existing lock feature, which exists for exactly this fear.
 ## References
 
 <!-- SF Symbol: link -->
-- `docs/superpowers/specs/2026-06-06-appaudit-practical-improvements-design.md`, items 1–2
+- `docs/archive/superpowers/specs/2026-06-06-appaudit-practical-improvements-design.md`, items 1–2
 - Commit `932af92` — Add bulk re-analyze, stop auto-wipe on model change

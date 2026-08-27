@@ -8,7 +8,7 @@
 
 **Tech Stack:** Swift 5.9, SwiftUI, SwiftData, Swift Testing (`@Suite`/`@Test`/`#expect`), macOS 14+.
 
-**Spec:** `docs/superpowers/specs/2026-07-04-notes-analysis-unranked-myapps-design.md` (sections 1–2 only; section 3 "Unranked My Apps" is a later phase — do NOT implement it).
+**Spec:** `docs/archive/superpowers/specs/2026-07-04-notes-analysis-unranked-myapps-design.md` (sections 1–2 only; section 3 "Unranked My Apps" is a later phase — do NOT implement it).
 
 ## Global Constraints
 

@@ -25,7 +25,7 @@ labels: bug
 
 | | |
 |---|---|
-| Sift version | <!-- Settings → About, e.g. 1.8.0 (18) --> |
+| Sift version | <!-- Settings → About, e.g. 1.10.0 (20) --> |
 | macOS | <!-- e.g. 15.2 --> |
 | Chip | <!-- Apple Silicon / Intel --> |
 | Analysis provider | <!-- Ollama (model?) / Anthropic / OpenAI / none --> |

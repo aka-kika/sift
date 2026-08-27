@@ -12,7 +12,7 @@
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
 ```
 
-Spec: `docs/superpowers/specs/2026-06-10-macos27-liquid-glass-apple-intelligence-design.md`
+Spec: `docs/archive/superpowers/specs/2026-06-10-macos27-liquid-glass-apple-intelligence-design.md`
 
 ---
 
@@ -541,7 +541,7 @@ git commit -m "Bump to 1.2.0 (build 3); size Settings for new control metrics"
 - Modify: `docs/README.md` (Requirements table, Models Tab section)
 - Modify: `docs/ARCHITECTURE.md` (provider list, prompt note)
 - Modify: `docs/roadmap.md` (move Now → Recently shipped happens at release; for now mark in-progress accurately if needed — leave as-is otherwise)
-- Modify: `docs/superpowers/specs/2026-06-10-macos27-liquid-glass-apple-intelligence-design.md` (status → implemented)
+- Modify: `docs/archive/superpowers/specs/2026-06-10-macos27-liquid-glass-apple-intelligence-design.md` (status → implemented)
 
 - [ ] **Step 1: FEATURES.md — AI providers bullet list**
 
@@ -594,7 +594,7 @@ In the 1.2.0 spec header: `**Status:** Implemented (this plan)`.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add FEATURES.md docs/README.md docs/ARCHITECTURE.md docs/superpowers/specs/2026-06-10-macos27-liquid-glass-apple-intelligence-design.md
+git add FEATURES.md docs/README.md docs/ARCHITECTURE.md docs/archive/superpowers/specs/2026-06-10-macos27-liquid-glass-apple-intelligence-design.md
 git commit -m "Document Apple Intelligence provider and Liquid Glass pass"
 ```
 

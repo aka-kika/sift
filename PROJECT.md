@@ -6,7 +6,7 @@ obsidian_log: N/A
 status: shipped
 tags: [macos, swiftui, app-audit]
 created: 2026-06-17
-updated: 2026-08-02
+updated: 2026-08-27
 ---
 
 # Sift
@@ -20,29 +20,32 @@ Native macOS app that audits your installed apps with a local model — grounded
 Sift scans `/Applications` and `~/Applications`, explains what each app is, and
 scores 1–5 how well it fits your workflow. The detail panel leads with a
 recommendation, then a strip of minimal icon "cubes" for per-app data — notes,
-license, subscription, app link, lock, favorite, docs, plus Cross-App and My App.
+license, subscription, app link, lock, favorite, docs, and My App.
 
 The standout is that analysis is **grounded and local-first**: it runs on Ollama
-by default (optional Anthropic/OpenAI), and is fed only real evidence — the app's
+by default (optional Anthropic, OpenAI, Google Gemini, OpenRouter — the last two
+with free tiers), and is fed only real evidence — the app's
 metadata, your notes, its website's fetched words, and, for your own apps, a
 local project folder's README. No bundled "known apps" catalog, no invented
-facts. Cross-App only ever suggests apps you already have.
+facts. Similar apps are only ever picked from apps you already have.
 
 It's for a developer deciding what earns a place on their Mac: tracking updates,
-storing license keys in the Keychain, watching subscriptions, and keeping the
-audit exportable to CSV. Ships as a Developer ID–signed, notarized DMG.
+storing license keys in the Keychain, watching subscriptions, uninstalling to the
+Trash with a leftover sweep, and keeping the audit exportable to CSV. Updates
+itself through Sparkle. Ships as a Developer ID–signed, notarized DMG.
 
 ## Stack
 - Swift 5.9 / SwiftUI
 - SwiftData (local store) + macOS Keychain (license keys)
 - AppKit, LocalAuthentication (Touch ID)
-- Local Ollama (default); optional Anthropic / OpenAI
+- Local Ollama (default); optional Anthropic / OpenAI / Google Gemini / OpenRouter
+- Sparkle 2 (self-update) — the only third-party dependency
 - SwiftPM build; `create-dmg`; `notarytool`
 
 ## Components / Structure
 - `Sources/AppAudit/Views/` — ContentView, AppListView, AppDetailView, AppRow, sheets
 - `Sources/AppAudit/ViewModels/AppListViewModel.swift` — scan, enrich, filters, export
-- `Sources/AppAudit/Services/` — Ollama/Anthropic/OpenAI, AppAnalysisPrompt, DocsEvidence, SimilarAppsPrompt, LinkEvidence, CacheService, LicenseKeyStore
+- `Sources/AppAudit/Services/` — Ollama/Anthropic/OpenAICompatible (OpenAI, Gemini, OpenRouter), UpdateService (Sparkle), LeftoverScanner + TrashService (uninstall), AppAnalysisPrompt, DocsEvidence, SimilarAppsPrompt, LinkEvidence, CacheService, LicenseKeyStore
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status

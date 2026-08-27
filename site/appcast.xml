@@ -20,14 +20,5 @@
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <enclosure url="https://sift.akakika.com/downloads/Sift-1.9.0.dmg" length="4948203" type="application/octet-stream" sparkle:edSignature="FWVzYe04jf1w3xSsaBuhAyu3z9N2XS/IT0z7mAZQai+LXzp1lt4yiAWbozAZc4GHkmSOE493hN3Tb6WRxpyZCw=="/>
         </item>
-        <item>
-            <title>1.8.0</title>
-            <pubDate>Thu, 27 Aug 2026 08:32:57 +0300</pubDate>
-            <sparkle:version>18</sparkle:version>
-            <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://sift.akakika.com/downloads/Sift-1.8.0.dmg" length="4008649" type="application/octet-stream"/>
-        </item>
     </channel>
 </rss>

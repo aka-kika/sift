@@ -10,11 +10,12 @@ Style: no emojis. Monochrome.
 
 | Version | Supported |
 |---|---|
-| 1.8.x | Yes |
-| < 1.8 | No — update to the [latest release](https://sift.akakika.com/Sift.dmg) |
+| 1.10.x | Yes |
+| < 1.10 | No — update to the [latest release](https://sift.akakika.com/Sift.dmg) |
 
 Sift ships as a Developer ID–signed, Apple-notarized DMG. Only builds obtained
-from the GitHub releases page are supported.
+from [sift.akakika.com](https://sift.akakika.com/Sift.dmg) (or delivered by its
+Sparkle update feed) are supported.
 
 ## Reporting a vulnerability
 
@@ -52,7 +53,7 @@ shouldn't, or make Sift act beyond what the user asked:
 
 Out of scope:
 
-- Vulnerabilities in Ollama, Anthropic, OpenAI, Homebrew, or macOS itself — report those upstream
+- Vulnerabilities in Ollama, Anthropic, OpenAI, Google Gemini, OpenRouter, Sparkle, Homebrew, or macOS itself — report those upstream
 - The consequences of a user's own choice: switching to a cloud provider sends data to that provider by design
 - Physical access to an unlocked Mac
 - Ad-hoc-signed local builds you compiled yourself

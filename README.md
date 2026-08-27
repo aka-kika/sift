@@ -14,7 +14,7 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 [![Apple Silicon](https://img.shields.io/badge/arch-Apple%20Silicon-black?style=flat-square)](#requirements)
 [![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-SwiftData-0071e3?style=flat-square)](https://developer.apple.com/xcode/swiftui/)
-[![Version](https://img.shields.io/badge/release-1.8.0-success?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/release-1.10.0-success?style=flat-square)](CHANGELOG.md)
 [![Notarized](https://img.shields.io/badge/Apple-notarized-success?style=flat-square)](docs/RELEASE.md)
 [![Local first](https://img.shields.io/badge/AI-local%20first-6E56CF?style=flat-square)](#privacy)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
@@ -168,7 +168,8 @@ Same app. The product name is Sift; the bundle ID stays `com.kikaapp.appaudit` s
 ## Built with
 
 Swift 5.9 · SwiftUI · SwiftData · AppKit · LocalAuthentication (Touch ID) ·
-Keychain Services · Ollama · SwiftPM. No third-party dependencies.
+Keychain Services · Ollama · SwiftPM · Sparkle 2. Sparkle 2 for self-update is
+the only third-party dependency.
 
 ## Contributing
 

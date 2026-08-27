@@ -7,7 +7,7 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # Sift — Privacy & Permissions
 
-**Updated:** 2026-08-02 · **Version:** 1.8.0
+**Updated:** 2026-08-27 · **Version:** 1.10.0
 
 ## In one line
 
@@ -54,10 +54,12 @@ itself are refused outright.
 ## Network
 
 <!-- SF Symbol: network -->
-Sift makes no network connections at all in its default configuration.
+Apart from its own daily update check, Sift makes no network connections in its
+default configuration.
 
-- **Analysis** runs on **local Ollama** by default — prompts never leave the Mac. If you switch the provider to Anthropic or OpenAI in Settings, the prompt (app metadata, your notes, fetched link evidence, attached docs evidence) goes to that provider under your own API key and their terms. That switch is yours to make and yours to undo.
+- **Analysis** runs on **local Ollama** by default — prompts never leave the Mac. If you switch the provider to Anthropic, OpenAI, Google Gemini or OpenRouter in Settings, the prompt (app metadata, your notes, fetched link evidence, attached docs evidence) goes to that provider under your own API key and their terms. That switch is yours to make and yours to undo.
 - **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed. Homebrew checks run the local `brew` binary.
+- **Sift's own updates** (since 1.9.0) — Sparkle fetches `sift.akakika.com/appcast.xml` once a day and downloads the DMG only when you accept an update. The feed is a static file; nothing about you or your Mac is sent with the request.
 - **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says.
 - **About tab links** open in your browser when you click them; nothing is requested in the background.
 
@@ -65,7 +67,8 @@ Sift makes no network connections at all in its default configuration.
 
 <!-- SF Symbol: shippingbox -->
 None. No analytics, no telemetry, no crash reporting, no accounts, no
-Sift-operated server exists. Anthropic and OpenAI are optional providers you
+Sift-operated server exists beyond the static site that hosts the update feed.
+Anthropic, OpenAI, Google Gemini and OpenRouter are optional providers you
 configure yourself; Apple and Homebrew are contacted only for update metadata.
 
 ## Your controls

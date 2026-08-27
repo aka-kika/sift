@@ -8,7 +8,7 @@
 
 **Tech Stack:** SwiftUI, SwiftData, Swift Testing. Patterns adapted from `~/reshelf/repos/macOS/uninstally` (MIT © 2026 Codenta — attribute in `LeftoverScanner`'s header).
 
-**Spec:** `docs/superpowers/specs/2026-08-01-uninstall-sweep-design.md`
+**Spec:** `docs/archive/superpowers/specs/2026-08-01-uninstall-sweep-design.md`
 
 ## Global Constraints
 

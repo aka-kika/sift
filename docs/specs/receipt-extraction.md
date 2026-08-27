@@ -57,4 +57,4 @@ cycle, and renewal date appear filled and correct, ready to Save — no typing.
 <!-- SF Symbol: exclamationmark.bubble -->
 - Cloud-provider caveat: if the user has switched to Anthropic/OpenAI, receipt text goes to that provider (same as analysis). Surface it in the tooltip — settled, noted here for the record.
 
-<!-- Full design (architecture, parser, mapping, tests): docs/superpowers/specs/2026-07-04-receipt-extraction-design.md -->
+<!-- Full design (architecture, parser, mapping, tests): docs/archive/superpowers/specs/2026-07-04-receipt-extraction-design.md -->

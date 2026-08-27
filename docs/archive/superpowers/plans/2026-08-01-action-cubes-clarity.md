@@ -8,7 +8,7 @@
 
 **Tech Stack:** SwiftUI (macOS), SwiftData, SwiftPM executable `Sift`, Swift Testing (`import Testing`, `@Test`, `#expect`) in target `SiftTests`.
 
-**Spec:** `docs/superpowers/specs/2026-08-01-action-cubes-clarity-design.md`
+**Spec:** `docs/archive/superpowers/specs/2026-08-01-action-cubes-clarity-design.md`
 
 ## Global Constraints
 

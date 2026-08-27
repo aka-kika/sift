@@ -49,5 +49,5 @@ items must keep working without a single prompt or migration step.
 ## References
 
 <!-- SF Symbol: link -->
-- `docs/superpowers/specs/2026-06-06-appaudit-practical-improvements-design.md`, item 17
+- `docs/archive/superpowers/specs/2026-06-06-appaudit-practical-improvements-design.md`, item 17
 - Commit `0711efa` — Rebrand AppAudit → Sift (v1.1.0)

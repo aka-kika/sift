@@ -8,7 +8,7 @@
 
 **Tech Stack:** Swift 5.9, SwiftUI, SwiftData, Swift Testing (`@Suite`/`@Test`/`#expect`), AppKit (`NSOpenPanel`, `NSWorkspace`), macOS 14+.
 
-**Spec:** `docs/superpowers/specs/2026-07-04-local-docs-evidence-design.md`
+**Spec:** `docs/archive/superpowers/specs/2026-07-04-local-docs-evidence-design.md`
 
 ## Global Constraints
 

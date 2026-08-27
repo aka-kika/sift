@@ -20,7 +20,7 @@ Use this for internal testing. It is ad-hoc signed and not notarization-ready.
 
 ```bash
 bash Scripts/make_dmg.sh
-hdiutil verify Sift-1.1.0.dmg
+hdiutil verify Sift-1.10.0.dmg
 ```
 
 The DMG includes a polished Finder layout, the app icon, an Applications drop link, and a custom icon on the `.dmg` file itself.
@@ -40,10 +40,10 @@ Confirm the app is signed with hardened runtime:
 ```bash
 codesign --verify --deep --strict --verbose=2 Sift.app
 codesign -dv --verbose=4 Sift.app
-codesign --verify --verbose=2 Sift-1.1.0.dmg
+codesign --verify --verbose=2 Sift-1.10.0.dmg
 spctl --assess --type execute --verbose=4 Sift.app
-spctl --assess --type open --context context:primary-signature --verbose=4 Sift-1.1.0.dmg
-hdiutil verify Sift-1.1.0.dmg
+spctl --assess --type open --context context:primary-signature --verbose=4 Sift-1.10.0.dmg
+hdiutil verify Sift-1.10.0.dmg
 ```
 
 ## 4. Notarize
@@ -51,7 +51,7 @@ hdiutil verify Sift-1.1.0.dmg
 Submit the DMG after Developer ID signing passes.
 
 ```bash
-xcrun notarytool submit Sift-1.1.0.dmg \
+xcrun notarytool submit Sift-1.10.0.dmg \
   --keychain-profile "AC_PASSWORD" \
   --wait
 ```
@@ -59,9 +59,9 @@ xcrun notarytool submit Sift-1.1.0.dmg \
 Staple and verify:
 
 ```bash
-xcrun stapler staple Sift-1.1.0.dmg
-xcrun stapler validate Sift-1.1.0.dmg
-spctl --assess --type open --verbose=4 Sift-1.1.0.dmg
+xcrun stapler staple Sift-1.10.0.dmg
+xcrun stapler validate Sift-1.10.0.dmg
+spctl --assess --type open --verbose=4 Sift-1.10.0.dmg
 ```
 
 ## 5. Sparkle self-update (since 1.9.0)
@@ -95,7 +95,7 @@ The deploy is what makes the update visible — Sparkle reads the appcast from t
 
 - Tag the release (e.g. `v1.9.0`) and attach the notarized `Sift-1.9.0.dmg` to a GitHub Release.
 - Deploy `site/` so the appcast and DMG go live: `cd site && vercel deploy --prod --yes`.
-- Update the Homebrew tap: copy `Scripts/homebrew/sift.rb` into `aka-kika/homebrew-tap/Casks/` and push.
+- Homebrew: `release.sh` bumps `Scripts/homebrew/sift.rb`; the public tap `aka-kika/homebrew-tap` is not created yet (see `Scripts/homebrew/README.md`).
 - Installing the new `Sift.app` replaces the old `AppAudit.app` (same bundle ID); existing data and license keys carry over.
 
 ## Notes
@@ -109,8 +109,9 @@ The deploy is what makes the update visible — Sparkle reads the appcast from t
 - The login Keychain holds two valid `Developer ID Application: Veronica Loren
   (P5RB3W3D58)` certificates, so passing `APP_IDENTITY` by name fails with
   "ambiguous". Pass the SHA-1 hash instead — list them with
-  `security find-identity -v -p codesigning`:
-  `APP_IDENTITY=ADC1CB6085203C50EB344490FD8FC03345838EFB`.
+  `security find-identity -v -p codesigning`. Both are valid; `Scripts/release.sh`
+  defaults to `APP_IDENTITY=D833417579CBB62121FD344B1513AE5D44A36762`, so use that
+  one for manual builds too and the signature stays consistent across releases.
 
 - `Scripts/package_app.sh` defaults to ad-hoc signing for local builds.
 - Set `SIGNING_MODE=developer` and `APP_IDENTITY` for release signing.

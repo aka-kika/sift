@@ -1,6 +1,6 @@
 # Sift — User and Developer Guide
 
-**Version 1.8.0** · macOS 14+ · Apple Silicon
+**Version 1.10.0** · macOS 14+ · Apple Silicon
 
 A native macOS app that audits your installed applications with a local model.
 For every app on your Mac, Sift answers three questions:
@@ -34,7 +34,7 @@ ollama serve
 ollama pull llama3.2
 ```
 
-Open `Sift-1.8.0.dmg`, drag Sift to Applications, launch it. Sift scans
+Open `Sift-1.10.0.dmg`, drag Sift to Applications, launch it. Sift scans
 `/Applications` and `~/Applications` and analyzes each app with the selected
 provider. Results are cached, so later launches are instant.
 
@@ -304,6 +304,7 @@ open Sift.app
 | `Scripts/package_app.sh` | Build the `.app` bundle (ad-hoc by default; `SIGNING_MODE=developer` for release) |
 | `Scripts/make_dmg.sh` | Build the app and a polished drag-to-install DMG |
 | `Scripts/build_sift2.sh` | Build the `Sift2` side-build — its own bundle ID, so its store and Keychain never touch the primary app's |
+| `Scripts/release.sh` | The release pipeline: Developer ID build, notarize, staple, appcast, site redirect, cask bump (`NOTARIZE=0` for a dry run) |
 
 See the [Release Checklist](RELEASE.md) before signing or notarizing.
 

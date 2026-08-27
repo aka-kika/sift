@@ -13,7 +13,7 @@
 ├──────────────┬──────────────┬───────────┤
 │ AppScanner │ AI Providers       │ Update/App Links │ Services
 │ FileManager│ Ollama/Anthropic/  │ App Store/Sparkle
-│            │ OpenAI/Apple Intel.│ /Homebrew
+│            │ OpenAI-compatible  │ /Homebrew
 ├─────────────────────────────────────────┤
 │  CacheService  +  AppRecord (@Model)    │  Data
 │         SwiftData store                 │
@@ -36,7 +36,7 @@ App Launch
   └── enrichConcurrently() [max 2 concurrent]
         │
         └── selected provider analyzes app + profile
-              → structured text (Ollama / Anthropic / OpenAI, same prompt)
+              → structured text (Ollama / Anthropic / OpenAI / Gemini / OpenRouter, same prompt)
               → parseAnalysis() → AIState.loaded(...)
               → CacheService.save()
               → ViewModel updates app in place → SwiftUI re-renders row
@@ -44,6 +44,7 @@ App Launch
 Background side tasks:
 - `UpdateChecker` checks App Store and Sparkle update state
 - `AppLinkResolver` suggests missing app links from App Store lookup or Sparkle appcast metadata
+- `UpdateService` (Sparkle 2) checks Sift's own feed once a day — see Self-update below
 ```
 
 ## State Machine (AppListViewModel.ScanState)
@@ -64,7 +65,7 @@ Locked analyses opt out of invalidation and overwrite. `CacheService.save` refus
 
 - AI enrichment uses `withTaskGroup` capped at 2 concurrent provider requests (low peak memory/CPU)
 - All ViewModel mutations happen on `@MainActor`
-- Services are `actor`-isolated (AppScanner, OllamaService, AnthropicService, OpenAIService)
+- Services are `actor`-isolated (AppScanner, OllamaService, AnthropicService, OpenAICompatibleService)
 
 ## Persistence
 
@@ -104,7 +105,9 @@ accepts markdown-wrapped labels (`**SCORE:**`), and reads `4/5`-style scores —
 reasoning model's output still parses cleanly.
 
 All providers share this one prompt via the `AnalysisService` protocol. Ollama,
-Anthropic, and OpenAI return structured text for the parser. Ollama is the default
+Anthropic, and the OpenAI-compatible providers — OpenAI, Google Gemini, OpenRouter,
+one `OpenAICompatibleService` transport with a per-provider `Endpoint` — return
+structured text for the parser. Ollama is the default
 and the focus of this edition; its requests carry generation tuning (low
 temperature, larger context, output cap, `keep_alive`) centralized in
 `OllamaDefaults`. The system prompt instructs the model to answer directly,
@@ -120,3 +123,30 @@ Profile resolution order (applied at scan time and on every re-analyze):
 The digest from the last scan is persisted to `UserDefaults` (`lastProfileDigest`) and
 shown as a read-only preview in Settings → Profile. Leave the custom override empty to
 stay automatic.
+
+## Self-update (Sparkle)
+
+`UpdateService` wraps Sparkle 2's `SPUStandardUpdaterController`. Sparkle is the
+only third-party dependency (SwiftPM, since 1.9.0); `Scripts/package_app.sh`
+embeds it at `Contents/Frameworks/Sparkle.framework`, writes `SUFeedURL` and
+`SUPublicEDKey` from `version.env` (overridable through the environment), and a
+24-hour `SUScheduledCheckInterval`. The feed is `site/appcast.xml`, served from
+sift.akakika.com and signed with Sift's EdDSA key. A build whose feed is empty —
+`Scripts/build_sift2.sh` sets `SPARKLE_FEED_URL=` — starts no updater and hides
+**Check for Updates…**. This is separate from `UpdateChecker`,
+which looks up other apps' App Store, Sparkle and Homebrew versions.
+
+## Uninstall sweep
+
+Right-click → Uninstall… runs `LeftoverScanner` over the user-level Library
+locations (Application Support, Caches, Preferences, Logs, Containers, Group
+Containers, Saved Application State, WebKit, HTTP Storages, LaunchAgents,
+Application Scripts, Cookies). Matching is bundle-ID-first; a bare app name is
+trusted only under Application Support and Logs. The pure rules live in
+`Models/Uninstall.swift` (`UninstallRules` refuses `com.apple.*` and Sift itself,
+`LeftoverMatcher` decides what matches) so they are unit-tested without a view.
+`TrashService` moves each ticked item to the Trash — never deletes — and, when
+macOS refuses a root-owned bundle, hands the move to Finder by Apple Event
+(ADR 0003). Homebrew casks may run `brew uninstall` through `HomebrewService`
+instead. The `AppRecord` survives, so the licence key, notes and marks stay in
+the vault.

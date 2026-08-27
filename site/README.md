@@ -20,7 +20,10 @@ vercel deploy --prod --yes      # first time: vercel link --yes --project sift-s
 
 ## On each release
 
+`Scripts/release.sh` does steps 1–2 for you; only the deploy is by hand.
+
 1. Copy the notarized DMG to `site/downloads/Sift-X.Y.Z.dmg` (it is committed — `.gitignore`
-   un-ignores `site/downloads/*.dmg`).
+   un-ignores `site/downloads/*.dmg`) and regenerate `appcast.xml`.
 2. Point both redirects in `vercel.json` at the new file.
-3. Deploy as above. The download buttons on the page use `/Sift.dmg`, so they keep working.
+3. Deploy as above. The download buttons on the page use `/Sift.dmg`, so they keep working,
+   and the deploy is what makes the Sparkle update visible.
