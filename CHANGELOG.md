@@ -13,7 +13,17 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 ## [Unreleased]
 
 <!-- SF Symbol: hammer -->
-Nothing yet. Next up: trial + licence for Sift itself, then receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+
+## [1.10.0] — 2026-08-27
+
+<!-- SF Symbol: bolt.horizontal -->
+### Added
+- Two more engines, both with free tiers: **Google Gemini** (its OpenAI-compatible endpoint; default `gemini-2.5-flash-lite`, the free tier's most generous daily quota) and **OpenRouter** (default `openrouter/free`, the alias for whatever is free that day; `:free` models listed first). A Mac with no local model can now run a full audit at no cost. Settings → Models → Advanced → Engine.
+
+### Changed
+- OpenAI, Gemini and OpenRouter share one transport (`OpenAICompatibleService`); a 429 now says "daily free quota reached" instead of blaming the key.
+- Sift is free during the beta; the site says so.
 
 ## [1.9.0] — 2026-08-27
 

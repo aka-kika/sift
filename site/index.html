@@ -787,7 +787,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:64px 0 44px}
     </div>
     <div class="faq-item reveal" data-d="5">
       <button class="faq-q">What will it cost?<span class="fi"></span></button>
-      <div class="faq-a"><div class="faq-a-in"><p>Pricing ships with the launch announcement. Watch the GitHub repo — <b>you'll be the first to know</b>.</p></div></div>
+      <div class="faq-a"><div class="faq-a-in"><p><b>Nothing, during the beta.</b> Download it, use it, tell us what's wrong. If Sift ever gets a price, it will be a one-time one, and everyone who was here for the beta will hear about it first.</p></div></div>
     </div>
     <div class="faq-item reveal" data-d="5">
       <button class="faq-q">I build apps myself — does Sift understand that?<span class="fi"></span></button>
@@ -849,6 +849,17 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:64px 0 44px}
     <span class="r">Made for people with 200+ apps</span>
   </div>
 </footer>
+<script>
+  // Vercel Web Analytics (enable it once in the project dashboard). Counts page views
+  // and one custom "download" event per click on a DMG button — the beta's yardstick.
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  document.querySelectorAll('a[href="/Sift.dmg"]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      window.va('event', { name: 'download', data: { version: 'v1.9.0' } });
+    });
+  });
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
 <script>
 /* ================= DATA ================= */
 const IC = {

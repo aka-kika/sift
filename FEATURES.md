@@ -22,6 +22,8 @@ updating, and which licenses and subscriptions you're paying for.
   warm across a scan instead of reloading per app.
 - **Anthropic (Claude)** — Messages API; model list fetched from the provider. Optional.
 - **OpenAI** — Chat Completions API; model list fetched from the provider. Optional.
+- **Google Gemini** — via Gemini's OpenAI-compatible endpoint; model list fetched from the provider. Optional, and the free tier's daily allowance covers a full audit.
+- **OpenRouter** — one key, many models; `:free` models listed first. Optional.
 - Reasoning ("thinking") models are supported — the parser strips `<think>` blocks and
   tolerates markdown-wrapped labels and `4/5`-style scores — but a non-thinking model is
   the default, since pure thinking models can spend their whole budget reasoning.
@@ -99,6 +101,6 @@ updating, and which licenses and subscriptions you're paying for.
 ## Privacy & data
 
 - Analysis runs locally by default (Ollama) — nothing leaves the Mac. The
-  Anthropic and OpenAI cloud providers are opt-in via API key.
+  Anthropic, OpenAI, Gemini and OpenRouter cloud providers are opt-in via API key.
 - Data is stored locally in SwiftData; license keys live in the Keychain.
 - Update and app-link checks use public vendor endpoints only.

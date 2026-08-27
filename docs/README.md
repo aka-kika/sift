@@ -21,7 +21,7 @@ server exists — see [Privacy & Permissions](privacy.md).
 | macOS 14+ | Required OS | — |
 | [Ollama](https://ollama.ai) | Local analysis provider (default) | `brew install ollama` |
 | A pulled Ollama model | The model itself (default `kika-ohllama:latest`; any installed model works) | `ollama pull <model>` |
-| Cloud API key | Optional — ollama.com, Anthropic, or OpenAI instead of a local server | — |
+| Cloud API key | Optional — ollama.com, Anthropic, OpenAI, Google Gemini, or OpenRouter instead of a local server (Gemini and OpenRouter have free tiers) | — |
 
 Building from source has its own prerequisites — see [Environment Setup](environment.md).
 
@@ -249,7 +249,7 @@ Saving a new link re-analyzes the app with it, unless the analysis is locked.
 
 **Models** — provider and model. Ollama is the default (Base URL
 `http://localhost:11434`, optional API key for ollama.com cloud models);
-Anthropic and OpenAI live under Advanced → Engine. Model lists are fetched from
+Anthropic, OpenAI, Google Gemini and OpenRouter live under Advanced → Engine. Model lists are fetched from
 the provider, and the refresh button tests the connection.
 
 **Profile** — the automatic workflow digest (read-only preview), an optional
@@ -332,6 +332,7 @@ tested without a view: `MoneyCubeState`, `UtilityCardRules`, `LicenseDraftRules`
 | `CacheService.swift` | SwiftData read/write and cache invalidation |
 | `AnalysisProviderKind.swift` | Provider selection and cache identifier |
 | `OllamaService.swift` | Local analysis with strict structured output |
+| `OpenAICompatibleService.swift` | One transport for OpenAI, Gemini (OpenAI-compatible endpoint) and OpenRouter |
 | `AppAnalysisPrompt.swift` | The one prompt all providers share |
 | `AppDetailView.swift` | Header, cube strip, analysis, facts |
 | `MoneyPopover.swift` | The Key / Subscription panel |

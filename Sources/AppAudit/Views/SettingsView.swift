@@ -51,6 +51,10 @@ struct AnalysisSettingsTab: View {
     @AppStorage("anthropicModel") private var anthropicModel = "claude-3-5-haiku-latest"
     @AppStorage("openAIApiKey") private var openAIApiKey = ""
     @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
+    @AppStorage("geminiApiKey") private var geminiApiKey = ""
+    @AppStorage("geminiModel") private var geminiModel = AnalysisProviderKind.gemini.defaultModel
+    @AppStorage("openRouterApiKey") private var openRouterApiKey = ""
+    @AppStorage("openRouterModel") private var openRouterModel = AnalysisProviderKind.openRouter.defaultModel
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -77,11 +81,13 @@ struct AnalysisSettingsTab: View {
                 case .ollama:
                     ollamaConfig
                 case .anthropic:
-                    cloudConfig(apiKey: $anthropicApiKey, model: $anthropicModel,
-                                hint: "Anthropic API key (console.anthropic.com). Stored in app preferences.")
+                    cloudConfig(apiKey: $anthropicApiKey, model: $anthropicModel, hint: provider.apiKeyHint)
                 case .openAI:
-                    cloudConfig(apiKey: $openAIApiKey, model: $openAIModel,
-                                hint: "OpenAI API key (platform.openai.com). Stored in app preferences.")
+                    cloudConfig(apiKey: $openAIApiKey, model: $openAIModel, hint: provider.apiKeyHint)
+                case .gemini:
+                    cloudConfig(apiKey: $geminiApiKey, model: $geminiModel, hint: provider.apiKeyHint)
+                case .openRouter:
+                    cloudConfig(apiKey: $openRouterApiKey, model: $openRouterModel, hint: provider.apiKeyHint)
                 }
             }
 
@@ -99,7 +105,7 @@ struct AnalysisSettingsTab: View {
                     .pickerStyle(.menu)
                     .frame(maxWidth: 190)
                 }
-                SettingsFooter("Use a different engine — a local Ollama server or a cloud API.")
+                SettingsFooter("Use a different engine — a local Ollama server or a cloud API. Gemini and OpenRouter have free tiers.")
             }
             .padding(.top, 2)
         }
@@ -232,7 +238,9 @@ struct AnalysisSettingsTab: View {
         switch provider {
         case .ollama: result = await OllamaService().fetchModels()
         case .anthropic: result = await AnthropicService().fetchModels()
-        case .openAI: result = await OpenAIService().fetchModels()
+        case .openAI: result = await OpenAICompatibleService(kind: .openAI).fetchModels()
+        case .gemini: result = await OpenAICompatibleService(kind: .gemini).fetchModels()
+        case .openRouter: result = await OpenAICompatibleService(kind: .openRouter).fetchModels()
         }
         switch result {
         case .models(let models):

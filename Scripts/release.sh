@@ -63,6 +63,7 @@ echo "appcast entries:"; grep -o 'sparkle:shortVersionString="[^"]*"' "$ROOT/sit
 step "4/5 Site redirect -> ${DMG}"
 sed -i '' -E "s#/downloads/Sift-[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?\.dmg#/downloads/${DMG}#g" site/vercel.json
 sed -i '' -E "s#Sift · v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)? · macOS#Sift · v${VERSION} · macOS#" site/index.html
+sed -i '' -E "s#version: 'v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?'#version: 'v${VERSION}'#" site/index.html
 grep -n "downloads/" site/vercel.json
 
 step "5/5 Homebrew cask"

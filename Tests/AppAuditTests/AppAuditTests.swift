@@ -92,13 +92,25 @@ struct AnalysisProviderKindTests {
         #expect(AnalysisProviderKind.current(userDefaults: defaults) == .ollama)
     }
 
-    @Test("Provider set is Ollama plus the two optional cloud providers")
+    @Test("Provider set is Ollama plus the optional cloud providers")
     func providerCases() {
         // Personal edition: Ollama is the default and focus; Apple Intelligence
-        // has been removed. Anthropic and OpenAI remain as optional cloud providers.
-        #expect(AnalysisProviderKind.allCases.count == 3)
-        #expect(Set(AnalysisProviderKind.allCases) == [.ollama, .anthropic, .openAI])
+        // has been removed. Anthropic, OpenAI, Gemini and OpenRouter are optional
+        // cloud providers — the last two chosen for their free tiers.
+        #expect(AnalysisProviderKind.allCases.count == 5)
+        #expect(Set(AnalysisProviderKind.allCases) == [.ollama, .anthropic, .openAI, .gemini, .openRouter])
         #expect(AnalysisProviderKind.ollama.defaultModel == OllamaDefaults.model)
+        #expect(AnalysisProviderKind.gemini.defaultModel.hasPrefix("gemini"))
+        #expect(AnalysisProviderKind.openRouter.defaultModel == "openrouter/free")
+    }
+
+    @Test("Every provider has distinct storage keys")
+    func distinctKeys() {
+        let modelKeys = AnalysisProviderKind.allCases.map(\.modelDefaultsKey)
+        let apiKeys = AnalysisProviderKind.allCases.map(\.apiKeyDefaultsKey)
+        #expect(Set(modelKeys).count == modelKeys.count)
+        #expect(Set(apiKeys).count == apiKeys.count)
+        #expect(Set(modelKeys).isDisjoint(with: apiKeys))
     }
 
     @Test("Builds stable cache identifiers per provider and model")
@@ -1928,5 +1940,38 @@ struct LeftoverMatcherTests {
         #expect(!LeftoverMatcher.matchesDisplayName("Bloomberg", appName: "Bloom"))
         #expect(!LeftoverMatcher.matchesDisplayName("IINA", appName: "IINA") == false) // 4 chars passes
         #expect(!LeftoverMatcher.matchesDisplayName("Mo", appName: "Mo"))   // too short, generic
+    }
+}
+
+
+@Suite("OpenAICompatibleService model list tidying")
+struct OpenAICompatibleModelListTests {
+
+    @Test("Gemini IDs lose the models/ prefix and non-Gemini entries")
+    func geminiTidy() {
+        let raw = ["models/gemini-2.5-flash", "models/gemini-2.5-flash-lite", "models/embedding-001", "models/imagen-3"]
+        let tidy = OpenAICompatibleService.tidyModelIDs(raw, for: .gemini)
+        #expect(tidy == ["gemini-2.5-flash", "gemini-2.5-flash-lite"])
+    }
+
+    @Test("OpenRouter lists the free router first, then free models, then paid, each sorted")
+    func openRouterTidy() {
+        let raw = ["openai/gpt-4o", "meta-llama/llama-3.3-70b-instruct:free", "openrouter/free", "anthropic/claude-3.5-sonnet", "deepseek/deepseek-chat:free"]
+        let tidy = OpenAICompatibleService.tidyModelIDs(raw, for: .openRouter)
+        #expect(tidy == ["openrouter/free", "deepseek/deepseek-chat:free", "meta-llama/llama-3.3-70b-instruct:free",
+                         "anthropic/claude-3.5-sonnet", "openai/gpt-4o"])
+    }
+
+    @Test("OpenAI keeps chat families, falling back to everything when none match")
+    func openAITidy() {
+        #expect(OpenAICompatibleService.tidyModelIDs(["gpt-4o-mini", "whisper-1", "o3-mini"], for: .openAI) == ["gpt-4o-mini", "o3-mini"])
+        #expect(OpenAICompatibleService.tidyModelIDs(["whisper-1", "dall-e-3"], for: .openAI) == ["dall-e-3", "whisper-1"])
+    }
+
+    @Test("Quota exhaustion is named, not blamed on the key")
+    func describeStatus() {
+        #expect(OpenAICompatibleService.describe(status: 429, provider: "Google Gemini").contains("quota"))
+        #expect(OpenAICompatibleService.describe(status: 401, provider: "OpenRouter").contains("API key"))
+        #expect(OpenAICompatibleService.describe(status: 404, provider: "OpenAI").contains("model"))
     }
 }

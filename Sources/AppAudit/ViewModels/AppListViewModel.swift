@@ -212,7 +212,9 @@ final class AppListViewModel {
     private let scanner = AppScanner()
     private let ollama = OllamaService()
     private let anthropic = AnthropicService()
-    private let openAI = OpenAIService()
+    private let openAI = OpenAICompatibleService(kind: .openAI)
+    private let gemini = OpenAICompatibleService(kind: .gemini)
+    private let openRouter = OpenAICompatibleService(kind: .openRouter)
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     private let linkEvidenceService = LinkEvidenceService()
@@ -392,6 +394,10 @@ final class AppListViewModel {
             result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
         case .openAI:
             result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
+        case .gemini:
+            result = await gemini.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
+        case .openRouter:
+            result = await openRouter.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
         }
 
         switch result {
@@ -815,6 +821,8 @@ final class AppListViewModel {
         case .ollama:    text = await ollama.complete(prompt: prompt).successText
         case .anthropic: text = await anthropic.complete(prompt: prompt).successText
         case .openAI:    text = await openAI.complete(prompt: prompt).successText
+        case .gemini:    text = await gemini.complete(prompt: prompt).successText
+        case .openRouter: text = await openRouter.complete(prompt: prompt).successText
         }
         guard !text.isEmpty else { return [] }
 

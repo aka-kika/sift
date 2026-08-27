@@ -46,7 +46,7 @@ audit exportable to CSV. Ships as a Developer ID–signed, notarized DMG.
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status
-`shipped` — v1.9.0 live with Sparkle self-update; site at sift.akakika.com. Next: trial + licence system for Sift itself, then receipt extraction (specced, deferred).
+`shipped` — v1.10.0 live (Gemini + OpenRouter, free tiers); first update delivered through Sparkle. Free during the beta — count downloads for 14 days, then decide on price. Next: receipt extraction (specced, deferred).
 
 ## Key paths
 - **entry**: `Sources/AppAudit/AppAuditApp.swift`
@@ -70,6 +70,7 @@ isolated store) is the tester. Debt/TODO: CSV Paid column only exports for App
 Store installs; unranked-My-Apps and receipt-extraction are designed but unbuilt.
 
 ## Log
+- 2026-08-27 — v1.10.0: Google Gemini + OpenRouter engines (free tiers, one shared OpenAI-compatible transport); free-beta decision; download tracking on the site. First Sparkle-delivered update.
 - 2026-08-27 — v1.9.0: Sift updates itself (Sparkle 2, appcast on sift.akakika.com). Landing page moved off GitHub Pages to Vercel at sift.akakika.com; Homebrew cask source; one-command release pipeline.
 - 2026-08-01 — v1.7.0: uninstall sweep (trash-first, uninstally-adapted), Cross-App cube removed, one-entry License menu, vault icon fixes.
 - 2026-08-02 — v1.8.0: App Store fixes found by living in the app — uninstall hands root-owned bundles to Finder, licence types save without a key and reach the vault. Vault names link out; detail page gains a facts row, named blocks, and an About tab.

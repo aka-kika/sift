@@ -57,7 +57,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 
 **It scores against you, not against the average user.** Relevance is measured against a workflow profile Sift derives from your machine — what categories you have, what you opened recently, what's running now.
 
-**It runs on your Mac.** [Ollama](https://ollama.com) is the default provider, so prompts never leave the machine. Anthropic and OpenAI are available if you want them, under your own key, entirely by choice. There is no Sift server, no account, no telemetry.
+**It runs on your Mac.** [Ollama](https://ollama.com) is the default provider, so prompts never leave the machine. Anthropic, OpenAI, Google Gemini and OpenRouter are available if you want them, under your own key, entirely by choice — Gemini and OpenRouter both have free tiers, so no local model is required to get started. There is no Sift server, no account, no telemetry.
 
 <p align="center">
   <img src="docs/assets/screenshot-reshelf.png" alt="Sift auditing reshelf, a local-first macOS repo catalog app, marked Likely useful with Sparkle update status and last-used Never" width="920">
@@ -98,7 +98,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 |---|---|
 | **OS** | macOS 14.0 or later |
 | **Chip** | Apple Silicon |
-| **Model** | [Ollama](https://ollama.com) running locally — or an Anthropic / OpenAI / ollama.com key |
+| **Model** | [Ollama](https://ollama.com) running locally — or an Anthropic / OpenAI / Gemini / OpenRouter / ollama.com key (Gemini and OpenRouter have free tiers) |
 
 Analysis needs a model. Scanning, licences, updates, and uninstall work without one.
 
@@ -129,7 +129,7 @@ Full declaration, including every OS permission and how to revoke it: **[docs/pr
 ## FAQ
 
 **Does Sift send my app list anywhere?**
-No. With the default local Ollama provider nothing leaves your Mac. If you switch to Anthropic or OpenAI, only that app's analysis prompt goes to the provider you chose, under your own key.
+No. With the default local Ollama provider nothing leaves your Mac. If you switch to a cloud provider (Anthropic, OpenAI, Gemini, OpenRouter), only that app's analysis prompt goes to the provider you chose, under your own key.
 
 **Do I need Ollama?**
 For analysis, yes — or a cloud API key instead. Without either, Sift still scans, lists, tracks licences, checks updates, and uninstalls; only the AI explanation and score are unavailable.
