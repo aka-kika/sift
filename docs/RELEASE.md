@@ -64,9 +64,38 @@ xcrun stapler validate Sift-1.1.0.dmg
 spctl --assess --type open --verbose=4 Sift-1.1.0.dmg
 ```
 
-## 5. Publish
+## 5. Sparkle self-update (since 1.9.0)
 
-- Tag the release (e.g. `v1.1.0`) and attach the notarized `Sift-1.1.0.dmg` to a GitHub Release.
+Sift ships Sparkle 2 embedded at `Contents/Frameworks/Sparkle.framework`
+(`Scripts/package_app.sh` copies it from the SwiftPM artifact and signs its nested
+helpers before the app). `Info.plist` gets `SUFeedURL` and `SUPublicEDKey` from
+`version.env`.
+
+- **Feed:** https://sift.akakika.com/appcast.xml — generated into `site/appcast.xml`
+  by `generate_appcast` from every DMG in `site/downloads/`.
+- **Key:** EdDSA key pair in the login Keychain, service `https://sparkle-project.org`,
+  account `Sift` (a separate account from the default one other apps use). Losing the
+  private key means every installed copy stops accepting updates — back it up with
+  `generate_keys --account Sift -x sift-sparkle-key.private` to a safe place, never
+  into the repo.
+- **Sift2** (`Scripts/build_sift2.sh`) embeds the framework but sets no feed, so the
+  side-build never offers to update itself.
+
+### One-command pipeline
+
+```bash
+bash Scripts/release.sh            # build, sign, notarize, staple, appcast, site, cask
+NOTARIZE=0 bash Scripts/release.sh # local dry run
+```
+
+Then, by hand: commit + tag + push, `gh release create`, and `cd site && vercel deploy --prod --yes`.
+The deploy is what makes the update visible — Sparkle reads the appcast from the site.
+
+## 6. Publish
+
+- Tag the release (e.g. `v1.9.0`) and attach the notarized `Sift-1.9.0.dmg` to a GitHub Release.
+- Deploy `site/` so the appcast and DMG go live: `cd site && vercel deploy --prod --yes`.
+- Update the Homebrew tap: copy `Scripts/homebrew/sift.rb` into `aka-kika/homebrew-tap/Casks/` and push.
 - Installing the new `Sift.app` replaces the old `AppAudit.app` (same bundle ID); existing data and license keys carry over.
 
 ## Notes

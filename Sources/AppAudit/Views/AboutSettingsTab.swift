@@ -71,6 +71,13 @@ struct AboutSettingsTab: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
+            if UpdateService.shared.isAvailable {
+                Button("Check for Updates…") {
+                    UpdateService.shared.checkForUpdates()
+                }
+                .controlSize(.small)
+                .padding(.top, 4)
+            }
             Text("My organized chaos, wearing a cape.")
                 .font(.callout)
                 .foregroundStyle(.secondary)

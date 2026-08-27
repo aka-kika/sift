@@ -36,6 +36,13 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$SRCBIN" "$APP/Contents/MacOS/${APP_NAME}"
 chmod +x "$APP/Contents/MacOS/${APP_NAME}"
+
+# Sparkle.framework must be embedded or dyld refuses to launch the binary. The
+# side-build gets no feed URL, so Sift2 never offers to update itself.
+SPARKLE_FW=$(find "$ROOT/.build/artifacts" -path '*Sparkle.xcframework/macos-*/Sparkle.framework' -maxdepth 5 -type d | head -1)
+[[ -n "$SPARKLE_FW" ]] || { echo "ERROR: Sparkle.framework not found — run 'swift package resolve'." >&2; exit 1; }
+mkdir -p "$APP/Contents/Frameworks"
+cp -R "$SPARKLE_FW" "$APP/Contents/Frameworks/"
 [[ -f "$ROOT/Icon.icns" ]] && cp "$ROOT/Icon.icns" "$APP/Contents/Resources/AppIcon.icns"
 [[ -d "$ROOT/Resources/socials" ]] && cp "$ROOT"/Resources/socials/*.pdf "$APP/Contents/Resources/" || true
 
@@ -66,6 +73,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 xattr -cr "$APP"
+SPARKLE_IN_APP="$APP/Contents/Frameworks/Sparkle.framework"
+for nested in "Versions/B/XPCServices/Installer.xpc" "Versions/B/XPCServices/Downloader.xpc" \
+              "Versions/B/Autoupdate" "Versions/B/Updater.app" ""; do
+  codesign --force --sign "-" "$SPARKLE_IN_APP/$nested" 2>/dev/null
+done
 codesign --force --sign "-" --entitlements "$ROOT/Sources/AppAudit/AppAudit.entitlements" "$APP"
 
 pkill -x "${APP_NAME}" 2>/dev/null || true

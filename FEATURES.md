@@ -47,6 +47,7 @@ updating, and which licenses and subscriptions you're paying for.
 - Detects available updates from the **App Store**, **Sparkle** feeds, and **Homebrew** casks.
 - Open the update target, run/copy the Homebrew command, or **Mark done**.
 - Lightweight update refresh without a full rescan.
+- **Sift updates itself** (Sparkle 2, since 1.9.0): a daily check against `sift.akakika.com/appcast.xml`, the standard "Install and Relaunch" sheet, signed with Sift's own key. **Check for Updates…** is in the Sift menu and on the About tab.
 
 ## License keys & vault
 

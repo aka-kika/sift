@@ -60,6 +60,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>BuildTimestamp</key><string>${BUILD_TIMESTAMP}</string>
     <key>GitCommit</key><string>${GIT_COMMIT}</string>
+    <!-- Sparkle self-update: feed + EdDSA public key come from version.env. -->
+    <key>SUFeedURL</key><string>${SPARKLE_FEED_URL:-}</string>
+    <key>SUPublicEDKey</key><string>${SPARKLE_PUBLIC_KEY:-}</string>
+    <key>SUEnableAutomaticChecks</key><true/>
+    <key>SUScheduledCheckInterval</key><integer>86400</integer>
 </dict>
 </plist>
 PLIST
@@ -101,6 +106,16 @@ install_binary() {
 
 install_binary "$APP_NAME" "$APP/Contents/MacOS/$APP_NAME"
 
+# Embed Sparkle.framework (SwiftPM binary artifact). The executable is linked with
+# an @executable_path/../Frameworks rpath (see Package.swift) so it finds it here.
+SPARKLE_FW=$(find "$ROOT/.build/artifacts" -path '*Sparkle.xcframework/macos-*/Sparkle.framework' -maxdepth 5 -type d | head -1)
+if [[ -z "$SPARKLE_FW" ]]; then
+  echo "ERROR: Sparkle.framework not found under .build/artifacts — run 'swift package resolve'." >&2
+  exit 1
+fi
+# -R keeps the Versions/ symlink structure; --deep signing below relies on it being intact.
+cp -R "$SPARKLE_FW" "$APP/Contents/Frameworks/"
+
 # Bundle app icon
 ICON_ICNS="$ROOT/Icon.icns"
 if [[ -f "$ICON_ICNS" ]]; then
@@ -127,6 +142,15 @@ if [[ "$SIGNING_MODE" == "adhoc" || -z "$APP_IDENTITY" ]]; then
 else
   CODESIGN_ARGS=(--force --timestamp --options runtime --sign "$APP_IDENTITY")
 fi
+
+# Sparkle: sign the helpers inside the framework first, then the framework, then
+# the app — nested code must already be signed when the outer signature is made.
+SPARKLE_IN_APP="$APP/Contents/Frameworks/Sparkle.framework"
+codesign "${CODESIGN_ARGS[@]}" "$SPARKLE_IN_APP/Versions/B/XPCServices/Installer.xpc"
+codesign "${CODESIGN_ARGS[@]}" "$SPARKLE_IN_APP/Versions/B/XPCServices/Downloader.xpc"
+codesign "${CODESIGN_ARGS[@]}" "$SPARKLE_IN_APP/Versions/B/Autoupdate"
+codesign "${CODESIGN_ARGS[@]}" "$SPARKLE_IN_APP/Versions/B/Updater.app"
+codesign "${CODESIGN_ARGS[@]}" "$SPARKLE_IN_APP"
 
 if [[ -f "$ENTITLEMENTS" ]]; then
   codesign "${CODESIGN_ARGS[@]}" --entitlements "$ENTITLEMENTS" "$APP"

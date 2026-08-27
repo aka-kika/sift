@@ -15,6 +15,8 @@ cask "sift" do
     regex(/v?(\d+(?:\.\d+)+)\s*·\s*macOS/i)
   end
 
+  # Sift updates itself with Sparkle; brew upgrade leaves it alone.
+  auto_updates true
   depends_on macos: ">= :sonoma"
 
   app "Sift.app"

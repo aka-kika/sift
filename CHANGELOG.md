@@ -13,7 +13,18 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 ## [Unreleased]
 
 <!-- SF Symbol: hammer -->
-Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+Nothing yet. Next up: trial + licence for Sift itself, then receipt extraction (spec at `docs/specs/receipt-extraction.md`).
+
+## [1.9.0] — 2026-08-27
+
+<!-- SF Symbol: arrow.triangle.2.circlepath -->
+### Added
+- Sift updates itself. Sparkle 2 is embedded and checks `sift.akakika.com/appcast.xml` once a day; a new version shows up as the familiar "Install and Relaunch" sheet, verified against Sift's own EdDSA key. **Check for Updates…** lives in the Sift menu and on the About tab. Until now every update meant downloading the DMG and replacing the app by hand.
+- A landing page at [sift.akakika.com](https://sift.akakika.com) with a stable download link (`/Sift.dmg`), and a Homebrew cask source (`Scripts/homebrew/sift.rb`) marked `auto_updates` so `brew upgrade` leaves Sparkle in charge.
+
+### Changed
+- The About tab's GitHub row no longer says "private for now".
+- `Scripts/release.sh` runs the whole pipe — Developer ID build, notarize, staple, appcast, site redirect, cask bump — so a release is one command plus a deploy.
 
 ## [1.8.0] — 2026-08-02
 

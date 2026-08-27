@@ -83,6 +83,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 ### Updates
 - Detects available versions via the **Mac App Store**, **Sparkle** feeds, and **Homebrew** casks
 - Open the update, run `brew upgrade --cask`, or acknowledge it and move on
+- Sift keeps itself current too — a daily Sparkle check, and **Check for Updates…** in the Sift menu
 
 ### Uninstall that doesn't lose the receipt
 - Right-click → **Uninstall…** finds the bundle plus every leftover matched to its bundle ID across twelve Library locations, each with a size and the reason it matched

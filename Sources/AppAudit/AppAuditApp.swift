@@ -28,6 +28,8 @@ final class SiftAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppAppearance.apply(UserDefaults.standard.string(forKey: "appearancePreference") ?? "system")
+        // Touching the singleton here starts Sparkle's scheduled check at launch.
+        _ = UpdateService.shared
     }
 }
 #endif
@@ -76,6 +78,12 @@ struct AppAuditApp: App {
         .windowResizability(.contentMinSize)
         .modelContainer(Self.container)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    UpdateService.shared.checkForUpdates()
+                }
+                .disabled(!UpdateService.shared.isAvailable)
+            }
             CommandGroup(after: .newItem) {
                 Button("Rescan Apps") {
                     Task { await viewModel.runFullScan() }
