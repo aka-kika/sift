@@ -68,12 +68,7 @@ struct AppAuditApp: App {
     /// (Sift2 test app) gets an isolated folder so it never touches the primary app's
     /// data; the primary app keeps the historical "AppAudit" folder so existing data
     /// carries across the rename to Sift.
-    private static var dataFolderName: String {
-        switch Bundle.main.bundleIdentifier {
-        case "com.kikaapp.sift2": return "Sift2"
-        default: return "AppAudit"
-        }
-    }
+    private static var dataFolderName: String { BuildVariant.current.dataFolderName }
 
     var body: some Scene {
         WindowGroup {

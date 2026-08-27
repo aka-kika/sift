@@ -48,28 +48,12 @@ final class AppRecord {
         self.bestUse = bestUse.isEmpty ? nil : bestUse
         self.generatedAt = Date()
         self.ollamaModel = ollamaModel
-        self.userDescription = nil
-        self.notes = nil
-        self.isMyApp = false
-        self.isFavorite = false
-        self.hasSubscription = false
-        self.hasLicenseKey = false
-        self.licenseEmail = nil
-        self.subscriptionPrice = nil
-        self.subscriptionCurrency = nil
-        self.subscriptionCycle = nil
-        self.subscriptionRenewalDate = nil
-        self.subscriptionEmail = nil
-        self.isPaidApp = false
-        self.isFreeApp = false
-        self.licenseType = nil
-        self.docsEvidence = nil
-        self.docsFolderPath = nil
-        self.iconPNG = nil
-        self.isAnalysisLocked = false
-        self.suggestedAppURL = nil
-        self.analysisAppURL = nil
-        self.acknowledgedUpdateVersion = nil
-        self.licenseKey = nil
+    }
+
+    /// A record that exists only to hold marks (favorite, lock, license…) for an
+    /// app that has no analysis yet.
+    convenience init(stub bundleID: String, appName: String) {
+        self.init(bundleID: bundleID, appName: appName, explanation: "",
+                  relevanceScore: 0, relevanceReason: "", bestUse: "", ollamaModel: "")
     }
 }

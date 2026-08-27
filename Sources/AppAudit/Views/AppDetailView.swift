@@ -391,16 +391,16 @@ struct AppDetailView: View {
                 Button {
                     performUpdateAction(source: source)
                 } label: {
-                    Label(updateActionTitle(latestVersion: latestVersion, source: source),
-                          systemImage: updateActionIcon(source: source))
+                    Label(updateActionTitle(latestVersion: latestVersion),
+                          systemImage: source.actionSymbol)
                         .font(.caption.weight(.medium))
                 }
                 .glassProminentButtonStyle()
                 .controlSize(.small)
                 .tint(.orange)
                 .disabled(runningHomebrewUpdate)
-                .help(updateActionHelp(latestVersion: latestVersion, source: source))
-                .accessibilityLabel(updateActionAccessibilityLabel(latestVersion: latestVersion, source: source))
+                .help(source.actionHelp(appName: app.name, latestVersion: latestVersion, brewCommand: app.homebrewUpdateCommand))
+                .accessibilityLabel(source.accessibilityLabel(appName: app.name, latestVersion: latestVersion))
 
                 Button("Mark done") {
                     viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
@@ -429,12 +429,12 @@ struct AppDetailView: View {
                 HStack(spacing: 8) {
                     ForEach(1...5, id: \.self) { i in
                         Circle()
-                            .fill(i <= score ? colorForScore(score) : Color.secondary.opacity(0.2))
+                            .fill(i <= score ? ScoreScale.color(score) : Color.secondary.opacity(0.2))
                             .frame(width: 16, height: 16)
                     }
-                    Text(scoreLabel(score))
+                    Text(ScoreScale.label(score))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(colorForScore(score))
+                        .foregroundStyle(ScoreScale.color(score))
                 }
 
                 // Two different claims wearing the same grey: what the app is
@@ -828,8 +828,9 @@ struct AppDetailView: View {
         notesSessionInitialNotes = nil
     }
 
-    private var moneyCard: some View {
-        let state = MoneyCubeState.derive(
+    /// The money cube's state, derived once for the cube, its strip label, and its menu.
+    private var moneyState: MoneyCubeState {
+        MoneyCubeState.derive(
             isAppStoreInstall: app.isAppStoreInstall,
             hasLicenseKey: currentLicenseKey?.isEmpty == false,
             isPaidApp: record?.isPaidApp == true,
@@ -838,7 +839,11 @@ struct AppDetailView: View {
             isFreeApp: record?.isFreeApp == true,
             licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:))
         )
-        let disabled = UtilityCardRules.moneyDisabled(isMyApp: app.isMyApp)
+    }
+
+    private var moneyCard: some View {
+        let state = moneyState
+        let disabled = app.isMyApp   // only your own app has no money story; Free stays clickable
         let tint = state.tint
 
         return UtilityCard(tint: tint, active: state.isActive, disabled: disabled, action: {
@@ -888,15 +893,7 @@ struct AppDetailView: View {
 
     /// The money cube's strip line, prefixed so the cube is namable at a glance.
     private var moneyStripLabel: String {
-        let state = MoneyCubeState.derive(
-            isAppStoreInstall: app.isAppStoreInstall,
-            hasLicenseKey: currentLicenseKey?.isEmpty == false,
-            isPaidApp: record?.isPaidApp == true,
-            hasSubscription: record?.hasSubscription == true,
-            renewalNear: subscriptionRenewalIsNear,
-            isFreeApp: record?.isFreeApp == true,
-            licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:))
-        )
+        let state = moneyState
         return "License — \(moneyHelp(for: state))"
     }
 
@@ -1283,60 +1280,12 @@ struct AppDetailView: View {
 
     // MARK: - Score helpers
 
-    private func scoreLabel(_ score: Int) -> String {
-        switch score {
-        case 1: return "Not needed"
-        case 2: return "Unlikely needed"
-        case 3: return "Possibly useful"
-        case 4: return "Likely useful"
-        case 5: return "Essential"
-        default: return "Unknown"
-        }
-    }
 
-    private func colorForScore(_ score: Int) -> Color {
-        switch score {
-        case 1: return .red
-        case 2: return .orange
-        case 3: return .yellow
-        case 4: return .mint
-        case 5: return .green
-        default: return .gray
-        }
-    }
 
     // MARK: - Update helpers
 
-    private func updateActionTitle(latestVersion: String, source: AppInfo.UpdateSource) -> String {
-        switch source {
-        case .appStore: return "Update to \(latestVersion)"
-        case .sparkle: return "Update to \(latestVersion)"
-        case .homebrew: return "Update to \(latestVersion)"
-        }
-    }
-
-    private func updateActionHelp(latestVersion: String, source: AppInfo.UpdateSource) -> String {
-        switch source {
-        case .appStore: return "Open \(app.name) in the App Store to update to \(latestVersion)."
-        case .sparkle: return "Open \(app.name)'s download page for \(latestVersion)."
-        case .homebrew: return "Run or copy \(app.homebrewUpdateCommand ?? "brew upgrade --cask ...")"
-        }
-    }
-
-    private func updateActionAccessibilityLabel(latestVersion: String, source: AppInfo.UpdateSource) -> String {
-        switch source {
-        case .appStore: return "Open \(app.name) in App Store, version \(latestVersion)"
-        case .sparkle: return "Open \(app.name) download, version \(latestVersion)"
-        case .homebrew: return "Open Homebrew update options for \(app.name), version \(latestVersion)"
-        }
-    }
-
-    private func updateActionIcon(source: AppInfo.UpdateSource) -> String {
-        switch source {
-        case .appStore: return "bag.fill"
-        case .sparkle: return "arrow.down.circle.fill"
-        case .homebrew: return "terminal.fill"
-        }
+    private func updateActionTitle(latestVersion: String) -> String {
+        "Update to \(latestVersion)"
     }
 
     private func performUpdateAction(source: AppInfo.UpdateSource) {

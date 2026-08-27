@@ -21,10 +21,7 @@ final class CacheService {
     /// blank out — an analysis that arrived while a view held a stale `nil`.
     func ensureRecord(bundleID: String, appName: String) -> AppRecord {
         if let existing = load(bundleID: bundleID) { return existing }
-        let record = AppRecord(
-            bundleID: bundleID, appName: appName, explanation: "",
-            relevanceScore: 0, relevanceReason: "", bestUse: "", ollamaModel: ""
-        )
+        let record = AppRecord(stub: bundleID, appName: appName)
         context.insert(record)
         return record
     }

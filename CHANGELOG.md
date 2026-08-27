@@ -31,6 +31,11 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 - A data store the app cannot open (downgrade, corruption) is set aside as `AppAudit.store.broken-<date>` and a fresh one created, instead of crashing before the window appears. Nothing is deleted.
 - `Scripts/build_sift2.sh` is a five-line wrapper around the real packaging script instead of a drifting copy.
 
+### Removed / tidied (no behaviour change)
+- Dead code: the Ollama "legacy compatibility" block, `WorkflowProfile`'s never-filled arrays, wrapper parsers, and every `#if canImport(AppKit)` guard in a macOS-only package — about 250 lines.
+- One source each for things that were written twice: update-action symbols and copy (`UpdateSource`), the 1–5 score palette (`ScoreScale`), the Sift/Sift2 build distinction (`BuildVariant`), the stub `AppRecord`, the provider-to-service mapping (`AnalysisServices.make`), the `/models` response shape, and HTTP error wording. Anthropic's analyze/complete are one request path. Providers read their preference keys from `AnalysisProviderKind` instead of repeating the strings.
+- Stale files: `PROJECTS_MAP.md`, the unsigned 1.8.0 DMG and its appcast entry, two merged worktrees; executed plans/specs archived under `docs/archive/`; roadmap rewritten; version strings, provider lists and dependency claims refreshed across the docs.
+
 Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`).
 
 ## [1.10.0] — 2026-08-27

@@ -20,12 +20,7 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
     /// Keychain service name for license keys. Side-builds (e.g. the AppAudit2 test
     /// app) use their own service so they never read or prompt for the primary app's
     /// keys. The primary app keeps the historical service name.
-    static var defaultService: String {
-        switch Bundle.main.bundleIdentifier {
-        case "com.kikaapp.sift2": return "com.kikaapp.sift2.licensekeys"
-        default: return "com.kikaapp.appaudit.licensekeys"
-        }
-    }
+    static var defaultService: String { BuildVariant.current.keychainService }
 
     func read(account: String) -> String? {
         let query: [String: Any] = [

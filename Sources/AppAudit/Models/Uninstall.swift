@@ -31,9 +31,7 @@ enum LeftoverCategory: String {
 /// Apps Sift refuses to uninstall: the system's and its own.
 enum UninstallRules {
     static func isProtected(bundleID: String) -> Bool {
-        bundleID.hasPrefix("com.apple.")
-            || bundleID == "com.kikaapp.appaudit"
-            || bundleID == "com.kikaapp.sift2"
+        bundleID.hasPrefix("com.apple.") || BuildVariant.isSiftItself(bundleID)
     }
 }
 
@@ -43,10 +41,6 @@ enum UninstallRules {
 /// name folders after the app. Matching semantics adapted from uninstally
 /// (MIT © 2026 Codenta).
 enum LeftoverMatcher {
-    static func identifierCandidates(bundleID: String) -> [String] {
-        [bundleID]
-    }
-
     /// True when `name` (a directory entry) belongs to `bundleID`:
     /// exact, `<id>.<anything>` (helpers, plists, ByHost, lockfiles),
     /// or extension-stripped equality.
@@ -57,16 +51,13 @@ enum LeftoverMatcher {
     static func matches(name: String, bundleID: String, otherBundleIDs: [String] = []) -> Bool {
         guard !bundleID.isEmpty else { return false }
         let bare = (name as NSString).deletingPathExtension
-        for id in identifierCandidates(bundleID: bundleID) {
-            let own = name == id || bare == id || name.hasPrefix(id + ".")
-            guard own else { continue }
-            let claimedBySibling = otherBundleIDs.contains { other in
-                other != bundleID && other.count > id.count && other.hasPrefix(id + ".")
-                    && (name == other || bare == other || name.hasPrefix(other + "."))
-            }
-            return !claimedBySibling
+        let own = name == bundleID || bare == bundleID || name.hasPrefix(bundleID + ".")
+        guard own else { return false }
+        let claimedBySibling = otherBundleIDs.contains { other in
+            other != bundleID && other.count > bundleID.count && other.hasPrefix(bundleID + ".")
+                && (name == other || bare == other || name.hasPrefix(other + "."))
         }
-        return false
+        return !claimedBySibling
     }
 
     /// Vendor-conventional name folders exist only under Application Support

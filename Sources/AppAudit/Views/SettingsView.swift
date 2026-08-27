@@ -48,9 +48,9 @@ struct AnalysisSettingsTab: View {
     @AppStorage("ollamaModel") private var ollamaModel = OllamaDefaults.model
     @AppStorage("ollamaApiKey") private var ollamaApiKey = ""
     @AppStorage("anthropicApiKey") private var anthropicApiKey = ""
-    @AppStorage("anthropicModel") private var anthropicModel = "claude-3-5-haiku-latest"
+    @AppStorage("anthropicModel") private var anthropicModel = AnalysisProviderKind.anthropic.defaultModel
     @AppStorage("openAIApiKey") private var openAIApiKey = ""
-    @AppStorage("openAIModel") private var openAIModel = "gpt-4o-mini"
+    @AppStorage("openAIModel") private var openAIModel = AnalysisProviderKind.openAI.defaultModel
     @AppStorage("geminiApiKey") private var geminiApiKey = ""
     @AppStorage("geminiModel") private var geminiModel = AnalysisProviderKind.gemini.defaultModel
     @AppStorage("openRouterApiKey") private var openRouterApiKey = ""
@@ -234,14 +234,7 @@ struct AnalysisSettingsTab: View {
 
     private func fetchModels() async {
         fetchState = .loading
-        let result: ModelFetchResult
-        switch provider {
-        case .ollama: result = await OllamaService().fetchModels()
-        case .anthropic: result = await AnthropicService().fetchModels()
-        case .openAI: result = await OpenAICompatibleService(kind: .openAI).fetchModels()
-        case .gemini: result = await OpenAICompatibleService(kind: .gemini).fetchModels()
-        case .openRouter: result = await OpenAICompatibleService(kind: .openRouter).fetchModels()
-        }
+        let result = await AnalysisServices.make(provider).fetchModels()
         switch result {
         case .models(let models):
             availableModels = models

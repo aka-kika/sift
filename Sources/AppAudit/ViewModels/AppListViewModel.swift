@@ -46,14 +46,6 @@ final class AppListViewModel {
         case done
         case error(String)
 
-        static func == (lhs: ScanState, rhs: ScanState) -> Bool {
-            switch (lhs, rhs) {
-            case (.idle, .idle), (.scanning, .scanning), (.done, .done): return true
-            case let (.enriching(a, b), .enriching(c, d)): return a == c && b == d
-            case let (.error(a), .error(b)): return a == b
-            default: return false
-            }
-        }
     }
 
     enum SortOrder: String, CaseIterable {
@@ -208,10 +200,17 @@ final class AppListViewModel {
 
     private let scanner = AppScanner()
     private let ollama = OllamaService()
-    private let anthropic = AnthropicService()
-    private let openAI = OpenAICompatibleService(kind: .openAI)
-    private let gemini = OpenAICompatibleService(kind: .gemini)
-    private let openRouter = OpenAICompatibleService(kind: .openRouter)
+    private let cloudServices: [AnalysisProviderKind: any AnalysisService] = Dictionary(
+        uniqueKeysWithValues: AnalysisProviderKind.allCases
+            .filter { $0 != .ollama }
+            .map { ($0, AnalysisServices.make($0)) }
+    )
+
+    /// The service for a provider; Ollama is held separately because its parser
+    /// serves every provider's output.
+    private func service(for kind: AnalysisProviderKind) -> any AnalysisService {
+        kind == .ollama ? ollama : cloudServices[kind] ?? ollama
+    }
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     private let linkEvidenceService = LinkEvidenceService()
@@ -379,19 +378,7 @@ final class AppListViewModel {
         docsEvidence: String? = nil
     ) async -> (String, AppInfo.AIState) {
         let linkEvidence = await linkEvidenceService.evidence(for: appURL)
-        let result: AnalysisResult
-        switch provider {
-        case .ollama:
-            result = await ollama.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
-        case .anthropic:
-            result = await anthropic.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
-        case .openAI:
-            result = await openAI.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
-        case .gemini:
-            result = await gemini.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
-        case .openRouter:
-            result = await openRouter.analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
-        }
+        let result = await service(for: provider).analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
 
         switch result {
         case .unavailable(let msg):
@@ -411,35 +398,18 @@ final class AppListViewModel {
         }
     }
 
-    func setMyApp(bundleID: String, value: Bool) {
+    /// Mutate one in-memory app by bundle ID; a no-op if it is not in the list.
+    func update(bundleID: String, _ body: (inout AppInfo) -> Void) {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        apps[idx].isMyApp = value
+        body(&apps[idx])
     }
 
-    func setFavorite(bundleID: String, value: Bool) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        apps[idx].isFavorite = value
-    }
-
-    func setSubscription(bundleID: String, value: Bool) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        apps[idx].isSubscribed = value
-    }
-
-    func setPaidApp(bundleID: String, value: Bool) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        apps[idx].isPaidApp = value
-    }
-
-    func setFreeApp(bundleID: String, value: Bool) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        apps[idx].isFreeApp = value
-    }
-
-    func setLicenseType(bundleID: String, rawValue: String?) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        apps[idx].licenseTypeRaw = rawValue
-    }
+    func setMyApp(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isMyApp = value } }
+    func setFavorite(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isFavorite = value } }
+    func setSubscription(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isSubscribed = value } }
+    func setPaidApp(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isPaidApp = value } }
+    func setFreeApp(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isFreeApp = value } }
+    func setLicenseType(bundleID: String, rawValue: String?) { update(bundleID: bundleID) { $0.licenseTypeRaw = rawValue } }
 
     /// Drops an uninstalled app from the in-memory list. Its AppRecord is
     /// deliberately kept — license keys, notes, and marks survive, and the
@@ -587,10 +557,7 @@ final class AppListViewModel {
         }
     }
 
-    func setAnalysisLocked(bundleID: String, value: Bool) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        apps[idx].isAnalysisLocked = value
-    }
+    func setAnalysisLocked(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isAnalysisLocked = value } }
 
     func acknowledgeUpdate(bundleID: String, updateState: AppInfo.UpdateState) {
         guard let cache = cacheService else { return }
@@ -606,19 +573,8 @@ final class AppListViewModel {
             nextState = updateState
         }
 
-        let record = cache.load(bundleID: bundleID) ?? {
-            let record = AppRecord(
-                bundleID: bundleID,
-                appName: apps.first(where: { $0.bundleID == bundleID })?.name ?? bundleID,
-                explanation: "",
-                relevanceScore: 0,
-                relevanceReason: "",
-                bestUse: "",
-                ollamaModel: ""
-            )
-            cache.insert(record)
-            return record
-        }()
+        let record = cache.ensureRecord(bundleID: bundleID,
+                                        appName: apps.first(where: { $0.bundleID == bundleID })?.name ?? bundleID)
         record.acknowledgedUpdateVersion = acknowledgedVersion
         cache.persist()
 
@@ -630,22 +586,7 @@ final class AppListViewModel {
     }
 
     private func ensureCachedRecord(bundleID: String, appName: String) -> AppRecord? {
-        guard let cache = cacheService else { return nil }
-        if let record = cache.load(bundleID: bundleID) {
-            return record
-        }
-
-        let record = AppRecord(
-            bundleID: bundleID,
-            appName: appName,
-            explanation: "",
-            relevanceScore: 0,
-            relevanceReason: "",
-            bestUse: "",
-            ollamaModel: ""
-        )
-        cache.insert(record)
-        return record
+        cacheService?.ensureRecord(bundleID: bundleID, appName: appName)
     }
 
     func reanalyze(bundleID: String, appURL overrideAppURL: String? = nil) async {
@@ -813,14 +754,7 @@ final class AppListViewModel {
             candidates: candidates
         )
 
-        let text: String
-        switch AnalysisProviderKind.current() {
-        case .ollama:    text = await ollama.complete(prompt: prompt).successText
-        case .anthropic: text = await anthropic.complete(prompt: prompt).successText
-        case .openAI:    text = await openAI.complete(prompt: prompt).successText
-        case .gemini:    text = await gemini.complete(prompt: prompt).successText
-        case .openRouter: text = await openRouter.complete(prompt: prompt).successText
-        }
+        let text = await service(for: AnalysisProviderKind.current()).complete(prompt: prompt).successText
         guard !text.isEmpty else { return [] }
 
         return SimilarAppsPrompt.parse(text, validIndices: Set(indexToApp.keys))

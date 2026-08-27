@@ -22,12 +22,6 @@ enum UtilityCardRules {
         }
         return nil
     }
-
-    /// The merged Money cube: only your own app has no money story.
-    /// Free apps stay clickable — the popover is where Free gets unmarked.
-    static func moneyDisabled(isMyApp: Bool) -> Bool {
-        isMyApp
-    }
 }
 
 /// What counts as a saveable license edit. The key is not the only payload:
@@ -62,15 +56,3 @@ enum PricingMarks {
     }
 }
 
-/// Developer Mode hides all My App UI without touching any records.
-enum DevModeRules {
-    /// Whether a My App marker (hammer badge, cube, score treatment) shows.
-    static func showsMyAppUI(isMyApp: Bool, developerMode: Bool) -> Bool {
-        isMyApp && developerMode
-    }
-
-    /// The My Apps filter cannot stay on invisibly when dev mode turns off.
-    static func filterMyApps(current: Bool, developerMode: Bool) -> Bool {
-        developerMode ? current : false
-    }
-}

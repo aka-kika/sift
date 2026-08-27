@@ -64,13 +64,13 @@ actor OllamaService: AnalysisService {
     }
 
     private var model: String {
-        UserDefaults.standard.string(forKey: "ollamaModel") ?? OllamaDefaults.model
+        UserDefaults.standard.string(forKey: AnalysisProviderKind.ollama.modelDefaultsKey) ?? AnalysisProviderKind.ollama.defaultModel
     }
 
     /// Optional API key. When set, sent as a Bearer token so cloud models
     /// (e.g. via https://ollama.com) authenticate. Ignored by a local server.
     private var apiKey: String {
-        (UserDefaults.standard.string(forKey: "ollamaApiKey") ?? "")
+        (UserDefaults.standard.string(forKey: AnalysisProviderKind.ollama.apiKeyDefaultsKey) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

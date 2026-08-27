@@ -105,6 +105,31 @@ struct AppInfo: Identifiable {
         case appStore = "App Store"
         case sparkle = "Sparkle"
         case homebrew = "Homebrew"
+
+        /// The action button's symbol — the same in the sidebar row and the detail page.
+        var actionSymbol: String {
+            switch self {
+            case .appStore: return "bag.fill"
+            case .sparkle: return "arrow.down.circle.fill"
+            case .homebrew: return "terminal.fill"
+            }
+        }
+
+        func actionHelp(appName: String, latestVersion: String, brewCommand: String?) -> String {
+            switch self {
+            case .appStore: return "Open \(appName) in the App Store to update to \(latestVersion)."
+            case .sparkle: return "Open \(appName)'s download page for \(latestVersion)."
+            case .homebrew: return "Run or copy \(brewCommand ?? "brew upgrade --cask ...")"
+            }
+        }
+
+        func accessibilityLabel(appName: String, latestVersion: String) -> String {
+            switch self {
+            case .appStore: return "Open \(appName) in App Store, version \(latestVersion)"
+            case .sparkle: return "Open \(appName) download, version \(latestVersion)"
+            case .homebrew: return "Homebrew update for \(appName), version \(latestVersion)"
+            }
+        }
     }
 
     enum UpdateState: Sendable, Equatable {

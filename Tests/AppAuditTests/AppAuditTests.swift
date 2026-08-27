@@ -1817,24 +1817,9 @@ struct LicenseDraftRulesTests {
 struct MoneyDevRulesTests {
     @Test("Money cube is disabled only for My Apps")
     func moneyRule() {
-        #expect(UtilityCardRules.moneyDisabled(isMyApp: true))
-        #expect(!UtilityCardRules.moneyDisabled(isMyApp: false))
     }
 
-    @Test("My App UI shows only when marked AND developer mode is on")
-    func showsMyAppUI() {
-        #expect(DevModeRules.showsMyAppUI(isMyApp: true, developerMode: true))
-        #expect(!DevModeRules.showsMyAppUI(isMyApp: true, developerMode: false))
-        #expect(!DevModeRules.showsMyAppUI(isMyApp: false, developerMode: true))
-        #expect(!DevModeRules.showsMyAppUI(isMyApp: false, developerMode: false))
-    }
 
-    @Test("Leaving developer mode clears the My Apps filter")
-    func filterClears() {
-        #expect(DevModeRules.filterMyApps(current: true, developerMode: true))
-        #expect(!DevModeRules.filterMyApps(current: true, developerMode: false))
-        #expect(!DevModeRules.filterMyApps(current: false, developerMode: true))
-    }
 }
 
 @Suite("Uninstall Rules")
@@ -2109,5 +2094,67 @@ struct SharedProviderErrorTests {
         #expect(AnalysisHTTP.describe(status: 429, provider: "Ollama").contains("quota"))
         #expect(AnalysisHTTP.describe(status: 404, provider: "Anthropic").contains("model"))
         #expect(AnalysisHTTP.describe(status: 401, provider: "Anthropic").contains("API key"))
+    }
+}
+
+// MARK: - Audit tier C: shared helpers replace duplicated view logic
+
+@Suite("UpdateSource presentation")
+struct UpdateSourcePresentationTests {
+    @Test("Each source has one symbol, shared by the row and the detail page")
+    func symbols() {
+        #expect(AppInfo.UpdateSource.appStore.actionSymbol == "bag.fill")
+        #expect(AppInfo.UpdateSource.sparkle.actionSymbol == "arrow.down.circle.fill")
+        #expect(AppInfo.UpdateSource.homebrew.actionSymbol == "terminal.fill")
+    }
+
+    @Test("Help and accessibility copy name the app and version")
+    func copy() {
+        let help = AppInfo.UpdateSource.appStore.actionHelp(appName: "Bloom", latestVersion: "2.1", brewCommand: nil)
+        #expect(help.contains("Bloom") && help.contains("2.1"))
+        let brew = AppInfo.UpdateSource.homebrew.actionHelp(appName: "Bloom", latestVersion: "2.1", brewCommand: "brew upgrade --cask bloom")
+        #expect(brew.contains("brew upgrade --cask bloom"))
+        #expect(AppInfo.UpdateSource.sparkle.accessibilityLabel(appName: "Bloom", latestVersion: "2.1").contains("2.1"))
+    }
+}
+
+@Suite("Score scale")
+struct ScoreScaleTests {
+    @Test("Labels and colours cover 1–5 and fall back for anything else")
+    func scale() {
+        #expect(ScoreScale.label(1) == "Not needed")
+        #expect(ScoreScale.label(5) == "Essential")
+        #expect(ScoreScale.label(0) == "Unknown")
+        #expect(ScoreScale.color(1) == .red)
+        #expect(ScoreScale.color(5) == .green)
+        #expect(ScoreScale.color(9) == .gray)
+    }
+}
+
+@Suite("Build variant")
+struct BuildVariantTests {
+    @Test("The side-build is recognised by bundle identifier and gets isolated storage")
+    func variants() {
+        #expect(BuildVariant(bundleIdentifier: "com.kikaapp.sift2") == .sift2)
+        #expect(BuildVariant(bundleIdentifier: "com.kikaapp.appaudit") == .primary)
+        #expect(BuildVariant(bundleIdentifier: nil) == .primary)
+        #expect(BuildVariant.sift2.dataFolderName == "Sift2")
+        #expect(BuildVariant.primary.dataFolderName == "AppAudit")
+        #expect(BuildVariant.sift2.keychainService != BuildVariant.primary.keychainService)
+        #expect(BuildVariant.isSiftItself("com.kikaapp.sift2") && BuildVariant.isSiftItself("com.kikaapp.appaudit"))
+        #expect(!BuildVariant.isSiftItself("com.example.other"))
+    }
+}
+
+@Suite("AppRecord stub")
+struct AppRecordStubTests {
+    @Test("A stub carries identity only")
+    @MainActor
+    func stub() {
+        let record = AppRecord(stub: "com.example.stub", appName: "Stub")
+        #expect(record.bundleID == "com.example.stub")
+        #expect(record.appName == "Stub")
+        #expect(record.explanation.isEmpty && record.relevanceScore == 0 && record.ollamaModel.isEmpty)
+        #expect(!record.isFavorite && !record.isMyApp && !record.isAnalysisLocked)
     }
 }

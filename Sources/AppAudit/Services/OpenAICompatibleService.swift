@@ -153,11 +153,7 @@ actor OpenAICompatibleService: AnalysisService {
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 0
                 return .failure(Self.describe(status: status, provider: name))
             }
-            struct ModelsResponse: Decodable {
-                struct Model: Decodable { let id: String }
-                let data: [Model]
-            }
-            let decoded = try JSONDecoder().decode(ModelsResponse.self, from: data)
+            let decoded = try JSONDecoder().decode(AnalysisHTTP.ModelsResponse.self, from: data)
             return .models(Self.tidyModelIDs(decoded.data.map { $0.id }, for: endpoint.kind))
         } catch {
             return .failure(error.localizedDescription)

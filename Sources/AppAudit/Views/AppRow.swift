@@ -41,7 +41,7 @@ struct AppRow: View {
                             .font(.caption2)
                             .foregroundStyle(.yellow)
                     }
-                    if DevModeRules.showsMyAppUI(isMyApp: app.isMyApp, developerMode: developerMode) {
+                    if (app.isMyApp && developerMode) {
                         Image(systemName: "hammer.fill")
                             .font(.caption2)
                             .foregroundStyle(.purple)
@@ -84,18 +84,18 @@ struct AppRow: View {
                     Button {
                         performUpdateAction(source: source)
                     } label: {
-                        Image(systemName: updateActionIcon(source: source))
+                        Image(systemName: source.actionSymbol)
                             .font(.caption)
                             .frame(width: 22, height: 22)
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.orange)
-                    .help(updateActionHelp(latestVersion: latestVersion, source: source))
-                    .accessibilityLabel(updateActionAccessibilityLabel(latestVersion: latestVersion, source: source))
+                    .help(source.actionHelp(appName: app.name, latestVersion: latestVersion, brewCommand: app.homebrewUpdateCommand))
+                    .accessibilityLabel(source.accessibilityLabel(appName: app.name, latestVersion: latestVersion))
                 }
             }
 
-            ScoreBadgeView(state: app.aiState, isMyApp: DevModeRules.showsMyAppUI(isMyApp: app.isMyApp, developerMode: developerMode))
+            ScoreBadgeView(state: app.aiState, isMyApp: (app.isMyApp && developerMode))
         }
         .padding(.vertical, 2)
         .contextMenu {
@@ -196,7 +196,7 @@ struct AppRow: View {
                 Button {
                     performUpdateAction(source: source)
                 } label: {
-                    Label(updateActionTitle(latestVersion: latestVersion, source: source), systemImage: updateActionIcon(source: source))
+                    Label(updateActionTitle(latestVersion: latestVersion, source: source), systemImage: source.actionSymbol)
                 }
 
                 Button {
@@ -259,65 +259,26 @@ struct AppRow: View {
         return formatter
     }()
 
+    /// Flip one Bool on the app's record (creating a stub record if the app has no
+    /// analysis yet), persist, and mirror it into the in-memory list.
+    private func toggleFlag(_ keyPath: ReferenceWritableKeyPath<AppRecord, Bool>,
+                            mirror: (String, Bool) -> Void) {
+        let record = CacheService(context: modelContext).ensureRecord(bundleID: app.bundleID, appName: app.name)
+        record[keyPath: keyPath].toggle()
+        try? modelContext.save()
+        mirror(app.bundleID, record[keyPath: keyPath])
+    }
+
     private func toggleFavorite() {
-        let bundleID = app.bundleID
-        let descriptor = FetchDescriptor<AppRecord>(predicate: #Predicate { $0.bundleID == bundleID })
-        if let existing = try? modelContext.fetch(descriptor).first {
-            existing.isFavorite.toggle()
-            try? modelContext.save()
-            viewModel.setFavorite(bundleID: bundleID, value: existing.isFavorite)
-        } else {
-            let rec = AppRecord(
-                bundleID: bundleID,
-                appName: app.name,
-                explanation: "",
-                relevanceScore: 0,
-                relevanceReason: "",
-                bestUse: "",
-                ollamaModel: ""
-            )
-            rec.isFavorite = true
-            modelContext.insert(rec)
-            try? modelContext.save()
-            viewModel.setFavorite(bundleID: bundleID, value: true)
-        }
+        toggleFlag(\.isFavorite) { viewModel.setFavorite(bundleID: $0, value: $1) }
     }
 
     private func toggleMyApp() {
-        let bundleID = app.bundleID
-        let descriptor = FetchDescriptor<AppRecord>(predicate: #Predicate { $0.bundleID == bundleID })
-        if let existing = try? modelContext.fetch(descriptor).first {
-            existing.isMyApp.toggle()
-            try? modelContext.save()
-            viewModel.setMyApp(bundleID: bundleID, value: existing.isMyApp)
-        } else {
-            // No AI record yet — create a stub just to hold the flag
-            let rec = AppRecord(
-                bundleID: bundleID,
-                appName: app.name,
-                explanation: "",
-                relevanceScore: 0,
-                relevanceReason: "",
-                bestUse: "",
-                ollamaModel: ""
-            )
-            rec.isMyApp = true
-            modelContext.insert(rec)
-            try? modelContext.save()
-            viewModel.setMyApp(bundleID: bundleID, value: true)
-        }
+        toggleFlag(\.isMyApp) { viewModel.setMyApp(bundleID: $0, value: $1) }
     }
 
     private func toggleAnalysisLock() {
-        let record = fetchRecord(for: app.bundleID) ?? {
-            let record = makeStubRecord()
-            modelContext.insert(record)
-            return record
-        }()
-
-        record.isAnalysisLocked.toggle()
-        try? modelContext.save()
-        viewModel.setAnalysisLocked(bundleID: app.bundleID, value: record.isAnalysisLocked)
+        toggleFlag(\.isAnalysisLocked) { viewModel.setAnalysisLocked(bundleID: $0, value: $1) }
     }
 
     private var existingLicenseKey: String? {
@@ -365,17 +326,6 @@ struct AppRow: View {
         return try? modelContext.fetch(descriptor).first
     }
 
-    private func makeStubRecord() -> AppRecord {
-        AppRecord(
-            bundleID: app.bundleID,
-            appName: app.name,
-            explanation: "",
-            relevanceScore: 0,
-            relevanceReason: "",
-            bestUse: "",
-            ollamaModel: ""
-        )
-    }
 
     private func performUpdateAction(source: AppInfo.UpdateSource) {
         switch source {
@@ -401,17 +351,6 @@ struct AppRow: View {
         }
     }
 
-    private func updateActionIcon(source: AppInfo.UpdateSource) -> String {
-        switch source {
-        case .appStore:
-            return "bag.fill"
-        case .sparkle:
-            return "arrow.down.circle.fill"
-        case .homebrew:
-            return "terminal.fill"
-        }
-    }
-
     private func updateActionTitle(latestVersion: String, source: AppInfo.UpdateSource) -> String {
         switch source {
         case .appStore:
@@ -423,27 +362,6 @@ struct AppRow: View {
         }
     }
 
-    private func updateActionHelp(latestVersion: String, source: AppInfo.UpdateSource) -> String {
-        switch source {
-        case .appStore:
-            return "Open \(app.name) in the App Store to update to \(latestVersion)."
-        case .sparkle:
-            return "Open \(app.name)'s download page for \(latestVersion)."
-        case .homebrew:
-            return "Copy \(app.homebrewUpdateCommand ?? "brew upgrade --cask ...")"
-        }
-    }
-
-    private func updateActionAccessibilityLabel(latestVersion: String, source: AppInfo.UpdateSource) -> String {
-        switch source {
-        case .appStore:
-            return "Open \(app.name) in App Store, version \(latestVersion)"
-        case .sparkle:
-            return "Open \(app.name) download, version \(latestVersion)"
-        case .homebrew:
-            return "Copy Homebrew update command for \(app.name), version \(latestVersion)"
-        }
-    }
 }
 
 private struct UpdateBadgeView: View {
@@ -501,7 +419,7 @@ struct ScoreBadgeView: View {
                     .font(.caption.weight(.semibold).monospacedDigit())
                     .foregroundStyle(numeralColor(score))
                     .frame(width: 24, height: 24)
-                    .background(pastelize(scoreColor(score), colorScheme), in: Circle())
+                    .background(pastelize(ScoreScale.color(score), colorScheme), in: Circle())
                 if isMyApp {
                     Circle()
                         .stroke(.purple, lineWidth: 2)
@@ -516,16 +434,6 @@ struct ScoreBadgeView: View {
         }
     }
 
-    func scoreColor(_ score: Int) -> Color {
-        switch score {
-        case 1: return .red
-        case 2: return .orange
-        case 3: return .yellow
-        case 4: return .mint
-        case 5: return .green
-        default: return .gray
-        }
-    }
 
     /// Numeral color chosen to stay legible on the fill. In dark mode every fill
     /// is pastelized (lightened toward white), so dark digits read best across the

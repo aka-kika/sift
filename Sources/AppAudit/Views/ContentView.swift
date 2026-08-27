@@ -46,7 +46,7 @@ struct ContentView: View {
         }
         .onChange(of: developerMode) { _, enabled in
             viewModel.setFilterMyApps(
-                DevModeRules.filterMyApps(current: viewModel.filterMyApps, developerMode: enabled)
+                (enabled && viewModel.filterMyApps)
             )
         }
     }
