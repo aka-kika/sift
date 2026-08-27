@@ -1,9 +1,6 @@
 import SwiftUI
 import SwiftData
-
-#if canImport(AppKit)
 import AppKit
-#endif
 
 struct AppRow: View {
     let app: AppInfo
@@ -16,7 +13,6 @@ struct AppRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            #if canImport(AppKit)
             if let sendableIcon = app.icon {
                 Image(nsImage: sendableIcon.image)
                     .resizable()
@@ -27,7 +23,6 @@ struct AppRow: View {
                     .fill(.quaternary)
                     .frame(width: 32, height: 32)
             }
-            #endif
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {

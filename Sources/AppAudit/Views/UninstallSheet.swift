@@ -1,7 +1,5 @@
 import SwiftUI
-#if canImport(AppKit)
 import AppKit
-#endif
 
 /// The uninstall sweep panel: the app bundle plus every discovered leftover,
 /// each pre-checked with a reason and size. Everything goes to the Trash —
@@ -73,14 +71,12 @@ struct UninstallSheet: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            #if canImport(AppKit)
             if let icon = app.icon {
                 Image(nsImage: icon.image)
                     .resizable()
                     .frame(width: 36, height: 36)
                     .cornerRadius(8)
             }
-            #endif
             VStack(alignment: .leading, spacing: 2) {
                 Text("Uninstall \(app.name)")
                     .font(.headline)
@@ -211,13 +207,11 @@ struct UninstallSheet: View {
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
-                        #if canImport(AppKit)
                         Button("Show in Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting(
                                 [URL(fileURLWithPath: failure.path)])
                         }
                         .controlSize(.small)
-                        #endif
                     }
                 }
             }
@@ -241,13 +235,10 @@ struct UninstallSheet: View {
     }
 
     private func refreshRunningState() {
-        #if canImport(AppKit)
         isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID).isEmpty
-        #endif
     }
 
     private func quitApp() {
-        #if canImport(AppKit)
         for running in NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID) {
             running.terminate()
         }
@@ -255,7 +246,6 @@ struct UninstallSheet: View {
             try? await Task.sleep(for: .seconds(1))
             refreshRunningState()
         }
-        #endif
     }
 
     private func runBrewUninstall() {

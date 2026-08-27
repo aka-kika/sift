@@ -1,9 +1,6 @@
 import SwiftUI
 import SwiftData
-
-#if canImport(AppKit)
 import AppKit
-#endif
 
 struct AppDetailView: View {
     let app: AppInfo
@@ -226,14 +223,12 @@ struct AppDetailView: View {
 
     private var headerSection: some View {
         HStack(alignment: .top, spacing: 16) {
-            #if canImport(AppKit)
             if let icon = app.icon {
                 Image(nsImage: icon.image)
                     .resizable()
                     .frame(width: 72, height: 72)
                     .cornerRadius(16)
             }
-            #endif
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(app.name).font(.title2.weight(.medium)).lineLimit(1)
@@ -1540,12 +1535,8 @@ struct NotesEditor: View {
 /// Light mode is returned unchanged.
 func pastelize(_ color: Color, _ scheme: ColorScheme) -> Color {
     guard scheme == .dark else { return color }
-    #if canImport(AppKit)
     guard let ns = NSColor(color).usingColorSpace(.sRGB) else { return color }
     return Color(ns.blended(withFraction: 0.34, of: .white) ?? ns)
-    #else
-    return color
-    #endif
 }
 
 

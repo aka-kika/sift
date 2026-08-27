@@ -6,30 +6,6 @@ import SwiftData
 @Suite("WorkflowProfile Tests")
 struct WorkflowProfileTests {
 
-    @Test("Generic profile has expected defaults")
-    func genericProfile() {
-        let profile = WorkflowProfile.generic()
-        #expect(profile.languages.contains("Swift"))
-        #expect(profile.tools.contains("Xcode"))
-        #expect(profile.promptDescription.contains("software engineering"))
-    }
-
-    @Test("Prompt description includes all non-empty fields")
-    func promptDescription() {
-        let profile = WorkflowProfile(
-            languages: ["Swift"],
-            tools: ["Xcode"],
-            domains: [],
-            projectKeywords: ["AppAudit"],
-            customDescription: nil
-        )
-        let desc = profile.promptDescription
-        #expect(desc.contains("Swift"))
-        #expect(desc.contains("Xcode"))
-        #expect(desc.contains("AppAudit"))
-        #expect(!desc.contains("Domains"))
-    }
-
     @Test("Custom profile text is used directly")
     func customProfileText() {
         let profile = WorkflowProfile.local(text: "SwiftUI, Codex, local-first tools")
@@ -41,41 +17,6 @@ struct WorkflowProfileTests {
         let profile = WorkflowProfile.local(text: "   ")
         #expect(profile.promptDescription == WorkflowProfile.neutralProfileText.trimmingCharacters(in: .whitespacesAndNewlines))
         #expect(profile.promptDescription != WorkflowProfile.defaultProfileText)
-    }
-}
-
-@Suite("OllamaService Score Parsing Tests")
-struct OllamaScoreParsingTests {
-
-    @Test("Parses valid score response")
-    func parseValidScore() async {
-        let service = OllamaService()
-        let response = """
-        SCORE: 4
-        REASON: Essential IDE for Swift development
-        """
-        let result = await service.parseScore(from: response)
-        #expect(result?.score == 4)
-        #expect(result?.reason == "Essential IDE for Swift development")
-    }
-
-    @Test("Returns nil for invalid score")
-    func parseInvalidScore() async {
-        let service = OllamaService()
-        let response = "This is not a valid response"
-        let result = await service.parseScore(from: response)
-        #expect(result == nil)
-    }
-
-    @Test("Returns nil for out-of-range score")
-    func parseOutOfRangeScore() async {
-        let service = OllamaService()
-        let response = """
-        SCORE: 7
-        REASON: Very relevant
-        """
-        let result = await service.parseScore(from: response)
-        #expect(result == nil)
     }
 }
 
@@ -652,7 +593,7 @@ struct UpdateCheckerTests {
 
         let casks = HomebrewService.parseOutdatedCasks(from: data)
         #expect(casks == [
-            HomebrewCaskInfo(token: "betterdisplay", installedVersion: "4.3.0", latestVersion: "4.4.0")
+            HomebrewCaskInfo(token: "betterdisplay", latestVersion: "4.4.0")
         ])
     }
 
@@ -1272,7 +1213,7 @@ struct AnalysisPromptStyleNotesTests {
 
     @Test("Style notes are appended when provided")
     func appended() {
-        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                              includeResponseFormat: false,
                                              styleNotes: "Mention alternatives.")
         #expect(prompt.contains("Additional style notes from the user (follow them):"))
@@ -1281,7 +1222,7 @@ struct AnalysisPromptStyleNotesTests {
 
     @Test("No style block when notes are empty or whitespace")
     func emptyOmits() {
-        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                              includeResponseFormat: false,
                                              styleNotes: "   ")
         #expect(!prompt.contains("Additional style notes"))
@@ -1298,7 +1239,7 @@ struct AnalysisPromptUserNotesTests {
 
     @Test("User notes appear as strongest personal-usage evidence")
     func notesIncluded() {
-        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                              includeResponseFormat: true,
                                              userNotes: "I use this daily to cut release videos.")
         #expect(prompt.contains("The user's own notes about this app"))
@@ -1308,9 +1249,9 @@ struct AnalysisPromptUserNotesTests {
 
     @Test("No notes block when notes are empty or whitespace")
     func emptyOmits() {
-        let empty = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let empty = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                             includeResponseFormat: true)
-        let whitespace = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let whitespace = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                                  includeResponseFormat: true,
                                                  userNotes: "  \n ")
         #expect(!empty.contains("The user's own notes"))
@@ -1320,7 +1261,7 @@ struct AnalysisPromptUserNotesTests {
 
     @Test("Notes coexist with style notes without collision")
     func coexistsWithStyleNotes() {
-        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                              includeResponseFormat: false,
                                              styleNotes: "Mention alternatives.",
                                              userNotes: "Learning this app's features.")
@@ -1598,7 +1539,7 @@ struct AnalysisPromptDocsEvidenceTests {
 
     @Test("Docs evidence appears as primary evidence when provided")
     func docsIncluded() {
-        let prompt = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let prompt = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                              includeResponseFormat: true,
                                              docsEvidence: "A menu-bar batch renamer.\nDetected project files: Package.swift")
         #expect(prompt.contains("From the app's own project files"))
@@ -1608,8 +1549,8 @@ struct AnalysisPromptDocsEvidenceTests {
 
     @Test("No docs block when evidence is empty or whitespace")
     func emptyOmits() {
-        let empty = AppAnalysisPrompt.build(app: app, profile: .generic(), includeResponseFormat: true)
-        let whitespace = AppAnalysisPrompt.build(app: app, profile: .generic(),
+        let empty = AppAnalysisPrompt.build(app: app, profile: .local(text: nil), includeResponseFormat: true)
+        let whitespace = AppAnalysisPrompt.build(app: app, profile: .local(text: nil),
                                                  includeResponseFormat: true, docsEvidence: "   \n")
         #expect(!empty.contains("From the app's own project files"))
         #expect(empty == whitespace)

@@ -1,7 +1,5 @@
 import SwiftUI
-#if canImport(AppKit)
 import AppKit
-#endif
 
 /// The About tab: what this app is, who made it, and where to find her.
 /// Deliberately not a Form — About pages read as a page, not a settings list.
@@ -60,11 +58,9 @@ struct AboutSettingsTab: View {
 
     private var masthead: some View {
         VStack(spacing: 8) {
-            #if canImport(AppKit)
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
                 .frame(width: 76, height: 76)
-            #endif
             Text("Sift")
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
             Text(Self.versionLine)
@@ -139,7 +135,6 @@ private struct DestinationRow: View {
     /// take the foreground colour and follow light and dark like a symbol.
     private var mark: some View {
         Group {
-            #if canImport(AppKit)
             if let image = NSImage(named: glyph) {
                 Image(nsImage: image)
                     .renderingMode(.template)
@@ -150,19 +145,13 @@ private struct DestinationRow: View {
                 Image(systemName: fallbackSymbol)
                     .font(.system(size: 14, weight: .medium))
             }
-            #else
-            Image(systemName: fallbackSymbol)
-                .font(.system(size: 14, weight: .medium))
-            #endif
         }
         .foregroundStyle(hovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
     }
 
     var body: some View {
         Button {
-            #if canImport(AppKit)
             NSWorkspace.shared.open(url)
-            #endif
         } label: {
             HStack(spacing: 12) {
                 mark

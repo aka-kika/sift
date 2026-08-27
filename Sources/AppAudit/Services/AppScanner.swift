@@ -1,9 +1,6 @@
 import Foundation
 import CoreServices
-
-#if canImport(AppKit)
 import AppKit
-#endif
 
 actor AppScanner {
 
@@ -69,11 +66,7 @@ actor AppScanner {
         let homebrewCaskToken = homebrew.caskToken(forAppName: name, path: path, installedCasks: installedCasks)
 
         let icon: SendableImage?
-#if canImport(AppKit)
         icon = SendableImage(image: NSWorkspace.shared.icon(forFile: path))
-#else
-        icon = nil
-#endif
 
         let category = plist["LSApplicationCategoryType"] as? String
 

@@ -1,17 +1,11 @@
 import Foundation
-
-#if canImport(AppKit)
 import AppKit
-#endif
 
 /// Wrap a platform image so `AppInfo` stays sendable without forcing AppKit everywhere.
 struct SendableImage: @unchecked Sendable {
-#if canImport(AppKit)
     let image: NSImage
-#endif
 }
 
-#if canImport(AppKit)
 extension SendableImage {
     /// Small PNG of the app icon, cached on records that hold a license key so
     /// the Vault can still show the icon after the app is uninstalled.
@@ -26,7 +20,6 @@ extension SendableImage {
         return rep.representation(using: .png, properties: [:])
     }
 }
-#endif
 
 struct AppInfo: Identifiable {
     let id: String          // bundleID

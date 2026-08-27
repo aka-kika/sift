@@ -1,7 +1,5 @@
 import Foundation
-#if canImport(AppKit)
 import AppKit
-#endif
 
 /// Moves one item to the Trash, and explains itself when it can't.
 ///
@@ -68,15 +66,11 @@ enum TrashService {
     /// passes through Sift. AppleScript is main-thread only.
     @MainActor
     private static func finderDelete(_ url: URL) -> Bool {
-        #if canImport(AppKit)
         guard let script = NSAppleScript(source: finderDeleteScript(for: url.path)) else { return false }
         var errorInfo: NSDictionary?
         script.executeAndReturnError(&errorInfo)
         // A script can report success and still leave the item in place, so
         // trust the disk rather than the reply.
         return !FileManager.default.fileExists(atPath: url.path)
-        #else
-        return false
-        #endif
     }
 }

@@ -1,7 +1,5 @@
 import Foundation
-#if canImport(Sparkle)
 import Sparkle
-#endif
 
 /// Sift's own updater — Sparkle 2, fed by https://sift.akakika.com/appcast.xml.
 ///
@@ -17,17 +15,13 @@ import Sparkle
 final class UpdateService {
     static let shared = UpdateService()
 
-    #if canImport(Sparkle)
     private let controller: SPUStandardUpdaterController
-    #endif
 
     private init() {
-        #if canImport(Sparkle)
         let hasFeed = Self.feedIsConfigured(Bundle.main.object(forInfoDictionaryKey: "SUFeedURL"))
         controller = SPUStandardUpdaterController(startingUpdater: hasFeed,
                                                   updaterDelegate: nil,
                                                   userDriverDelegate: nil)
-        #endif
     }
 
     /// True when the app was packaged with a feed (i.e. not a bare `swift run`).
@@ -42,20 +36,9 @@ final class UpdateService {
         return !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// Whether Sparkle would accept a user-initiated check right now.
-    var canCheck: Bool {
-        #if canImport(Sparkle)
-        return isAvailable && controller.updater.canCheckForUpdates
-        #else
-        return false
-        #endif
-    }
-
     /// User-initiated check: always shows a result, including "up to date".
     func checkForUpdates() {
-        #if canImport(Sparkle)
         guard isAvailable else { return }
         controller.checkForUpdates(nil)
-        #endif
     }
 }

@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-#if canImport(AppKit)
 import AppKit
 
 /// Drives the app-wide appearance through AppKit. SwiftUI's
@@ -32,16 +31,13 @@ final class SiftAppDelegate: NSObject, NSApplicationDelegate {
         _ = UpdateService.shared
     }
 }
-#endif
 
 @main
 struct AppAuditApp: App {
     @State private var viewModel = AppListViewModel()
     @AppStorage("appearancePreference") private var appearancePreference = "system"
     @AppStorage("developerMode") private var developerMode = false
-    #if canImport(AppKit)
     @NSApplicationDelegateAdaptor(SiftAppDelegate.self) private var appDelegate
-    #endif
 
     private static let container: ModelContainer = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -84,11 +80,9 @@ struct AppAuditApp: App {
             ContentView()
                 .environment(viewModel)
                 .frame(minWidth: 720, minHeight: 480)
-                #if canImport(AppKit)
                 .onChange(of: appearancePreference) { _, newValue in
                     AppAppearance.apply(newValue)
                 }
-                #endif
         }
         .defaultSize(width: 900, height: 620)
         .windowResizability(.contentMinSize)

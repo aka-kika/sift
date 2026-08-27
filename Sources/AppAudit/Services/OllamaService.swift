@@ -39,8 +39,6 @@ enum OllamaDefaults {
 
 actor OllamaService: AnalysisService {
 
-    typealias OllamaResult = AnalysisResult
-
     struct OllamaRequest: Encodable {
         let model: String
         let messages: [Message]
@@ -78,7 +76,7 @@ actor OllamaService: AnalysisService {
 
     private let systemPrompt = AnalysisHTTP.systemPrompt
 
-    private func chat(messages: [OllamaRequest.Message]) async -> OllamaResult {
+    private func chat(messages: [OllamaRequest.Message]) async -> AnalysisResult {
         guard let url = URL(string: "\(baseURL)/api/chat") else {
             return .unavailable("Invalid Ollama URL")
         }
@@ -115,7 +113,7 @@ actor OllamaService: AnalysisService {
     }
 
     /// Single request returning explanation, score, reason, and best use — 3x faster than separate calls.
-    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, userNotes: String? = nil, docsEvidence: String? = nil) async -> OllamaResult {
+    func analyze(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, userNotes: String? = nil, docsEvidence: String? = nil) async -> AnalysisResult {
         let prompt = AppAnalysisPrompt.build(
             app: app,
             profile: profile,
@@ -194,34 +192,6 @@ actor OllamaService: AnalysisService {
         }
         return out
     }
-
-    // Keep for legacy compatibility
-    func explain(app: AppInfo) async -> OllamaResult { await analyze(app: app, profile: .generic(), linkEvidence: nil) }
-    func score(app: AppInfo, profile: WorkflowProfile) async -> OllamaResult { await analyze(app: app, profile: profile, linkEvidence: nil) }
-    func bestUse(app: AppInfo, profile: WorkflowProfile) async -> OllamaResult { await analyze(app: app, profile: profile, linkEvidence: nil) }
-    func parseScore(from response: String) -> (score: Int, reason: String)? {
-        if let parsed = parseAnalysis(from: response) {
-            return (parsed.score, parsed.reason)
-        }
-
-        var score: Int?
-        var reason: String?
-
-        for line in response.components(separatedBy: .newlines) {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("SCORE:") {
-                let raw = trimmed.dropFirst("SCORE:".count).trimmingCharacters(in: .whitespaces)
-                score = Int(raw.prefix(1))
-            } else if trimmed.hasPrefix("REASON:") {
-                reason = trimmed.dropFirst("REASON:".count).trimmingCharacters(in: .whitespaces)
-            }
-        }
-
-        guard let score, (1...5).contains(score), let reason, !reason.isEmpty else { return nil }
-        return (score, reason)
-    }
-
-    var currentModel: String { model }
 
     func fetchModels() async -> ModelFetchResult {
         guard let url = URL(string: "\(baseURL)/api/tags") else {

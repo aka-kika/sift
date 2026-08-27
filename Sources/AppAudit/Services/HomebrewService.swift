@@ -2,7 +2,6 @@ import Foundation
 
 struct HomebrewCaskInfo: Equatable, Sendable {
     let token: String
-    let installedVersion: String?
     let latestVersion: String?
 }
 
@@ -74,7 +73,6 @@ struct HomebrewService: Sendable {
         return response.casks.map {
             HomebrewCaskInfo(
                 token: $0.name,
-                installedVersion: $0.installedVersions?.first,
                 latestVersion: $0.currentVersion
             )
         }
@@ -155,12 +153,10 @@ private struct HomebrewOutdatedResponse: Decodable {
 
 private struct HomebrewOutdatedCask: Decodable {
     let name: String
-    let installedVersions: [String]?
     let currentVersion: String?
 
     enum CodingKeys: String, CodingKey {
         case name
-        case installedVersions = "installed_versions"
         case currentVersion = "current_version"
     }
 }

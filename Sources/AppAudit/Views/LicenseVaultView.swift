@@ -1,9 +1,6 @@
 import SwiftUI
 import SwiftData
-
-#if canImport(AppKit)
 import AppKit
-#endif
 
 /// Shows everything you've bought — license keys and paid Mac App Store apps —
 /// split into Installed and No longer installed. Records persist after an app is
@@ -165,9 +162,7 @@ struct LicenseVaultView: View {
                                                 suggestedAppURL: record.suggestedAppURL,
                                                 appName: record.appName)
         return Button {
-            #if canImport(AppKit)
             NSWorkspace.shared.open(destination.url)
-            #endif
         } label: {
             HStack(spacing: 4) {
                 Text(record.appName).font(.body)
@@ -178,11 +173,9 @@ struct LicenseVaultView: View {
         }
         .buttonStyle(.plain)
         .help(VaultLink.help(for: destination, appName: record.appName))
-        #if canImport(AppKit)
         .onHover { inside in
             if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
         }
-        #endif
     }
 
     private func copyKey(for bundleID: String) {
@@ -190,10 +183,8 @@ struct LicenseVaultView: View {
             guard await LicenseKeyGuard.authenticate(reason: "copy a license key from the vault") else { return }
             let resolution = licenseKeyStore.resolveKey(bundleID: bundleID, legacyValue: nil)
             guard let key = resolution.value, !key.isEmpty else { return }
-            #if canImport(AppKit)
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(key, forType: .string)
-            #endif
             await MainActor.run { copiedBundleID = bundleID }
             try? await Task.sleep(for: .seconds(1.5))
             await MainActor.run {

@@ -1,24 +1,10 @@
 import Foundation
 
 struct WorkflowProfile: Sendable {
-    let languages: [String]
-    let tools: [String]
-    let domains: [String]
-    let projectKeywords: [String]
-    let customDescription: String?
+    let customDescription: String
 
     var promptDescription: String {
-        if let customDescription,
-           !customDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return customDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        var parts: [String] = []
-        if !languages.isEmpty { parts.append("Languages: \(languages.joined(separator: ", "))") }
-        if !tools.isEmpty { parts.append("Tools: \(tools.joined(separator: ", "))") }
-        if !domains.isEmpty { parts.append("Domains: \(domains.joined(separator: ", "))") }
-        if !projectKeywords.isEmpty { parts.append("Projects: \(projectKeywords.joined(separator: ", "))") }
-        return parts.joined(separator: ". ")
+        customDescription.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static let storageKey = "workflowProfileText"
@@ -38,30 +24,13 @@ struct WorkflowProfile: Sendable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         if !stored.isEmpty { return local(text: stored) }
         if let digest, !digest.isEmpty {
-            return WorkflowProfile(languages: [], tools: [], domains: [],
-                                   projectKeywords: [], customDescription: digest)
+            return WorkflowProfile(customDescription: digest)
         }
         return local(text: nil)
     }
 
     static func local(text: String?) -> WorkflowProfile {
         let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return WorkflowProfile(
-            languages: [],
-            tools: [],
-            domains: [],
-            projectKeywords: [],
-            customDescription: trimmed.isEmpty ? neutralProfileText : trimmed
-        )
-    }
-
-    static func generic() -> WorkflowProfile {
-        WorkflowProfile(
-            languages: ["Swift", "Python", "TypeScript", "JavaScript"],
-            tools: ["Xcode", "VS Code", "Terminal", "Git"],
-            domains: ["iOS development", "macOS development", "web development"],
-            projectKeywords: ["app development", "software engineering"],
-            customDescription: nil
-        )
+        return WorkflowProfile(customDescription: trimmed.isEmpty ? neutralProfileText : trimmed)
     }
 }

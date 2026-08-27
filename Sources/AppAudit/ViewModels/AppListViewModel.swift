@@ -1,10 +1,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
-
-#if canImport(AppKit)
 import AppKit
-#endif
 
 @MainActor
 @Observable
@@ -227,11 +224,7 @@ final class AppListViewModel {
         staleModelCount = 0
         scanState = .scanning
 
-        #if canImport(AppKit)
         let runningIDs = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
-        #else
-        let runningIDs = Set<String>()
-        #endif
         let scannedApps = await scanner.scan(runningBundleIDs: runningIDs)
         let digest = WorkflowDigest.build(from: scannedApps)
         UserDefaults.standard.set(digest, forKey: "lastProfileDigest")
@@ -525,7 +518,6 @@ final class AppListViewModel {
 
     /// Runs the Save panel and writes the audit CSV. Callable from the menu bar.
     func exportCSVToFile() {
-        #if canImport(AppKit)
         guard !apps.isEmpty else { return }
         let csv = exportCSV()
         let formatter = DateFormatter()
@@ -538,7 +530,6 @@ final class AppListViewModel {
         if panel.runModal() == .OK, let url = panel.url {
             try? Data(csv.utf8).write(to: url)
         }
-        #endif
     }
 
     /// Full-audit CSV of every scanned app. Never includes license keys.

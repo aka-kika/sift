@@ -136,10 +136,6 @@ actor UpdateChecker {
         return candidate.compare(installed, options: [.numeric, .caseInsensitive]) == .orderedDescending
     }
 
-    static func parseAppStoreVersion(from data: Data) throws -> String? {
-        try parseAppStoreMetadata(from: data)?.version
-    }
-
     static func parseAppStoreMetadata(
         from data: Data,
         preferredBundleID: String? = nil
@@ -157,10 +153,6 @@ actor UpdateChecker {
 
         let url = result.trackID.map { "macappstore://itunes.apple.com/app/id\($0)" } ?? result.trackViewURL
         return UpdateMetadata(version: version, url: url)
-    }
-
-    static func parseSparkleVersion(from data: Data) throws -> String? {
-        try parseSparkleMetadata(from: data)?.version
     }
 
     static func parseSparkleMetadata(from data: Data) throws -> UpdateMetadata? {
