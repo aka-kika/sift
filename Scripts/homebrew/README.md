@@ -34,3 +34,8 @@ brew install --cask aka-kika/tap/sift
 
 Possible later; the app has to be publicly downloadable (it is) and Homebrew's reviewers
 apply a notability bar. Start with the tap, submit once the app has some public traction.
+
+Known caveat (`brew audit`, 2026-09-01): the token `sift` conflicts with the
+homebrew/core formula `sift` (a grep-like search tool). Harmless for our own tap —
+the fully-qualified `aka-kika/tap/sift` always resolves correctly — but a central
+homebrew/cask submission would likely require a different token (e.g. `sift-app`).
