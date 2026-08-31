@@ -1,9 +1,9 @@
 # Homebrew cask
 
-**Not published yet.** The tap `aka-kika/homebrew-tap` does not exist; until it does,
-`brew install --cask aka-kika/tap/sift` fails and the DMG at
-https://sift.akakika.com/Sift.dmg is the only install path. `Scripts/release.sh`
-already bumps this file on every release, so publishing is the steps below.
+**Published 2026-09-01.** The tap lives at https://github.com/aka-kika/homebrew-tap
+(public, cask at `Casks/sift.rb`); users install with
+`brew install --cask aka-kika/tap/sift`. `Scripts/release.sh` bumps the local
+`sift.rb` on every release — copy it into the tap repo and push (step 2 below).
 
 `sift.rb` is the source of truth for the Sift cask. It installs the notarized DMG
 from https://sift.akakika.com/downloads/Sift-<version>.dmg.
