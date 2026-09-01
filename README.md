@@ -14,7 +14,7 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 [![Apple Silicon](https://img.shields.io/badge/arch-Apple%20Silicon-black?style=flat-square)](#requirements)
 [![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-SwiftData-0071e3?style=flat-square)](https://developer.apple.com/xcode/swiftui/)
-[![Version](https://img.shields.io/badge/release-1.10.0-success?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/release-1.11.0-success?style=flat-square)](CHANGELOG.md)
 [![Notarized](https://img.shields.io/badge/Apple-notarized-success?style=flat-square)](docs/RELEASE.md)
 [![Local first](https://img.shields.io/badge/AI-local%20first-6E56CF?style=flat-square)](#privacy)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
@@ -28,6 +28,18 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 </p>
 
 <p align="center"><sub>Sift reading Sift. A 1–5 relevance score, a plain-English explanation, a concrete use, and the quiet facts Finder never surfaces.</sub></p>
+
+---
+
+## Install
+
+Download the [notarized DMG](https://sift.akakika.com/Sift.dmg) — or with Homebrew:
+
+```bash
+brew install --cask aka-kika/tap/sift
+```
+
+Free during the beta. Requires macOS Sonoma or newer, Apple Silicon.
 
 ---
 
