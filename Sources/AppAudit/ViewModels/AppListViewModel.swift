@@ -807,12 +807,14 @@ final class AppListViewModel {
         while start < candidates.count {
             let batch = Array(candidates[start..<min(start + batchSize, candidates.count)])
             start += batchSize
-            let acknowledged = Dictionary(uniqueKeysWithValues: batch.map {
+            // Two installed copies of one app share a bundle ID (and one record),
+            // so the keys are not unique — `uniqueKeysWithValues` traps on that.
+            let acknowledged = Dictionary(batch.map {
                 ($0.bundleID, cacheService?.load(bundleID: $0.bundleID)?.acknowledgedUpdateVersion)
-            })
-            let appURLs = Dictionary(uniqueKeysWithValues: batch.map {
+            }, uniquingKeysWith: { first, _ in first })
+            let appURLs = Dictionary(batch.map {
                 ($0.bundleID, cacheService?.load(bundleID: $0.bundleID)?.appURL)
-            })
+            }, uniquingKeysWith: { first, _ in first })
             let checker = updateChecker
             let results = await withTaskGroup(of: (String, AppInfo.UpdateState).self) { group in
                 for app in batch {

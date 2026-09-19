@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SwiftData
 @testable import Sift
 
 /// Answers from fixed tables, and remembers what was asked.
@@ -495,5 +496,31 @@ struct OpenAppToUpdateTests {
     func help() {
         let help = AppInfo.UpdateSource.sparkle.actionHelp(appName: "Bloom", latestVersion: "2.1", brewCommand: nil)
         #expect(help.contains("Bloom") && help.contains("2.1") && help.contains("Check for Updates"))
+    }
+}
+
+@Suite("Duplicate bundle IDs")
+@MainActor
+struct DuplicateBundleIDTests {
+    /// Two copies of one app ("Reed.app" and "Reed Test.app") share a bundle ID.
+    /// 1.12.0 crashed on launch when both landed in the same update batch.
+    @Test("An update refresh survives two installed apps with one bundle ID")
+    func refreshSurvivesDuplicates() async throws {
+        let container = try ModelContainer(
+            for: AppRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let viewModel = AppListViewModel()
+        viewModel.cacheService = CacheService(context: container.mainContext)
+        // A feed on a closed local port fails at once, so no real network is touched.
+        viewModel.apps = ["/Applications/Reed.app", "/Applications/Reed Test.app"].map { path in
+            AppInfo(id: "com.example.reed", name: "Reed", version: "1.0", bundleID: "com.example.reed",
+                    path: path, humanReadableDescription: nil,
+                    sparkleFeedURL: "http://127.0.0.1:9/appcast.xml", isAppStoreInstall: false, icon: nil)
+        }
+
+        await viewModel.refreshUpdateStatuses()
+
+        #expect(viewModel.apps.count == 2)
     }
 }

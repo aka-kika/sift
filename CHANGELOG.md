@@ -15,6 +15,12 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 <!-- SF Symbol: hammer -->
 Nothing yet. Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 
+## [1.12.1] — 2026-09-19
+
+<!-- SF Symbol: bandage -->
+### Fixed
+- 1.12.0 crashed a few seconds after launch when two installed apps shared a bundle ID (a test copy beside the real app, say) and one of them had a saved GitHub link. The update refresh keyed a lookup by bundle ID and trapped on the duplicate. Widening the update check to GitHub-linked apps in 1.12.0 is what let such a pair into one batch. A regression test now holds it.
+
 ## [1.12.0] — 2026-09-19
 
 <!-- SF Symbol: arrow.triangle.2.circlepath -->
