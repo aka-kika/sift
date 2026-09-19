@@ -84,7 +84,7 @@ struct AppRow: View {
                     Button {
                         performUpdateAction(source: source)
                     } label: {
-                        Image(systemName: source.actionSymbol)
+                        UpdateSourceIcon(source: source)
                             .font(.caption)
                             .frame(width: 22, height: 22)
                     }
@@ -196,7 +196,23 @@ struct AppRow: View {
                 Button {
                     performUpdateAction(source: source)
                 } label: {
-                    Label(updateActionTitle(latestVersion: latestVersion, source: source), systemImage: source.actionSymbol)
+                    Label {
+                        Text(updateActionTitle(latestVersion: latestVersion, source: source))
+                    } icon: {
+                        if source == .github {
+                            Image(nsImage: BrandGlyph.github)
+                        } else {
+                            Image(systemName: source.actionSymbol)
+                        }
+                    }
+                }
+
+                if source.opensAppToUpdate, let downloadURL = app.updateState.actionURL {
+                    Button {
+                        NSWorkspace.shared.open(downloadURL)
+                    } label: {
+                        Label("Open Download (\(latestVersion))", systemImage: "arrow.down.circle")
+                    }
                 }
 
                 Button {
@@ -329,7 +345,9 @@ struct AppRow: View {
 
     private func performUpdateAction(source: AppInfo.UpdateSource) {
         switch source {
-        case .appStore, .sparkle:
+        case .sparkle:
+            NSWorkspace.shared.open(URL(fileURLWithPath: app.path))
+        case .appStore, .github:
             if let updateURL = app.updateState.actionURL {
                 NSWorkspace.shared.open(updateURL)
             }
@@ -356,7 +374,9 @@ struct AppRow: View {
         case .appStore:
             return "Open in App Store (\(latestVersion))"
         case .sparkle:
-            return "Open Download (\(latestVersion))"
+            return "Open App to Update (\(latestVersion))"
+        case .github:
+            return "Open GitHub Release (\(latestVersion))"
         case .homebrew:
             return "Copy Brew Command (\(latestVersion))"
         }
@@ -385,6 +405,8 @@ private extension AppInfo.UpdateSource {
             return "Store"
         case .sparkle:
             return "Sparkle"
+        case .github:
+            return "GitHub"
         case .homebrew:
             return "Brew"
         }

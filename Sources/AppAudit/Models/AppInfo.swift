@@ -25,6 +25,9 @@ struct AppInfo: Identifiable {
     let id: String          // bundleID
     let name: String
     let version: String
+    /// `CFBundleVersion`. Only used to tell two releases apart when the vendor
+    /// ships a new build under an unchanged marketing version.
+    let build: String?
     let bundleID: String
     let path: String
     let humanReadableDescription: String?
@@ -34,6 +37,7 @@ struct AppInfo: Identifiable {
     let icon: SendableImage?
     let category: String?
     let lastUsedDate: Date?
+    let runtime: AppRuntime?
 
     var isRunning: Bool = false
     var aiState: AIState = .pending
@@ -54,6 +58,7 @@ struct AppInfo: Identifiable {
         id: String,
         name: String,
         version: String,
+        build: String? = nil,
         bundleID: String,
         path: String,
         humanReadableDescription: String?,
@@ -63,6 +68,7 @@ struct AppInfo: Identifiable {
         icon: SendableImage?,
         category: String? = nil,
         lastUsedDate: Date? = nil,
+        runtime: AppRuntime? = nil,
         isRunning: Bool = false,
         aiState: AIState = .pending,
         updateState: UpdateState = .unknown,
@@ -75,6 +81,7 @@ struct AppInfo: Identifiable {
         self.id = id
         self.name = name
         self.version = version
+        self.build = build
         self.bundleID = bundleID
         self.path = path
         self.humanReadableDescription = humanReadableDescription
@@ -84,6 +91,7 @@ struct AppInfo: Identifiable {
         self.icon = icon
         self.category = category
         self.lastUsedDate = lastUsedDate
+        self.runtime = runtime
         self.isRunning = isRunning
         self.aiState = aiState
         self.updateState = updateState
@@ -105,6 +113,7 @@ struct AppInfo: Identifiable {
         case appStore = "App Store"
         case sparkle = "Sparkle"
         case homebrew = "Homebrew"
+        case github = "GitHub"
 
         /// The action button's symbol — the same in the sidebar row and the detail page.
         var actionSymbol: String {
@@ -112,22 +121,29 @@ struct AppInfo: Identifiable {
             case .appStore: return "bag.fill"
             case .sparkle: return "arrow.down.circle.fill"
             case .homebrew: return "terminal.fill"
+            case .github: return "chevron.left.forwardslash.chevron.right"
             }
         }
 
         func actionHelp(appName: String, latestVersion: String, brewCommand: String?) -> String {
             switch self {
             case .appStore: return "Open \(appName) in the App Store to update to \(latestVersion)."
-            case .sparkle: return "Open \(appName)'s download page for \(latestVersion)."
+            case .sparkle: return "Open \(appName) so its own updater installs \(latestVersion) in place. If it does not offer the update, use Check for Updates… in its menu."
             case .homebrew: return "Run or copy \(brewCommand ?? "brew upgrade --cask ...")"
+            case .github: return "Open \(appName)'s GitHub release page for \(latestVersion)."
             }
         }
+
+        /// Sparkle apps update themselves in place, so opening the app beats
+        /// downloading a copy the user then has to swap in by hand.
+        var opensAppToUpdate: Bool { self == .sparkle }
 
         func accessibilityLabel(appName: String, latestVersion: String) -> String {
             switch self {
             case .appStore: return "Open \(appName) in App Store, version \(latestVersion)"
-            case .sparkle: return "Open \(appName) download, version \(latestVersion)"
+            case .sparkle: return "Open \(appName) to update to version \(latestVersion)"
             case .homebrew: return "Homebrew update for \(appName), version \(latestVersion)"
+            case .github: return "Open \(appName) release on GitHub, version \(latestVersion)"
             }
         }
     }
@@ -181,6 +197,15 @@ extension AppInfo {
 
     var canCheckForUpdates: Bool {
         isAppStoreInstall || sparkleFeedURL != nil || homebrewCaskToken != nil
+    }
+
+    /// A paid app's next major version often needs a new license, so the jump
+    /// gets one quiet line before the click. Store copies are left out — the
+    /// store settles that itself — and so are apps the user never paid for.
+    func majorUpgradeNote(latestVersion: String, hasLicenseKey: Bool) -> String? {
+        guard !isAppStoreInstall, isPaidApp || hasLicenseKey,
+              VersionComparator.isMajorUpgrade(from: version, to: latestVersion) else { return nil }
+        return "Major upgrade — your current license may not cover \(latestVersion)."
     }
 
     var homebrewUpdateCommand: String? {

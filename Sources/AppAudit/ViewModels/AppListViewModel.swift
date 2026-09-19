@@ -187,7 +187,7 @@ final class AppListViewModel {
 
         let token = UUID()
         updateScanToken = token
-        let appsToRefresh = apps.filter { !$0.version.isEmpty && $0.canCheckForUpdates }
+        let appsToRefresh = apps.filter { isUpdateCandidate($0) }
         let visibleUpdateIDs = Set(apps.filter { $0.updateState.isUpdateAvailable }.map(\.id))
 
         for index in apps.indices where visibleUpdateIDs.contains(apps[index].id) {
@@ -693,6 +693,23 @@ final class AppListViewModel {
         }
     }
 
+    /// A saved GitHub repo link is an update source, so changing the link changes
+    /// the answer. Rechecks this one app; the link is passed in because the
+    /// detail view saves it a moment before the cache can read it back.
+    func recheckUpdateAfterLinkChange(bundleID: String, appURL: String?) {
+        guard let app = apps.first(where: { $0.bundleID == bundleID }), !app.version.isEmpty else { return }
+        let acknowledgedVersion = cacheService?.load(bundleID: bundleID)?.acknowledgedUpdateVersion
+        let checker = updateChecker
+        let token = updateScanToken
+        Task {
+            let state = await checker.check(app: app, acknowledgedVersion: acknowledgedVersion, appURL: appURL)
+            // A full refresh started meanwhile owns the answer.
+            guard token == updateScanToken,
+                  let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
+            apps[idx].updateState = state
+        }
+    }
+
     /// Re-runs analysis after the user attaches, refreshes, or removes an app's
     /// local docs folder, so the new evidence feeds the prompt. Locked analyses
     /// are never re-run — the evidence waits for a manual run after unlocking.
@@ -770,12 +787,21 @@ final class AppListViewModel {
         return ""
     }
 
+    /// An app is worth an update check when it has a channel of its own or the
+    /// user saved a GitHub repo link for it — that repo's releases then answer.
+    private func isUpdateCandidate(_ app: AppInfo) -> Bool {
+        guard !app.version.isEmpty else { return false }
+        if app.canCheckForUpdates { return true }
+        let appURL = cacheService?.load(bundleID: app.bundleID)?.appURL
+        return UpdateChecker.gitHubLatestReleaseURL(forAppURL: appURL) != nil
+    }
+
     private func refreshUpdates(for scannedApps: [AppInfo], token: UUID) async {
         await updateChecker.resetHomebrewCache()
 
         // A few apps at a time: dead vendor feeds (abandoned apps are exactly what an
         // audit tool sees) would otherwise stack their timeouts end to end.
-        let candidates = scannedApps.filter { !$0.version.isEmpty && $0.canCheckForUpdates }
+        let candidates = scannedApps.filter { isUpdateCandidate($0) }
         let batchSize = 4
         var start = 0
         while start < candidates.count {
@@ -784,11 +810,15 @@ final class AppListViewModel {
             let acknowledged = Dictionary(uniqueKeysWithValues: batch.map {
                 ($0.bundleID, cacheService?.load(bundleID: $0.bundleID)?.acknowledgedUpdateVersion)
             })
+            let appURLs = Dictionary(uniqueKeysWithValues: batch.map {
+                ($0.bundleID, cacheService?.load(bundleID: $0.bundleID)?.appURL)
+            })
             let checker = updateChecker
             let results = await withTaskGroup(of: (String, AppInfo.UpdateState).self) { group in
                 for app in batch {
                     let acknowledgedVersion = acknowledged[app.bundleID] ?? nil
-                    group.addTask { (app.bundleID, await checker.check(app: app, acknowledgedVersion: acknowledgedVersion)) }
+                    let appURL = appURLs[app.bundleID] ?? nil
+                    group.addTask { (app.bundleID, await checker.check(app: app, acknowledgedVersion: acknowledgedVersion, appURL: appURL)) }
                 }
                 var collected: [(String, AppInfo.UpdateState)] = []
                 for await result in group { collected.append(result) }

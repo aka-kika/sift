@@ -14,7 +14,7 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 [![Apple Silicon](https://img.shields.io/badge/arch-Apple%20Silicon-black?style=flat-square)](#requirements)
 [![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-SwiftData-0071e3?style=flat-square)](https://developer.apple.com/xcode/swiftui/)
-[![Version](https://img.shields.io/badge/release-1.11.0-success?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/release-1.12.0-success?style=flat-square)](CHANGELOG.md)
 [![Notarized](https://img.shields.io/badge/Apple-notarized-success?style=flat-square)](docs/RELEASE.md)
 [![Local first](https://img.shields.io/badge/AI-local%20first-6E56CF?style=flat-square)](#privacy)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
@@ -199,12 +199,15 @@ working across the rename. These internal identifiers are not user-visible.
 
 MIT — see [LICENSE](LICENSE).
 
-With thanks to two projects that shaped Sift: the leftover-discovery strategy is
+With thanks to three projects that shaped Sift: the leftover-discovery strategy is
 adapted from [uninstally](https://github.com/gostonx/uninstally) (MIT, © 2026
 Codenta), and [Mole](https://github.com/tw93/Mole) (GPL-3.0, © tw93) is the
 reason Sift shows a running-app indicator and sorts by last-used date. Mole is
 written in Go and none of its source is present here — those behaviours are
-independent Swift implementations against Apple's own APIs.
+independent Swift implementations against Apple's own APIs. The "Built with"
+fact, the version comparison, and GitHub releases as an update source follow
+[DuoUpdater](https://github.com/jizhi0v0/duo-updater) (MIT, © jizhi0v0): its
+bundle-marker rules and version tokenizer are adapted, the rest is Sift's own.
 
 <div align="center">
 

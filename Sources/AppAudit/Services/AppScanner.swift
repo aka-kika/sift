@@ -74,6 +74,7 @@ actor AppScanner {
             id: bundleID,
             name: name,
             version: version,
+            build: plist["CFBundleVersion"] as? String,
             bundleID: bundleID,
             path: path,
             humanReadableDescription: humanDesc,
@@ -83,6 +84,7 @@ actor AppScanner {
             icon: icon,
             category: category,
             lastUsedDate: lastUsedDate(forPath: path),
+            runtime: AppRuntimeDetector.detect(bundlePath: path, infoPlist: plist as? [String: Any] ?? [:]),
             isRunning: runningBundleIDs.contains(bundleID)
         )
     }

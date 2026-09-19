@@ -6,7 +6,7 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # Sift — Roadmap
 
-**Updated:** 2026-08-27 · **Current version:** 1.10.0
+**Updated:** 2026-09-19 · **Current version:** 1.12.0
 
 ## Now
 
@@ -17,6 +17,20 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 ## Next
 
 <!-- SF Symbol: circle.lefthalf.filled -->
+- **1.13 — works out of the box.** Today the analysis needs Ollama or an API
+  key, and a first-time user meets that as a wall (a reader said so, and the
+  site did not even mention it until 1.12.0). First focus of the next version:
+  an engine that needs no setup — Apple Intelligence (the on-device Foundation
+  Models), or a small model that ships with or is fetched by the app. The Apple
+  Intelligence engine was removed in the 1.3.x "Ollama-first" edition; bringing
+  it back is a fresh decision, not a revert — write the ADR first.
+- **1.13 — real in-place updates.** 1.12.0 opens a Sparkle app so it updates
+  itself. The real thing: download, verify the EdDSA signature and the
+  developer's Team ID, quit the app gently (never force), move the old copy to
+  the Trash as the rollback, swap the new one in, relaunch. zip and dmg only;
+  no pkg, no App Store copies, no root-owned bundles. Reference:
+  [DuoUpdater](https://github.com/jizhi0v0/duo-updater) (MIT) —
+  `SparkleInstaller`, `InPlaceSwap`, `SignatureVerifier`.
 - **Receipt extraction** — drop an invoice PDF onto an app and backfill the
   subscription and licence fields from it. Spec ready to build:
   [docs/specs/receipt-extraction.md](specs/receipt-extraction.md).
@@ -26,14 +40,18 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 ## Later
 
 <!-- SF Symbol: circle -->
-- **Homebrew tap** — the cask source exists (`Scripts/homebrew/sift.rb`) and
-  `release.sh` bumps it; the public `aka-kika/homebrew-tap` repo is not created yet.
 - **Universal binary** — add x86_64 to the release DMG for Intel Macs.
 - **JSON export** — a machine-readable sibling of the CSV export.
 
 ## Shipped
 
 <!-- SF Symbol: checkmark.circle -->
+- **1.12.0** — GitHub releases as a fourth update source (rate-limit-free),
+  "Built with" fact (Electron / Tauri / native …), open-app-to-update for Sparkle
+  apps, build-number updates, a real version comparator, major-upgrade license
+  note. Ideas and rules adapted from DuoUpdater (MIT).
+- **1.11.0** — the pre-launch audit release; Homebrew tap published at
+  `aka-kika/homebrew-tap`.
 - **1.10.0** — Google Gemini and OpenRouter engines, both with free tiers, on one
   OpenAI-compatible transport; free during the beta.
 - **1.9.0** — self-update through Sparkle 2 (daily appcast check, Check for

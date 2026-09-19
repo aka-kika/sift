@@ -93,6 +93,9 @@ struct AppDetailView: View {
                     if !trimmed.isEmpty, trimmed != previousURL {
                         viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
                     }
+                    if trimmed != (previousURL ?? "") {
+                        viewModel.recheckUpdateAfterLinkChange(bundleID: app.bundleID, appURL: trimmed.isEmpty ? nil : trimmed)
+                    }
                 }
                 editingURL = false
             }
@@ -186,11 +189,12 @@ struct AppDetailView: View {
             lastUsed: app.lastUsedDate,
             now: Date(),
             installSource: app.installSourceLabel,
-            analyzedAt: record?.generatedAt
+            analyzedAt: record?.generatedAt,
+            builtWith: app.runtime
         )
         return VStack(alignment: .leading, spacing: 12) {
             Divider()
-            // Four cells share the width evenly and never wrap — the row is a
+            // The cells share the width evenly and never wrap — the row is a
             // single line by construction, not by luck.
             HStack(alignment: .top, spacing: 16) {
                 ForEach(facts) { fact in
@@ -387,30 +391,51 @@ struct AppDetailView: View {
                 .foregroundStyle(.green)
                 .padding(.top, 2)
         case .updateAvailable(let latestVersion, let source, _):
-            HStack(spacing: 8) {
-                Button {
-                    performUpdateAction(source: source)
-                } label: {
-                    Label(updateActionTitle(latestVersion: latestVersion),
-                          systemImage: source.actionSymbol)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Button {
+                        performUpdateAction(source: source)
+                    } label: {
+                        Label {
+                            Text(source.opensAppToUpdate ? "Open app to update" : updateActionTitle(latestVersion: latestVersion))
+                        } icon: {
+                            UpdateSourceIcon(source: source)
+                        }
                         .font(.caption.weight(.medium))
-                }
-                .glassProminentButtonStyle()
-                .controlSize(.small)
-                .tint(.orange)
-                .disabled(runningHomebrewUpdate)
-                .help(source.actionHelp(appName: app.name, latestVersion: latestVersion, brewCommand: app.homebrewUpdateCommand))
-                .accessibilityLabel(source.accessibilityLabel(appName: app.name, latestVersion: latestVersion))
+                    }
+                    .glassProminentButtonStyle()
+                    .controlSize(.small)
+                    .tint(.orange)
+                    .disabled(runningHomebrewUpdate)
+                    .help(source.actionHelp(appName: app.name, latestVersion: latestVersion, brewCommand: app.homebrewUpdateCommand))
+                    .accessibilityLabel(source.accessibilityLabel(appName: app.name, latestVersion: latestVersion))
 
-                Button("Mark done") {
-                    viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-                .foregroundStyle(.secondary)
+                    if source.opensAppToUpdate, let downloadURL = app.updateState.actionURL {
+                        Button("Download \(latestVersion)") {
+                            NSWorkspace.shared.open(downloadURL)
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                        .foregroundStyle(.secondary)
+                        .help("Download \(latestVersion) and replace \(app.name) yourself.")
+                    }
 
-                if runningHomebrewUpdate {
-                    ProgressView().controlSize(.small)
+                    Button("Mark done") {
+                        viewModel.acknowledgeUpdate(bundleID: app.bundleID, updateState: app.updateState)
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .foregroundStyle(.secondary)
+
+                    if runningHomebrewUpdate {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+                if let note = app.majorUpgradeNote(latestVersion: latestVersion,
+                                                   hasLicenseKey: record?.hasLicenseKey == true) {
+                    Label(note, systemImage: "key.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.top, 3)
@@ -1146,6 +1171,7 @@ struct AppDetailView: View {
                 Button(role: .destructive) {
                     record?.appURL = nil
                     saveRecord()
+                    viewModel.recheckUpdateAfterLinkChange(bundleID: app.bundleID, appURL: nil)
                 } label: {
                     Label("Remove Link", systemImage: "xmark.circle")
                 }
@@ -1257,21 +1283,32 @@ struct AppDetailView: View {
 
     /// The utility cube's icon — the cube itself is the tinted chip, so the
     /// icon renders directly at full size.
+    @ViewBuilder
     private func cardIcon(_ systemImage: String, tint: Color) -> some View {
-        Image(systemName: systemImage)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(pastelize(tint, colorScheme))
+        if systemImage == Self.gitHubGlyphName {
+            GitHubGlyph()
+                .foregroundStyle(pastelize(tint, colorScheme))
+        } else {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(pastelize(tint, colorScheme))
+        }
     }
 
-    /// SF Symbol for a link cube, chosen from the destination host: a code
-    /// glyph for source hosts (SF Symbols has no brand logos), a globe for
-    /// everything else, and a plain link when there is nothing yet.
+    /// Not an SF Symbol: `cardIcon` draws GitHub's own mark for this name.
+    private static let gitHubGlyphName = "brand.github"
+
+    /// Symbol for a link cube, chosen from the destination host: GitHub's mark
+    /// for GitHub, a code glyph for the other source hosts (SF Symbols has no
+    /// brand logos), a globe for everything else, and a plain link when there
+    /// is nothing yet.
     private func linkSymbol(for urlString: String?) -> String {
         guard let urlString, !urlString.isEmpty,
               let host = URL(string: urlString)?.host()?.lowercased() else {
             return "link"
         }
-        let codeHosts = ["github.com", "gitlab.com", "bitbucket.org", "codeberg.org", "sr.ht"]
+        if BrandGlyph.isGitHub(urlString) { return Self.gitHubGlyphName }
+        let codeHosts = ["gitlab.com", "bitbucket.org", "codeberg.org", "sr.ht"]
         if codeHosts.contains(where: { host == $0 || host.hasSuffix(".\($0)") }) {
             return "chevron.left.forwardslash.chevron.right"
         }
@@ -1290,7 +1327,9 @@ struct AppDetailView: View {
 
     private func performUpdateAction(source: AppInfo.UpdateSource) {
         switch source {
-        case .appStore, .sparkle:
+        case .sparkle:
+            NSWorkspace.shared.open(URL(fileURLWithPath: app.path))
+        case .appStore, .github:
             if let updateURL = app.updateState.actionURL {
                 NSWorkspace.shared.open(updateURL)
             }

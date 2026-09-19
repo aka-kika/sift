@@ -13,6 +13,7 @@ enum AppAnalysisPrompt {
     static func build(app: AppInfo, profile: WorkflowProfile, appURL: String? = nil, linkEvidence: String? = nil, includeResponseFormat: Bool, styleNotes: String = "", userNotes: String = "", docsEvidence: String = "") -> String {
         let categoryHint = AppCategory.humanName(for: app.category).map { "\nCategory: \($0)" } ?? ""
         let descriptionHint = app.humanReadableDescription.map { "\nApp description hint: \($0)" } ?? ""
+        let runtimeHint = app.runtime.map { "\nBuilt with: \($0.summary)" } ?? ""
         let linkContext = referenceURLContext(from: appURL, fetched: linkEvidence)
         let responseFormat = includeResponseFormat ? """
 
@@ -49,7 +50,7 @@ enum AppAnalysisPrompt {
         Name: \(app.name)
         Bundle ID: \(app.bundleID)
         Version: \(app.version.isEmpty ? "Unknown" : app.version)
-        Path: \(app.path)\(categoryHint)\(descriptionHint)\(linkContext)
+        Path: \(app.path)\(categoryHint)\(descriptionHint)\(runtimeHint)\(linkContext)
 
         Developer workflow context:
         \(profile.promptDescription)\(notesBlock)\(docsBlock)

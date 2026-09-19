@@ -13,13 +13,14 @@ struct AppFact: Identifiable, Equatable {
 }
 
 enum AppFacts {
-    /// Four cells at most, so the row always fits one line. Cost is left out
+    /// Five cells at most, so the row always fits one line. Cost is left out
     /// on purpose — the License cube already tells that story in colour.
     static func build(sizeBytes: Int64?,
                       lastUsed: Date?,
                       now: Date,
                       installSource: String,
-                      analyzedAt: Date?) -> [AppFact] {
+                      analyzedAt: Date?,
+                      builtWith: AppRuntime? = nil) -> [AppFact] {
         var facts: [AppFact] = []
 
         if let sizeBytes, sizeBytes > 0 {
@@ -27,6 +28,9 @@ enum AppFacts {
         }
         facts.append(AppFact(label: "Last used", value: lastUsedText(lastUsed, now: now)))
         facts.append(AppFact(label: "Source", value: sourceText(installSource)))
+        if let builtWith {
+            facts.append(AppFact(label: "Built with", value: builtWith.label))
+        }
         if let analyzedAt {
             facts.append(AppFact(label: "Analyzed", value: relative(analyzedAt, now: now)))
         }

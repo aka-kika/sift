@@ -2,6 +2,8 @@ import Foundation
 
 protocol UpdateMetadataClient: Sendable {
     func data(for url: URL) async throws -> Data
+    /// Where `url` redirects to, without following it. Nil when it does not redirect.
+    func redirectLocation(for url: URL) async throws -> URL?
 }
 
 struct LiveUpdateMetadataClient: UpdateMetadataClient {
@@ -15,12 +17,42 @@ struct LiveUpdateMetadataClient: UpdateMetadataClient {
         }
         return data
     }
+
+    func redirectLocation(for url: URL) async throws -> URL? {
+        var request = URLRequest(url: url, timeoutInterval: 15)
+        request.httpMethod = "HEAD"
+        let (_, response) = try await URLSession.shared.data(for: request, delegate: RedirectStopper())
+        guard let httpResponse = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard (300..<400).contains(httpResponse.statusCode) else {
+            if (200..<300).contains(httpResponse.statusCode) { return nil }
+            throw URLError(.badServerResponse)
+        }
+        return httpResponse.value(forHTTPHeaderField: "Location").flatMap { URL(string: $0, relativeTo: url)?.absoluteURL }
+    }
+}
+
+/// Refuses the redirect, so the 3xx response itself comes back with its Location.
+private final class RedirectStopper: NSObject, URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest) async -> URLRequest? {
+        nil
+    }
 }
 
 actor UpdateChecker {
     struct UpdateMetadata: Equatable {
         let version: String
         let url: String?
+        /// The feed's build number (`sparkle:version`), when it states one.
+        var build: String? = nil
+
+        /// What the update button shows: the build joins the version only when
+        /// the version alone would read as "no change".
+        func displayVersion(installedVersion: String) -> String {
+            guard let build, VersionComparator.compare(version, installedVersion) == .orderedSame else { return version }
+            return "\(version) (\(build))"
+        }
     }
 
     private let client: any UpdateMetadataClient
@@ -35,7 +67,9 @@ actor UpdateChecker {
         outdatedCasksCache = nil
     }
 
-    func check(app: AppInfo, acknowledgedVersion: String? = nil) async -> AppInfo.UpdateState {
+    /// `appURL` is the link the user saved for the app. When it points at a
+    /// GitHub repo, that repo's latest release is the last source asked.
+    func check(app: AppInfo, acknowledgedVersion: String? = nil, appURL: String? = nil) async -> AppInfo.UpdateState {
         if app.isAppStoreInstall,
            let appStoreMetadata = await fetchAppStoreMetadata(bundleID: app.bundleID) {
             if Self.isVersion(appStoreMetadata.version, newerThan: app.version) {
@@ -65,12 +99,13 @@ actor UpdateChecker {
         }
 
         if let sparkleMetadata = await fetchSparkleMetadata(feedURLString: app.sparkleFeedURL) {
-            if Self.isVersion(sparkleMetadata.version, newerThan: app.version) {
-                if acknowledgedVersion == sparkleMetadata.version {
+            if Self.isRelease(sparkleMetadata, newerThanVersion: app.version, build: app.build) {
+                let latestVersion = sparkleMetadata.displayVersion(installedVersion: app.version)
+                if acknowledgedVersion == latestVersion {
                     return .upToDate(source: .sparkle)
                 }
                 return .updateAvailable(
-                    latestVersion: sparkleMetadata.version,
+                    latestVersion: latestVersion,
                     source: .sparkle,
                     actionURL: sparkleMetadata.url ?? app.sparkleFeedURL
                 )
@@ -78,10 +113,27 @@ actor UpdateChecker {
             return .upToDate(source: .sparkle)
         }
 
+        // A store copy is answered by the store or by nobody: a GitHub build of
+        // the same app is a different install, not an update for this one.
+        if !app.isAppStoreInstall,
+           let githubMetadata = await fetchGitHubMetadata(appURL: appURL) {
+            if Self.isVersion(githubMetadata.version, newerThan: app.version) {
+                if acknowledgedVersion == githubMetadata.version {
+                    return .upToDate(source: .github)
+                }
+                return .updateAvailable(
+                    latestVersion: githubMetadata.version,
+                    source: .github,
+                    actionURL: githubMetadata.url
+                )
+            }
+            return .upToDate(source: .github)
+        }
+
         // Precedence: App Store > Homebrew (only when brew reports it outdated) >
-        // Sparkle > "brew-installed and current". A current cask app that also has
-        // a Sparkle feed therefore takes Sparkle's verdict — deliberate, since
-        // many casks lag the vendor's own feed.
+        // Sparkle > GitHub releases > "brew-installed and current". A current cask
+        // app that also has a Sparkle feed or a GitHub link therefore takes that
+        // verdict — deliberate, since many casks lag the vendor's own feed.
         if app.homebrewCaskToken != nil {
             return .upToDate(source: .homebrew)
         }
@@ -112,6 +164,18 @@ actor UpdateChecker {
         }
     }
 
+    private func fetchGitHubMetadata(appURL: String?) async -> UpdateMetadata? {
+        guard let releaseURL = Self.gitHubLatestReleaseURL(forAppURL: appURL) else { return nil }
+
+        do {
+            guard let location = try await client.redirectLocation(for: releaseURL) else { return nil }
+            return Self.parseGitHubMetadata(fromRedirect: location)
+        } catch {
+            // A missing repo or no network: no answer is better than a wrong one.
+            return nil
+        }
+    }
+
     private func fetchHomebrewMetadata(caskToken: String?) -> HomebrewCaskInfo? {
         guard let caskToken else { return nil }
         if outdatedCasksCache == nil {
@@ -129,11 +193,68 @@ actor UpdateChecker {
         return components?.url
     }
 
+    /// `https://github.com/owner/repo[/anything]` → that repo's `/releases/latest`
+    /// page, which redirects to the newest release's tag and already leaves out
+    /// drafts and prereleases.
+    ///
+    /// The web page, not `api.github.com`, on purpose: the API allows an app
+    /// with no token 60 requests an hour, and — measured 2026-09-19 — a `304`
+    /// still spends one of them, so conditional requests buy nothing here. The
+    /// redirect carries the tag in its `Location` header and is not counted
+    /// against that limit, so a shelf full of GitHub links stays checkable.
+    static func gitHubLatestReleaseURL(forAppURL appURL: String?) -> URL? {
+        guard let appURL,
+              let components = URLComponents(string: appURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let host = components.host?.lowercased(),
+              host == "github.com" || host == "www.github.com" else { return nil }
+
+        let parts = components.path.split(separator: "/").map(String.init)
+        guard parts.count >= 2 else { return nil }
+        let owner = parts[0]
+        var repo = parts[1]
+        if repo.hasSuffix(".git") { repo.removeLast(4) }
+
+        // github.com/orgs/…, /settings/…, /sponsors/… are not repos.
+        let reservedOwners: Set<String> = ["orgs", "settings", "sponsors", "marketplace", "topics", "features", "about"]
+        guard !owner.isEmpty, !repo.isEmpty, !reservedOwners.contains(owner.lowercased()) else { return nil }
+        return URL(string: "https://github.com/\(owner)/\(repo)/releases/latest")
+    }
+
+    /// The version inside a release tag: `v1.2.3`, `release-1.2.3`, `app/2.0.1`.
+    /// A tag with no dotted number (`nightly`, `build-4521`) gives nil — comparing
+    /// a build counter with a marketing version would invent updates.
+    static func version(fromGitHubTag tag: String) -> String? {
+        matches(for: #"(\d+(?:\.\d+)+)"#, in: tag).first?.first
+    }
+
+    /// `…/releases/tag/<tag>` → the release. A repo with no releases redirects
+    /// to plain `…/releases`, which is no answer. Tags may contain slashes.
+    static func parseGitHubMetadata(fromRedirect location: URL) -> UpdateMetadata? {
+        let marker = "/releases/tag/"
+        guard let host = location.host()?.lowercased(), host == "github.com" || host == "www.github.com",
+              let range = location.path.range(of: marker) else { return nil }
+        let tag = String(location.path[range.upperBound...])
+        guard !tag.isEmpty, let version = version(fromGitHubTag: tag) else { return nil }
+        return UpdateMetadata(version: version, url: location.absoluteString)
+    }
+
     static func isVersion(_ candidate: String, newerThan installed: String) -> Bool {
         let candidate = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
         let installed = installed.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !candidate.isEmpty, !installed.isEmpty else { return false }
-        return candidate.compare(installed, options: [.numeric, .caseInsensitive]) == .orderedDescending
+        return VersionComparator.isNewer(candidate, than: installed)
+    }
+
+    /// Newer by version — or, when the vendor ships a new build under an
+    /// unchanged version (Amp: `1.0` build 374 → 390), newer by build. The build
+    /// only ever breaks a tie: feeds and bundles do not always number builds the
+    /// same way, so it never overrules the version.
+    static func isRelease(_ candidate: UpdateMetadata, newerThanVersion installedVersion: String, build installedBuild: String?) -> Bool {
+        if isVersion(candidate.version, newerThan: installedVersion) { return true }
+        guard VersionComparator.compare(candidate.version, installedVersion) == .orderedSame,
+              let candidateBuild = candidate.build, let installedBuild,
+              !installedVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        return isVersion(candidateBuild, newerThan: installedBuild)
     }
 
     static func parseAppStoreMetadata(
@@ -189,7 +310,8 @@ actor UpdateChecker {
 
     private static func newestMetadata(in candidates: [UpdateMetadata]) -> UpdateMetadata? {
         guard var newest = candidates.first else { return nil }
-        for candidate in candidates.dropFirst() where isVersion(candidate.version, newerThan: newest.version) {
+        for candidate in candidates.dropFirst()
+        where isRelease(candidate, newerThanVersion: newest.version, build: newest.build) {
             newest = candidate
         }
         return newest
@@ -254,7 +376,11 @@ actor UpdateChecker {
             return nil
         }
         let url = enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) }
-        return UpdateMetadata(version: version, url: url)
+        let build =
+            enclosure.flatMap { firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: $0) } ??
+            firstCapturedValue(for: #"<sparkle:version>([^<]+)</sparkle:version>"#, in: item)
+        return UpdateMetadata(version: version, url: url,
+                              build: build?.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private static func parseSparkleEnclosure(from tag: String) -> UpdateMetadata? {

@@ -13,7 +13,24 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 ## [Unreleased]
 
 <!-- SF Symbol: hammer -->
-Nothing yet. Next up: receipt extraction (spec at `docs/specs/receipt-extraction.md`); pricing decision after the 14-day free beta.
+Nothing yet. Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
+
+## [1.12.0] — 2026-09-19
+
+<!-- SF Symbol: arrow.triangle.2.circlepath -->
+### Added
+- GitHub releases as a fourth update source. When the link you saved for an app is a GitHub repo, Sift asks that repo's latest release — so direct-download apps with no Sparkle feed, no cask and no store listing stop reading as "unavailable". Drafts and prereleases are never offered, a tag with no dotted version (`nightly`, `build-4521`) is not compared, and a Mac App Store copy is never answered by GitHub. Saving, changing or removing the link rechecks that one app straight away. The check reads the redirect of the repo's `/releases/latest` page instead of calling `api.github.com`, so it does not run into the API's 60-requests-an-hour limit however many GitHub links you save.
+- GitHub links wear GitHub's own mark — on the link cube and on the update button — instead of a generic code glyph.
+- Sparkle updates that keep the same version and only raise the build (`1.0` build 374 → 390) are now found, and shown as `1.0 (390)`. The build only breaks a tie; it never overrules the version.
+- **Open app to update.** For an app with its own Sparkle updater, the update button now opens the app so it installs the new version in place — no more downloading a copy and swapping it in by hand. The download is still there as a second, quieter button.
+- "Built with" in the facts row: Electron, Tauri, Flutter, Qt, Java, Chromium, Mac Catalyst, or native (SwiftUI / AppKit). Read from the bundle alone — nothing is run — and left out when Sift cannot tell. The analysis prompt gets the same fact.
+- A quiet note under the update button when a paid or licensed app is about to jump a major version: the current license may not cover it. Store copies, free apps and calendar versions (2025 → 2026) stay quiet.
+
+### Fixed
+- The site now says what the README always did: the AI analysis needs a model (Ollama, or a free Gemini / OpenRouter key). A reader pointed out it was mentioned nowhere but GitHub.
+- Version comparison reads versions the way a person does. `2.0.0` no longer counts as newer than `2.0` (a phantom update), and `1.2.3-beta` no longer counts as newer than `1.2.3`. A leading `v` is ignored.
+
+Bundle-marker rules and the version tokenizer are adapted from [DuoUpdater](https://github.com/jizhi0v0/duo-updater) (MIT). The GitHub mark's path data is from [Simple Icons](https://simpleicons.org) (CC0).
 
 ## [1.11.0] — 2026-08-27
 

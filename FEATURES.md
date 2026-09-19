@@ -46,8 +46,10 @@ updating, and which licenses and subscriptions you're paying for.
 
 ## Updates
 
-- Detects available updates from the **App Store**, **Sparkle** feeds, and **Homebrew** casks.
-- Open the update target, run/copy the Homebrew command, or **Mark done**.
+- Detects available updates from the **App Store**, **Sparkle** feeds, **Homebrew** casks, and **GitHub releases** (when the app link you saved is a GitHub repo).
+- Warns before a **major version jump** on a paid or licensed app — the license may not carry over.
+- **Open app to update** for apps with their own Sparkle updater (installs in place); open the store or release page for the rest, run/copy the Homebrew command, or **Mark done**.
+- Finds Sparkle updates that only raise the **build number** under the same version.
 - Lightweight update refresh without a full rescan.
 - **Sift updates itself** (Sparkle 2, since 1.9.0): a daily check against `sift.akakika.com/appcast.xml`, the standard "Install and Relaunch" sheet, signed with Sift's own key. **Check for Updates…** is in the Sift menu and on the About tab.
 
