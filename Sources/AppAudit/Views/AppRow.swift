@@ -254,7 +254,7 @@ struct AppRow: View {
 
     /// Selects the app and asks the detail view to open its License popover.
     private func requestLicensePopover() {
-        viewModel.selectedAppID = app.bundleID
+        viewModel.selectedAppID = app.id
         viewModel.licensePopoverRequestID = app.bundleID
     }
 

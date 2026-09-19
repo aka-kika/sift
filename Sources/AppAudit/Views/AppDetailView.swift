@@ -211,7 +211,7 @@ struct AppDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .task(id: app.bundleID) {
+        .task(id: app.id) {
             bundleSizeBytes = nil
             let path = app.path
             let size = await Task.detached {
@@ -664,7 +664,7 @@ struct AppDetailView: View {
     private func similarRow(_ similar: SimilarApp) -> some View {
         let info = viewModel.apps.first(where: { $0.bundleID == similar.bundleID })
         return Button {
-            viewModel.selectedAppID = similar.bundleID
+            if let info { viewModel.selectedAppID = info.id }
         } label: {
             HStack(spacing: 10) {
                 if let icon = info?.icon {
@@ -703,10 +703,11 @@ struct AppDetailView: View {
         findingSimilar = true
         similarResults = nil
         let bundleID = app.bundleID
+        let appID = app.id
         Task {
             let results = await viewModel.findSimilarApps(to: bundleID)
             // Ignore a stale result if the user switched apps mid-request.
-            guard viewModel.selectedAppID == bundleID else { return }
+            guard viewModel.selectedAppID == appID else { return }
             similarResults = results
             findingSimilar = false
         }

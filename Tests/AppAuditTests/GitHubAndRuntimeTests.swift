@@ -524,3 +524,21 @@ struct DuplicateBundleIDTests {
         #expect(viewModel.apps.count == 2)
     }
 }
+
+@Suite("Row identity")
+@MainActor
+struct RowIdentityTests {
+    @Test("Two copies of one app are two selectable rows")
+    func duplicateCopiesStaySeparate() {
+        let viewModel = AppListViewModel()
+        viewModel.apps = ["/Applications/Reed.app", "/Applications/Reed Test.app"].map { path in
+            AppInfo(id: path, name: "Reed", version: "1.0", bundleID: "com.example.reed", path: path,
+                    humanReadableDescription: nil, sparkleFeedURL: nil, isAppStoreInstall: false, icon: nil)
+        }
+        #expect(Set(viewModel.apps.map(\.id)).count == 2)
+
+        viewModel.selectedAppID = "/Applications/Reed Test.app"
+        let selected = viewModel.apps.first { $0.id == viewModel.selectedAppID }
+        #expect(selected?.path == "/Applications/Reed Test.app")
+    }
+}

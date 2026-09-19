@@ -22,7 +22,9 @@ extension SendableImage {
 }
 
 struct AppInfo: Identifiable {
-    let id: String          // bundleID
+    /// Unique per installed copy (the scanner passes the bundle path). Row
+    /// identity and selection only — records are keyed by `bundleID`.
+    let id: String
     let name: String
     let version: String
     /// `CFBundleVersion`. Only used to tell two releases apart when the vendor

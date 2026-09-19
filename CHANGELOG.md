@@ -13,7 +13,10 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 ## [Unreleased]
 
 <!-- SF Symbol: hammer -->
-Nothing yet. Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
+### Fixed
+- Two installed copies of one app (same bundle ID) no longer draw a ghost third row in the sidebar, and each copy can be selected on its own. Row identity is now the app's path; records stay keyed by bundle ID, so both copies still share one analysis and one set of notes.
+
+Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 
 ## [1.12.1] — 2026-09-19
 

@@ -70,8 +70,10 @@ actor AppScanner {
 
         let category = plist["LSApplicationCategoryType"] as? String
 
+        // The path, not the bundle ID: two installed copies of one app share a
+        // bundle ID, and a list with two rows of one identity draws ghost rows.
         return AppInfo(
-            id: bundleID,
+            id: path,
             name: name,
             version: version,
             build: plist["CFBundleVersion"] as? String,
