@@ -107,28 +107,30 @@ struct HomebrewService: Sendable {
     }
 
     private func runBrew(arguments: [String], includeStandardError: Bool = false) -> String {
+        // stdout and stderr share one pipe here, drained before the wait.
+        if includeStandardError {
+            return runBrewChecked(arguments: arguments).output
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
         guard let brewPath = Self.brewExecutablePath() else { return "" }
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: brewPath)
         process.arguments = arguments
 
+        // Callers parse stdout (JSON, cask lists), so stderr is discarded rather
+        // than piped: an unread pipe fills at 64 KB and brew blocks forever on it.
         let pipe = Pipe()
-        let errorPipe = Pipe()
         process.standardOutput = pipe
-        process.standardError = errorPipe
+        process.standardError = FileHandle.nullDevice
 
         do {
             try process.run()
+            // Drain before waiting, for the same reason.
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
-            let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            guard includeStandardError else { return output }
-
-            let errorOutput = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            return [output, errorOutput]
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: "\n")
+            return String(data: data, encoding: .utf8) ?? ""
         } catch {
             return ""
         }

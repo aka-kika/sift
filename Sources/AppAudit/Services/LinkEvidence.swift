@@ -44,8 +44,8 @@ actor LinkEvidenceService {
     private var cache: [String: String?] = [:]
 
     func evidence(for urlString: String?) async -> String? {
-        guard let urlString = urlString?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !urlString.isEmpty else { return nil }
+        // Older records may hold a bare host ("raycast.com") saved before links were normalized.
+        guard let urlString = AppLinkInput.normalized(urlString) else { return nil }
         if let cached = cache[urlString] { return cached }
 
         guard let url = URL(string: urlString),

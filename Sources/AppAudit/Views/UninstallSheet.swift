@@ -11,6 +11,10 @@ struct UninstallSheet: View {
     /// Every other installed app, so a sibling's files (Chrome Canary next to
     /// Chrome) are never listed as this app's leftovers.
     var otherBundleIDs: [String] = []
+    /// Another installed copy shares this bundle ID (a test build next to the
+    /// release). Its settings, caches, and containers are the same folders, so
+    /// they start unchecked and only this copy is quit.
+    var hasOtherCopy = false
     let onFinished: (_ removedBundle: Bool) -> Void
 
     private enum Phase {
@@ -42,6 +46,7 @@ struct UninstallSheet: View {
                 .frame(minHeight: 120)
             case .list:
                 if isRunning { runningBanner }
+                if hasOtherCopy { otherCopyNote }
                 if app.homebrewCaskToken != nil { brewNote }
                 itemList
                 footer
@@ -104,6 +109,20 @@ struct UninstallSheet: View {
         }
         .padding(8)
         .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var otherCopyNote: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "square.on.square")
+                .foregroundStyle(.secondary)
+            Text("Another copy of \(app.name) is installed and uses the same settings and data, so only this copy's app is checked.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+            Spacer()
+        }
+        .padding(8)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var brewNote: some View {
@@ -229,17 +248,26 @@ struct UninstallSheet: View {
         let scanner = LeftoverScanner()
         let found = await scanner.scan(appName: app.name, bundleID: app.bundleID, appPath: app.path, otherBundleIDs: otherBundleIDs)
         items = found
-        checked = Set(found.map(\.id))
+        checked = Set(found.filter { !hasOtherCopy || $0.isAppBundle }.map(\.id))
         refreshRunningState()
         phase = .list
     }
 
     private func refreshRunningState() {
-        isRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID).isEmpty
+        isRunning = !runningInstances.isEmpty
+    }
+
+    /// The running processes of this app. With a second copy installed, only
+    /// the one launched from this path: quitting must not close the other.
+    private var runningInstances: [NSRunningApplication] {
+        let all = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID)
+        guard hasOtherCopy else { return all }
+        let path = URL(fileURLWithPath: app.path).standardizedFileURL.path
+        return all.filter { $0.bundleURL?.standardizedFileURL.path == path }
     }
 
     private func quitApp() {
-        for running in NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID) {
+        for running in runningInstances {
             running.terminate()
         }
         Task { @MainActor in

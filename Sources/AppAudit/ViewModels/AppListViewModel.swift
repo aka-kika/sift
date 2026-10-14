@@ -26,6 +26,10 @@ final class AppListViewModel {
     /// other than the one currently selected. Drives the "model changed" banner.
     var staleModelCount = 0
 
+    /// The model the banner count was last computed against. Settings writes
+    /// UserDefaults directly, so the view model compares on every defaults change.
+    private var countedModelIdentifier: String? = nil
+
     /// Max number of apps analyzed in parallel. Kept low to limit peak memory and
     /// CPU while local AI runs in the background.
     private let enrichmentConcurrency = 2
@@ -259,11 +263,16 @@ final class AppListViewModel {
                     apps[i].isAnalysisLocked = record.isAnalysisLocked
                     apps[i].isFreeApp = record.isFreeApp
                     apps[i].licenseTypeRaw = record.licenseType
+                    apps[i].hasLicenseKey = record.hasLicenseKey
                     if record.hasLicenseKey, record.iconPNG == nil {
                         record.iconPNG = apps[i].icon?.pngData()
                     }
                     let currentAppURL = record.appURL
-                    if !record.explanation.isEmpty,
+                    // Builds before 1.13 cached unreadable model output as an
+                    // analysis; those records are re-analyzed, not shown.
+                    let isUnparsedFallback = record.relevanceReason == Self.legacyUnparsedReason
+                        && !record.isAnalysisLocked
+                    if !record.explanation.isEmpty, !isUnparsedFallback,
                        (record.isAnalysisLocked || !cache.isStale(record, currentModel: modelIdentifier, currentAppURL: currentAppURL)) {
                         apps[i].aiState = .loaded(
                             explanation: record.explanation,
@@ -271,9 +280,6 @@ final class AppListViewModel {
                             reason: record.relevanceReason,
                             bestUse: record.bestUse ?? ""
                         )
-                        if cache.wasAnalyzedWithDifferentModel(record, currentModel: modelIdentifier) {
-                            staleModelCount += 1
-                        }
                     } else if !record.isAnalysisLocked {
                         toEnrich.append(apps[i])
                     }
@@ -285,6 +291,11 @@ final class AppListViewModel {
             toEnrich = apps
         }
         cacheService?.persist()
+        recomputeStaleModelCount(force: true)
+
+        // Two installed copies share a bundle ID and one record: analyze once.
+        var seenBundleIDs = Set<String>()
+        toEnrich = toEnrich.filter { seenBundleIDs.insert($0.bundleID).inserted }
 
         scanState = .enriching(completed: apps.count - toEnrich.count, total: apps.count)
 
@@ -330,7 +341,7 @@ final class AppListViewModel {
                         self.cacheService?.load(bundleID: bundleID)?.isAnalysisLocked == true
 
                     if !isLocked {
-                        self.apps[idx].aiState = state
+                        self.update(bundleID: bundleID) { $0.aiState = state }
 
                         if case .loaded(let explanation, let score, let reason, let bestUse) = state,
                            let cache = self.cacheService,
@@ -392,16 +403,25 @@ final class AppListViewModel {
                     bestUse: parsed.bestUse
                 ))
             } else {
-                // Fallback: model didn't follow the format — store raw response as explanation
-                return (app.bundleID, .loaded(explanation: response, score: 3, reason: "Could not parse analysis", bestUse: ""))
+                // The model ignored the format, or spent its whole answer
+                // thinking. Raw output is not an analysis: show it as a failure
+                // the user can retry, and keep it out of the cache.
+                return (app.bundleID, .unavailable(Self.unparsedMessage))
             }
         }
     }
 
-    /// Mutate one in-memory app by bundle ID; a no-op if it is not in the list.
+    nonisolated static let unparsedMessage = "The model's answer could not be read. Try again, or pick another model in Settings."
+    /// The reason older builds stored alongside unparsed model output.
+    nonisolated static let legacyUnparsedReason = "Could not parse analysis"
+
+    /// Mutate the in-memory app(s) with this bundle ID; a no-op if none is in
+    /// the list. Two installed copies share one record, so record-backed state
+    /// (analysis, marks, license) is mirrored onto every copy.
     func update(bundleID: String, _ body: (inout AppInfo) -> Void) {
-        guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-        body(&apps[idx])
+        for idx in apps.indices where apps[idx].bundleID == bundleID {
+            body(&apps[idx])
+        }
     }
 
     func setMyApp(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isMyApp = value } }
@@ -410,12 +430,15 @@ final class AppListViewModel {
     func setPaidApp(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isPaidApp = value } }
     func setFreeApp(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.isFreeApp = value } }
     func setLicenseType(bundleID: String, rawValue: String?) { update(bundleID: bundleID) { $0.licenseTypeRaw = rawValue } }
+    func setHasLicenseKey(bundleID: String, value: Bool) { update(bundleID: bundleID) { $0.hasLicenseKey = value } }
 
-    /// Drops an uninstalled app from the in-memory list. Its AppRecord is
+    /// Drops one uninstalled copy from the in-memory list, by its path-based
+    /// id: another copy with the same bundle ID stays. Its AppRecord is
     /// deliberately kept — license keys, notes, and marks survive, and the
     /// License Vault lists it under "No longer installed".
-    func removeApp(bundleID: String) {
-        apps.removeAll { $0.bundleID == bundleID }
+    func removeApp(id: String) {
+        apps.removeAll { $0.id == id }
+        reconcileSelectionWithCurrentFilter()
     }
 
     /// Reconcile each record's `hasLicenseKey` flag with the Keychain. Runs at
@@ -431,6 +454,7 @@ final class AppListViewModel {
                 record.hasLicenseKey = has
                 changed = true
             }
+            setHasLicenseKey(bundleID: record.bundleID, value: has)
         }
         if changed { cache.persist() }
     }
@@ -537,11 +561,19 @@ final class AppListViewModel {
                 record?.subscriptionCycle ?? "",
                 record?.subscriptionRenewalDate.map { SubscriptionMath.isoDate($0) } ?? "",
                 app.installSourceLabel,
-                (app.isAppStoreInstall && record?.isPaidApp == true) ? "yes" : "",
+                Self.paidColumn(isPaidApp: record?.isPaidApp == true,
+                                hasLicenseKey: record?.hasLicenseKey == true,
+                                licenseType: record?.licenseType),
                 record?.notes ?? ""
             ]
         }
         return CSVExporter.make(header: header, rows: rows)
+    }
+
+    /// Any trace of a purchase counts: the Paid mark, a saved key, or a
+    /// license type. (A Free mark clears Paid, so it never reads "yes".)
+    nonisolated static func paidColumn(isPaidApp: Bool, hasLicenseKey: Bool, licenseType: String?) -> String {
+        (isPaidApp || hasLicenseKey || licenseType != nil) ? "yes" : ""
     }
 
     private func updateStatusText(_ state: AppInfo.UpdateState) -> String {
@@ -578,7 +610,9 @@ final class AppListViewModel {
         record.acknowledgedUpdateVersion = acknowledgedVersion
         cache.persist()
 
-        if let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) {
+        // Copies can run different versions; only those showing this same
+        // update are marked done.
+        for idx in apps.indices where apps[idx].bundleID == bundleID && apps[idx].updateState == updateState {
             apps[idx].updateState = nextState
         }
 
@@ -600,7 +634,7 @@ final class AppListViewModel {
         let userNotes = cachedRecord?.notes
         let docsEvidence = cachedRecord?.docsEvidence
         workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
-        apps[idx].aiState = .loading
+        update(bundleID: bundleID) { $0.aiState = .loading }
         let provider = AnalysisProviderKind.current()
         let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes, docsEvidence: docsEvidence)
         // `apps` may have been rescanned or shrunk (⌘R, Uninstall) while we waited —
@@ -610,7 +644,7 @@ final class AppListViewModel {
               !apps[idx].isAnalysisLocked else {
             return
         }
-        apps[idx].aiState = result.1
+        update(bundleID: bundleID) { $0.aiState = result.1 }
 
         let modelIdentifier = provider.modelIdentifier
         if case .loaded(let explanation, let score, let reason, let bestUse) = result.1,
@@ -627,19 +661,41 @@ final class AppListViewModel {
             )
             // Re-sync isMyApp (save() preserves it; read back to stay in sync)
             if let record = cache.load(bundleID: bundleID) {
-                apps[idx].isMyApp = record.isMyApp
-                apps[idx].isFavorite = record.isFavorite
-                apps[idx].isSubscribed = record.hasSubscription
-                apps[idx].isPaidApp = record.isPaidApp
-                apps[idx].isAnalysisLocked = record.isAnalysisLocked
-                apps[idx].isFreeApp = record.isFreeApp
-                apps[idx].licenseTypeRaw = record.licenseType
+                update(bundleID: bundleID) {
+                    $0.isMyApp = record.isMyApp
+                    $0.isFavorite = record.isFavorite
+                    $0.isSubscribed = record.hasSubscription
+                    $0.isPaidApp = record.isPaidApp
+                    $0.isAnalysisLocked = record.isAnalysisLocked
+                    $0.isFreeApp = record.isFreeApp
+                    $0.licenseTypeRaw = record.licenseType
+                    $0.hasLicenseKey = record.hasLicenseKey
+                }
             }
         }
     }
 
     func dismissModelChangeBanner() {
         staleModelCount = 0
+    }
+
+    /// Counts displayed, unlocked analyses made with a model other than the
+    /// one now selected. Called after a scan, and whenever UserDefaults
+    /// changes: without `force` it only recounts when the provider or model
+    /// actually changed, so a dismissed banner stays dismissed until then.
+    func recomputeStaleModelCount(force: Bool = false) {
+        let modelIdentifier = AnalysisProviderKind.current().modelIdentifier
+        guard force || modelIdentifier != countedModelIdentifier else { return }
+        countedModelIdentifier = modelIdentifier
+        guard let cache = cacheService else { staleModelCount = 0; return }
+        var counted = Set<String>()
+        for app in apps where app.aiState.score != nil && !counted.contains(app.bundleID) {
+            if let record = cache.load(bundleID: app.bundleID),
+               cache.wasAnalyzedWithDifferentModel(record, currentModel: modelIdentifier) {
+                counted.insert(app.bundleID)
+            }
+        }
+        staleModelCount = counted.count
     }
 
     /// Re-runs analysis for many apps at once. Locked analyses are always skipped.
@@ -653,7 +709,8 @@ final class AppListViewModel {
         let modelIdentifier = provider.modelIdentifier
 
         var targets: [AppInfo] = []
-        for app in apps {
+        var seenBundleIDs = Set<String>()
+        for app in apps where seenBundleIDs.insert(app.bundleID).inserted {
             let record = cacheService?.load(bundleID: app.bundleID)
             let locked = app.isAnalysisLocked || record?.isAnalysisLocked == true
             if locked { continue }
@@ -697,16 +754,19 @@ final class AppListViewModel {
     /// the answer. Rechecks this one app; the link is passed in because the
     /// detail view saves it a moment before the cache can read it back.
     func recheckUpdateAfterLinkChange(bundleID: String, appURL: String?) {
-        guard let app = apps.first(where: { $0.bundleID == bundleID }), !app.version.isEmpty else { return }
         let acknowledgedVersion = cacheService?.load(bundleID: bundleID)?.acknowledgedUpdateVersion
         let checker = updateChecker
         let token = updateScanToken
-        Task {
-            let state = await checker.check(app: app, acknowledgedVersion: acknowledgedVersion, appURL: appURL)
-            // A full refresh started meanwhile owns the answer.
-            guard token == updateScanToken,
-                  let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
-            apps[idx].updateState = state
+        // Each installed copy has its own version, so each gets its own answer.
+        for app in apps where app.bundleID == bundleID && !app.version.isEmpty {
+            let appID = app.id
+            Task {
+                let state = await checker.check(app: app, acknowledgedVersion: acknowledgedVersion, appURL: appURL)
+                // A full refresh started meanwhile owns the answer.
+                guard token == updateScanToken,
+                      let idx = apps.firstIndex(where: { $0.id == appID }) else { return }
+                apps[idx].updateState = state
+            }
         }
     }
 
@@ -820,15 +880,17 @@ final class AppListViewModel {
                 for app in batch {
                     let acknowledgedVersion = acknowledged[app.bundleID] ?? nil
                     let appURL = appURLs[app.bundleID] ?? nil
-                    group.addTask { (app.bundleID, await checker.check(app: app, acknowledgedVersion: acknowledgedVersion, appURL: appURL)) }
+                    group.addTask { (app.id, await checker.check(app: app, acknowledgedVersion: acknowledgedVersion, appURL: appURL)) }
                 }
                 var collected: [(String, AppInfo.UpdateState)] = []
                 for await result in group { collected.append(result) }
                 return collected
             }
             guard token == updateScanToken else { return }
-            for (bundleID, state) in results {
-                if let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) {
+            // Keyed by the per-copy id: two copies of one app can be at
+            // different versions, and each needs its own answer.
+            for (appID, state) in results {
+                if let idx = apps.firstIndex(where: { $0.id == appID }) {
                     apps[idx].updateState = state
                 }
             }

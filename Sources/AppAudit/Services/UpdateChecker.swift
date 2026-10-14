@@ -203,8 +203,8 @@ actor UpdateChecker {
     /// redirect carries the tag in its `Location` header and is not counted
     /// against that limit, so a shelf full of GitHub links stays checkable.
     static func gitHubLatestReleaseURL(forAppURL appURL: String?) -> URL? {
-        guard let appURL,
-              let components = URLComponents(string: appURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let appURL = AppLinkInput.normalized(appURL),
+              let components = URLComponents(string: appURL),
               let host = components.host?.lowercased(),
               host == "github.com" || host == "www.github.com" else { return nil }
 

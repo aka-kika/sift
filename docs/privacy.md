@@ -40,7 +40,7 @@ notes, which is the point of the vault. Nothing is uploaded as a consequence.
 | Permission | When | What it's for |
 |---|---|---|
 | **Automation → Finder** (`NSAppleEventsUsageDescription`) | First uninstall of an app Sift cannot move itself | Mac App Store bundles are owned by root, and macOS refuses the move to any process but Finder. Sift asks Finder to do it. No password passes through Sift; any authorization prompt is macOS's own. See `docs/decisions/0003-finder-does-privileged-trash-moves.md`. |
-| **Touch ID / local authentication** | Revealing or copying a licence key | Keeps a shoulder-surfer from reading a key out of an unlocked Mac. Failing it simply cancels. |
+| **Touch ID / local authentication** | Revealing, copying, or removing a licence key | Keeps a shoulder-surfer from reading a key out of an unlocked Mac. Failing it simply cancels. |
 | **Keychain access** | Saving or reading a licence key | Standard per-app Keychain items; other apps cannot read them. |
 | **Network client** | Analysis with a cloud provider, update checks, fetching a linked app's page | See Network. |
 

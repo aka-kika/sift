@@ -89,6 +89,18 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         return models.first
     }
 
+    /// True only when prompts stay on this Mac: Ollama pointed at a local
+    /// server. Ollama can also reach ollama.com cloud models, and every other
+    /// provider is a cloud API.
+    func runsOnThisMac(userDefaults: UserDefaults = .standard) -> Bool {
+        guard self == .ollama else { return false }
+        let base = userDefaults.string(forKey: "ollamaBaseURL") ?? OllamaDefaults.baseURL
+        guard let host = URL(string: base)?.host()?.lowercased() else { return false }
+        return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
+    }
+
+    var runsOnThisMac: Bool { runsOnThisMac() }
+
     static let storageKey = "analysisProviderKind"
 
     static func current(userDefaults: UserDefaults = .standard) -> AnalysisProviderKind {

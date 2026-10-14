@@ -21,7 +21,10 @@ struct ContentView: View {
             } detail: {
                 if let selectedID = viewModel.selectedAppID,
                    let app = viewModel.apps.first(where: { $0.id == selectedID }) {
+                    // One view per installed copy: no @State (record, drafts,
+                    // license key) can carry over from the previous selection.
                     AppDetailView(app: app)
+                        .id(app.id)
                 } else {
                     emptyDetailView
                 }
@@ -43,6 +46,10 @@ struct ContentView: View {
             viewModel.migrateLegacyLicenseKeys()
             viewModel.syncLicenseFlags()
             await viewModel.runFullScan()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+            // Settings writes the provider and model straight to UserDefaults.
+            viewModel.recomputeStaleModelCount()
         }
         .onChange(of: developerMode) { _, enabled in
             viewModel.setFilterMyApps(

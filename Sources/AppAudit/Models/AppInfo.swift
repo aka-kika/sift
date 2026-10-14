@@ -51,6 +51,9 @@ struct AppInfo: Identifiable {
     var isAnalysisLocked: Bool = false
     var isFreeApp: Bool = false
     var licenseTypeRaw: String? = nil
+    /// Mirrors `AppRecord.hasLicenseKey` so a sidebar row can show its badge
+    /// without a SwiftData fetch or a Keychain read on every render.
+    var hasLicenseKey: Bool = false
 
     var licenseType: LicenseType? {
         licenseTypeRaw.flatMap(LicenseType.init(rawValue:))

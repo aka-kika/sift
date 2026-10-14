@@ -15,6 +15,23 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 <!-- SF Symbol: hammer -->
 ### Fixed
 - Two installed copies of one app (same bundle ID) no longer draw a ghost third row in the sidebar, and each copy can be selected on its own. Row identity is now the app's path; records stay keyed by bundle ID, so both copies still share one analysis and one set of notes.
+- Right-clicking another app in the sidebar and choosing Edit License or Set License Type opened the License panel with the previous app's details. Saving there could overwrite or delete the new app's key. The panel now loads the right app first, and each app gets a fresh detail view.
+- Homebrew scans, update checks and upgrades could hang forever when brew printed a lot (over 64 KB, say during its own auto-update). Sift now reads brew's output while it runs.
+- Removing a license key now asks for Touch ID, like revealing or copying one, in the License panel and in the License Vault. It removes only the key: the license type and email stay. The detail view no longer shows a key the vault already deleted.
+- Two copies of one app: uninstalling one no longer drops both from the sidebar, update checks answer each copy on its own (no copy stuck on "Checking"), and the Uninstall panel leaves the shared settings unchecked and only quits this copy.
+- "Find similar apps you have" is back under the recommendation; its button had disappeared with the Cross-App cube in 1.7.0.
+- Mac App Store apps can be marked Paid again (right-click the License cube). The License Vault says "Mac App Store · Paid" only for apps that really came from the Store, and the CSV export's Paid column now says yes for any saved key, license type or Paid mark.
+- Switching the AI provider or model in Settings now shows the "model changed" banner right away, not only after a rescan.
+- Links typed without https (raycast.com, github.com/org/repo) are saved as https links, so the Link cube opens them, the analysis reads them and GitHub update checks find them. Links saved that way before are read correctly too.
+- A model answer Sift could not read (wrong format, or the whole answer spent on thinking) is now shown as an error you can retry, not saved as the app's description. Such answers saved by older versions are analyzed again on the next scan.
+- Clearing or removing an app's link now re-analyzes the app, so the description no longer rests on a link you took away.
+- The pointing-hand cursor no longer stays stuck after closing the License Vault.
+- The loading text says "Using local AI" only when Ollama runs on this Mac; with a cloud provider it names the provider the app's details go to.
+- Sidebar rows no longer read the database or the Keychain each time they draw; the license badge uses a flag kept in memory, and the row's Copy Key reads the key only after Touch ID.
+
+<!-- SF Symbol: globe -->
+### Site
+- Removed the expired launch countdown (it showed 00d 00h 00m 00s) and corrected the FAQ: Sift does uninstall apps, but only when you ask, and everything goes to the Trash.
 
 Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 

@@ -49,11 +49,7 @@ enum VaultLink {
     /// normal. Without a scheme `URL(string:)` yields a relative URL that no
     /// browser will open, so assume https.
     private static func normalized(_ raw: String?) -> URL? {
-        guard let raw else { return nil }
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        if let url = URL(string: trimmed), url.scheme != nil, url.host() != nil { return url }
-        return URL(string: "https://\(trimmed)").flatMap { $0.host() == nil ? nil : $0 }
+        AppLinkInput.normalized(raw).flatMap(URL.init(string:))
     }
 
     private static func searchURL(for appName: String) -> URL {
@@ -61,5 +57,28 @@ enum VaultLink {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? appName
         return URL(string: "https://www.google.com/search?q=\(encoded)")
             ?? URL(string: "https://www.google.com")!
+    }
+}
+
+/// One rule for every app link Sift stores or follows. People type bare hosts
+/// ("raycast.com", "github.com/org/repo"); `URL(string:)` accepts those as
+/// relative URLs with no host, which then fail to open, fetch, or match GitHub.
+/// So a missing scheme becomes https, and only http(s) links with a host count.
+enum AppLinkInput {
+    /// The link as it should be saved and used, or nil when it is not a web link.
+    static func normalized(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains(where: \.isWhitespace) else { return nil }
+        let candidate = trimmed.contains("://") ? trimmed : "https://\(trimmed)"
+        guard let url = URL(string: candidate),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = url.host(), !host.isEmpty else { return nil }
+        return candidate
+    }
+
+    /// An empty field is valid too: it clears the link.
+    static func isAcceptable(_ raw: String) -> Bool {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || normalized(raw) != nil
     }
 }

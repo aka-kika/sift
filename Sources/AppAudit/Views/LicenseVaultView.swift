@@ -135,7 +135,7 @@ struct LicenseVaultView: View {
             } else {
                 let type = record.licenseType.flatMap(LicenseType.init(rawValue:))
                 let tint = type.map { MoneyCubeState.licensed($0).tint } ?? .green
-                Text(type?.displayName ?? "Mac App Store · Paid")
+                Text(type?.displayName ?? paidLabel(for: record))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(tint)
                     .padding(.horizontal, 6)
@@ -173,9 +173,14 @@ struct LicenseVaultView: View {
         }
         .buttonStyle(.plain)
         .help(VaultLink.help(for: destination, appName: record.appName))
-        .onHover { inside in
-            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
+        .pointingHandCursor()
+    }
+
+    /// A keyless Paid mark can be on any app, so the Store is named only
+    /// when the installed copy really came from it.
+    private func paidLabel(for record: AppRecord) -> String {
+        let fromStore = viewModel.apps.contains { $0.bundleID == record.bundleID && $0.isAppStoreInstall }
+        return fromStore ? "Mac App Store · Paid" : "Paid"
     }
 
     private func copyKey(for bundleID: String) {
@@ -193,11 +198,17 @@ struct LicenseVaultView: View {
         }
     }
 
+    /// Deleting a key asks for Touch ID, the same as copying one.
     private func deleteKey(for record: AppRecord) {
-        licenseKeyStore.delete(bundleID: record.bundleID)
-        record.hasLicenseKey = false
-        record.licenseKey = nil
-        try? modelContext.save()
+        let bundleID = record.bundleID
+        Task { @MainActor in
+            guard await LicenseKeyGuard.authenticate(reason: "remove a license key from the vault") else { return }
+            licenseKeyStore.delete(bundleID: bundleID)
+            record.hasLicenseKey = false
+            record.licenseKey = nil
+            try? modelContext.save()
+            viewModel.setHasLicenseKey(bundleID: bundleID, value: false)
+        }
     }
 
     /// Clears both traces of a keyless purchase — the Paid mark and the
@@ -209,4 +220,39 @@ struct LicenseVaultView: View {
         viewModel.setLicenseType(bundleID: record.bundleID, rawValue: nil)
         try? modelContext.save()
     }
+}
+
+/// The pointing hand over a clickable name. `NSCursor.push()`/`pop()` in
+/// `onHover` leaks a pushed cursor when the view goes away under the pointer
+/// (the sheet closes, the row is deleted), so the cursor stuck app-wide.
+/// macOS 15 has `pointerStyle(.link)`; on 14 the push is undone on disappear.
+private struct PointingHandCursor: ViewModifier {
+    @State private var pushed = false
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15.0, *) {
+            content.pointerStyle(.link)
+        } else {
+            content
+                .onHover { inside in
+                    if inside, !pushed {
+                        NSCursor.pointingHand.push()
+                        pushed = true
+                    } else if !inside, pushed {
+                        NSCursor.pop()
+                        pushed = false
+                    }
+                }
+                .onDisappear {
+                    if pushed {
+                        NSCursor.pop()
+                        pushed = false
+                    }
+                }
+        }
+    }
+}
+
+extension View {
+    func pointingHandCursor() -> some View { modifier(PointingHandCursor()) }
 }

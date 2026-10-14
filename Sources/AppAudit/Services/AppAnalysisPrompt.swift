@@ -89,7 +89,7 @@ enum AppAnalysisPrompt {
             return ""
         }
 
-        guard let url = URL(string: rawURL),
+        guard let url = AppLinkInput.normalized(rawURL).flatMap(URL.init(string:)),
               let host = url.host(percentEncoded: false) else {
             return "\nReference URL: \(rawURL)\nReference URL context: Provided but not parseable. Use cautiously; do not invent page contents."
         }

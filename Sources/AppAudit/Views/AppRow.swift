@@ -148,13 +148,14 @@ struct AppRow: View {
             // detail view's License popover. App Store installs get it too:
             // the seal says where it came from, not what kind of purchase it
             // was, and that is the part worth recording.
-            if let licenseKey = existingLicenseKey {
+            if app.hasLicenseKey {
                 Button {
                     Task { @MainActor in
-                        if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(licenseKey, forType: .string)
-                        }
+                        // The secret is read only after Touch ID succeeds.
+                        guard await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)"),
+                              let licenseKey = resolveLicenseKey().value, !licenseKey.isEmpty else { return }
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(licenseKey, forType: .string)
                     }
                 } label: {
                     Label("Copy Key", systemImage: "doc.on.doc")
@@ -243,9 +244,11 @@ struct AppRow: View {
             }
         }
         .sheet(isPresented: $uninstallSheetPresented) {
-            UninstallSheet(app: app, otherBundleIDs: viewModel.apps.map(\.bundleID).filter { $0 != app.bundleID }) { removedBundle in
+            UninstallSheet(app: app,
+                           otherBundleIDs: viewModel.apps.map(\.bundleID).filter { $0 != app.bundleID },
+                           hasOtherCopy: viewModel.apps.contains { $0.bundleID == app.bundleID && $0.id != app.id }) { removedBundle in
                 if removedBundle {
-                    viewModel.removeApp(bundleID: app.bundleID)
+                    viewModel.removeApp(id: app.id)
                 }
                 uninstallSheetPresented = false
             }
@@ -297,18 +300,14 @@ struct AppRow: View {
         toggleFlag(\.isAnalysisLocked) { viewModel.setAnalysisLocked(bundleID: $0, value: $1) }
     }
 
-    private var existingLicenseKey: String? {
-        resolveLicenseKey().value
-    }
-
     /// The row's license badge mirrors the detail view's License cube — same
     /// derivation, same symbol, same tint, so a state reads identically in
     /// both places. Renewal proximity is a detail-view concern only.
     private var licenseBadgeState: MoneyCubeState {
         MoneyCubeState.derive(
             isAppStoreInstall: app.isAppStoreInstall,
-            // The synced flag, not a Keychain read — this runs on every row render.
-            hasLicenseKey: fetchRecord(for: app.bundleID)?.hasLicenseKey == true,
+            // The mirrored flag, not a fetch or a Keychain read — this runs on every row render.
+            hasLicenseKey: app.hasLicenseKey,
             isPaidApp: app.isPaidApp,
             hasSubscription: app.isSubscribed,
             renewalNear: false,

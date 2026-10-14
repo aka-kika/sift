@@ -59,7 +59,7 @@ struct AppDetailView: View {
         }
         .softTopScrollEdge()
         .navigationTitle(app.name)
-        .task(id: app.bundleID) {
+        .task(id: app.id) {
             loadRecord()
             loadLicenseKey()
             similarResults = nil
@@ -68,6 +68,13 @@ struct AppDetailView: View {
         }
         .onChange(of: viewModel.licensePopoverRequestID) { _, _ in
             consumeLicensePopoverRequest()
+        }
+        .onChange(of: viewModel.showingVault) { _, showing in
+            // The vault can delete this app's key or purchase behind our back.
+            if !showing {
+                loadRecord()
+                loadLicenseKey()
+            }
         }
         .sheet(isPresented: $editingDescription) {
             EditDescriptionSheet(appName: app.name, draft: $draftDescription) { saved in
@@ -82,19 +89,18 @@ struct AppDetailView: View {
         .sheet(isPresented: $editingURL) {
             EditURLSheet(appName: app.name, draft: $draftURL) { saved in
                 if saved {
-                    let trimmed = draftURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                    // The sheet only enables Save for an empty or valid link, so
+                    // nil here means the field was cleared.
+                    let newURL = AppLinkInput.normalized(draftURL)
                     let ensuredRecord = ensureRecord()
                     let previousURL = ensuredRecord.appURL
-                    ensuredRecord.appURL = trimmed.isEmpty ? nil : trimmed
-                    if !trimmed.isEmpty {
+                    ensuredRecord.appURL = newURL
+                    if newURL != nil {
                         ensuredRecord.suggestedAppURL = nil
                     }
                     saveRecord()
-                    if !trimmed.isEmpty, trimmed != previousURL {
-                        viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: trimmed)
-                    }
-                    if trimmed != (previousURL ?? "") {
-                        viewModel.recheckUpdateAfterLinkChange(bundleID: app.bundleID, appURL: trimmed.isEmpty ? nil : trimmed)
+                    if newURL != previousURL {
+                        linkChanged(from: previousURL, to: newURL)
                     }
                 }
                 editingURL = false
@@ -497,7 +503,9 @@ struct AppDetailView: View {
         case .loading:
             VStack(spacing: 8) {
                 ProgressView("Analyzing with \(AnalysisProviderKind.current().displayName)…")
-                Text("Using local AI. This may take a moment.")
+                Text(AnalysisProviderKind.current().runsOnThisMac
+                     ? "Using local AI. This may take a moment."
+                     : "Sending this app's details to \(AnalysisProviderKind.current().displayName). This may take a moment.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -655,8 +663,14 @@ struct AppDetailView: View {
                         ForEach(results) { similarRow($0) }
                     }
                 }
+            } else {
+                Button { runFindSimilar() } label: {
+                    Label("Find similar apps you have", systemImage: "square.on.square")
+                }
+                .buttonStyle(.borderless)
+                .font(.callout)
+                .help("Ask the model which of your other installed apps do the same job")
             }
-            // Idle: nothing here — the Cross-App cube up top is the trigger.
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -979,6 +993,12 @@ struct AppDetailView: View {
         if app.isAppStoreInstall {
             Label("Mac App Store — tied to your Apple ID", systemImage: "checkmark.seal.fill")
             Button {
+                togglePaid()
+            } label: {
+                Label(record?.isPaidApp == true ? "Unmark Paid" : "Mark as Paid",
+                      systemImage: record?.isPaidApp == true ? "checkmark.seal.fill" : "checkmark.seal")
+            }
+            Button {
                 openMoneyPopover()
             } label: {
                 Label(record?.licenseType == nil ? "Set License Type…" : "Edit License…",
@@ -1049,6 +1069,11 @@ struct AppDetailView: View {
     private func consumeLicensePopoverRequest() {
         guard viewModel.licensePopoverRequestID == app.bundleID else { return }
         viewModel.licensePopoverRequestID = nil
+        // The request can arrive in the same update that switched apps, before
+        // .task(id:) has reloaded. Drafts built from the previous app's record
+        // would save (or delete) its key under this app's bundle ID.
+        loadRecord()
+        loadLicenseKey()
         openMoneyPopover()
     }
 
@@ -1061,15 +1086,21 @@ struct AppDetailView: View {
         }
     }
 
+    /// Deleting a key is at least as sensitive as reading one, so it asks for
+    /// Touch ID too. Only the key goes: the license type and email describe
+    /// the purchase and stay, the same as saving with an emptied key field.
     private func removeLicenseKey() {
-        licenseKeyStore.delete(bundleID: app.bundleID)
-        currentLicenseKey = nil
-        record?.licenseKey = nil
-        record?.hasLicenseKey = false
-        record?.licenseEmail = nil
-        record?.licenseType = nil
-        viewModel.setLicenseType(bundleID: app.bundleID, rawValue: nil)
-        saveRecord()
+        let bundleID = app.bundleID
+        Task { @MainActor in
+            guard await LicenseKeyGuard.authenticate(reason: "remove the license key for \(app.name)") else { return }
+            licenseKeyStore.delete(bundleID: bundleID)
+            let target = CacheService(context: modelContext).load(bundleID: bundleID)
+            target?.licenseKey = nil
+            target?.hasLicenseKey = false
+            saveRecord()
+            viewModel.setHasLicenseKey(bundleID: bundleID, value: false)
+            currentLicenseKey = nil
+        }
     }
 
     /// A license is worth keeping even without a key — an App Store purchase
@@ -1087,6 +1118,7 @@ struct AppDetailView: View {
         currentLicenseKey = trimmed.isEmpty ? nil : trimmed
         ensuredRecord.licenseKey = nil
         ensuredRecord.hasLicenseKey = !trimmed.isEmpty
+        viewModel.setHasLicenseKey(bundleID: app.bundleID, value: !trimmed.isEmpty)
         let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         ensuredRecord.licenseEmail = email.isEmpty ? nil : email
         ensuredRecord.licenseType = draftLicenseType?.rawValue
@@ -1151,7 +1183,7 @@ struct AppDetailView: View {
         let urlString = record?.appURL
         let hasLink = urlString?.isEmpty == false
         return UtilityCard(tint: .blue, active: hasLink, badgeDot: !hasLink && hasSuggestedLink, action: {
-            if let urlString, !urlString.isEmpty, let url = URL(string: urlString) {
+            if let url = AppLinkInput.normalized(urlString).flatMap(URL.init(string:)) {
                 NSWorkspace.shared.open(url)
             } else {
                 draftURL = record?.appURL ?? record?.suggestedAppURL ?? ""
@@ -1170,14 +1202,25 @@ struct AppDetailView: View {
             }
             if record?.appURL != nil {
                 Button(role: .destructive) {
-                    record?.appURL = nil
+                    let ensuredRecord = ensureRecord()
+                    let previousURL = ensuredRecord.appURL
+                    ensuredRecord.appURL = nil
                     saveRecord()
-                    viewModel.recheckUpdateAfterLinkChange(bundleID: app.bundleID, appURL: nil)
+                    linkChanged(from: previousURL, to: nil)
                 } label: {
                     Label("Remove Link", systemImage: "xmark.circle")
                 }
             }
         }
+    }
+
+    /// A link is evidence for the analysis and, for GitHub, an update source,
+    /// so adding, changing, or removing one refreshes both.
+    private func linkChanged(from previousURL: String?, to newURL: String?) {
+        if newURL != nil || !(previousURL ?? "").isEmpty {
+            viewModel.reanalyzeAfterLinkChange(bundleID: app.bundleID, appURL: newURL)
+        }
+        viewModel.recheckUpdateAfterLinkChange(bundleID: app.bundleID, appURL: newURL)
     }
 
     private var linkHelp: String {
@@ -1250,7 +1293,9 @@ struct AppDetailView: View {
     }
 
     private func ensureRecord() -> AppRecord {
-        if let record {
+        // `record` can still hold the previously selected app's record for a
+        // moment after the selection changes; never write through it.
+        if let record, record.bundleID == app.bundleID {
             return record
         }
         // Re-fetch rather than trusting our own stale nil — an analysis may have
@@ -1444,8 +1489,7 @@ struct EditURLSheet: View {
     @FocusState private var focused: Bool
 
     private var isValidURL: Bool {
-        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty || URL(string: trimmed) != nil
+        AppLinkInput.isAcceptable(draft)
     }
 
     var body: some View {
@@ -1461,7 +1505,7 @@ struct EditURLSheet: View {
                 .focused($focused)
 
             if !isValidURL {
-                Text("Not a valid URL")
+                Text("Enter a web link, like github.com/author/repo")
                     .font(.caption)
                     .foregroundStyle(.red)
             }
