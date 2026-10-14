@@ -31,7 +31,11 @@ struct MoneyPopover: View {
     @Binding var draftSubEmail: String
 
     let onToggleFree: () -> Void
-    let onSaveLicense: () -> Void
+    /// `keyEditable` is false while a saved key is still locked: Save then
+    /// leaves the key alone and stores only the email and type.
+    let onSaveLicense: (_ keyEditable: Bool) -> Void
+    /// Asks for Touch ID, then reads the saved key. nil when cancelled.
+    let onRevealKey: () async -> String?
     let onCopyKey: () -> Void
     let onRemoveKey: () -> Void
     let onSaveSubscription: () -> Void
@@ -44,6 +48,11 @@ struct MoneyPopover: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var revealed = false
+    /// A saved key is never read until this panel unlocks it (Reveal after
+    /// Touch ID, or Replace, which starts from an empty field).
+    @State private var keyUnlocked = false
+
+    private var keyEditable: Bool { !hasKey || keyUnlocked }
     @State private var tab: Tab = .key
 
     private static let currencies = ["USD", "EUR", "GBP", "ILS", "CAD", "AUD", "JPY", "CHF"]
@@ -69,7 +78,7 @@ struct MoneyPopover: View {
     /// save on its own, and clearing the type back to Not set is too.
     private var licenseSaveDisabled: Bool {
         !LicenseDraftRules.hasSomethingToSave(
-            key: draftLicenseKey,
+            key: keyEditable ? draftLicenseKey : "",
             email: draftLicenseEmail,
             type: draftLicenseType,
             hasKey: hasKey,
@@ -177,35 +186,10 @@ struct MoneyPopover: View {
 
     private var licenseSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Group {
-                    if revealed {
-                        TextField("License key", text: $draftLicenseKey)
-                    } else {
-                        SecureField("License key", text: $draftLicenseKey)
-                    }
-                }
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-
-                Button {
-                    if revealed {
-                        revealed = false
-                    } else {
-                        Task { @MainActor in
-                            if await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(appName)") {
-                                revealed = true
-                            }
-                        }
-                    }
-                } label: {
-                    Image(systemName: revealed ? "eye.slash" : "eye")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help(revealed ? "Hide license key" : "Reveal license key (Touch ID)")
+            if keyEditable {
+                keyField
+            } else {
+                lockedKeyRow
             }
 
             quietField("Registered email (optional)", text: $draftLicenseEmail)
@@ -220,14 +204,6 @@ struct MoneyPopover: View {
 
             HStack {
                 if hasKey {
-                    Button {
-                        onCopyKey()
-                    } label: {
-                        Image(systemName: "doc.on.doc")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .help("Copy key (Touch ID)")
                     Button(role: .destructive) {
                         onRemoveKey()
                         dismiss()
@@ -236,11 +212,11 @@ struct MoneyPopover: View {
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
-                    .help("Remove key")
+                    .help("Remove key (Touch ID)")
                 }
                 Spacer()
                 Button("Save") {
-                    onSaveLicense()
+                    onSaveLicense(keyEditable)
                     dismiss()
                 }
                     .controlSize(.small)
@@ -250,6 +226,68 @@ struct MoneyPopover: View {
         }
         .disabled(licenseDisabled)
         .opacity(licenseDisabled ? 0.5 : 1)
+    }
+
+    /// A saved key, still locked: nothing has been read from the Keychain.
+    private var lockedKeyRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Key saved", systemImage: "lock.fill")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 14) {
+                Button("Reveal") {
+                    Task { @MainActor in
+                        guard let key = await onRevealKey() else { return }
+                        draftLicenseKey = key
+                        keyUnlocked = true
+                        revealed = true
+                    }
+                }
+                .help("Show the key (Touch ID)")
+                Button("Copy") { onCopyKey() }
+                    .help("Copy the key (Touch ID)")
+                Button("Replace") {
+                    draftLicenseKey = ""
+                    keyUnlocked = true
+                    revealed = false
+                }
+                .help("Type a new key in place of the saved one")
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    /// The key as text: empty for a new key, or the saved key once revealed.
+    private var keyField: some View {
+        HStack(spacing: 6) {
+            Group {
+                if revealed {
+                    TextField("License key", text: $draftLicenseKey)
+                } else {
+                    SecureField("License key", text: $draftLicenseKey)
+                }
+            }
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+            // The field only ever holds what you typed or a key you already
+            // unlocked with Touch ID, so showing it needs no second prompt.
+            Button {
+                revealed.toggle()
+            } label: {
+                Image(systemName: revealed ? "eye.slash" : "eye")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help(revealed ? "Hide license key" : "Show license key")
+        }
     }
 
     // MARK: - Subscription

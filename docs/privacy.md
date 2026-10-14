@@ -41,7 +41,7 @@ notes, which is the point of the vault. Nothing is uploaded as a consequence.
 |---|---|---|
 | **Automation → Finder** (`NSAppleEventsUsageDescription`) | First uninstall of an app Sift cannot move itself | Mac App Store bundles are owned by root, and macOS refuses the move to any process but Finder. Sift asks Finder to do it. No password passes through Sift; any authorization prompt is macOS's own. See `docs/decisions/0003-finder-does-privileged-trash-moves.md`. |
 | **Touch ID / local authentication** | Revealing, copying, or removing a licence key | Keeps a shoulder-surfer from reading a key out of an unlocked Mac. Failing it simply cancels. |
-| **Keychain access** | Saving or reading a licence key | Standard per-app Keychain items; other apps cannot read them. |
+| **Keychain access** | Saving a licence key, or reading one after Touch ID | Standard per-app Keychain items; other apps cannot read them. Sift reads a key only after Touch ID succeeds: the License panel shows "Key saved" until you reveal or copy it, and the sidebar knows only whether a key exists. |
 | **Network client** | Analysis with a cloud provider, update checks, fetching a linked app's page | See Network. |
 
 Sift is **not sandboxed**, because auditing installed apps means reading
@@ -76,7 +76,7 @@ configure yourself; Apple and Homebrew are contacted only for update metadata.
 <!-- SF Symbol: slider.horizontal.3 -->
 - **Revoke Automation:** System Settings → Privacy & Security → Automation → Sift. Uninstall then reports what it cannot move rather than handing it to Finder.
 - **Stay fully offline:** keep the provider on Ollama; that is the default.
-- **Remove a licence key:** the trash button in the License popover or the vault row deletes the Keychain item.
+- **Remove a licence key:** the trash button in the License popover or the vault row deletes the Keychain item, after Touch ID.
 - **Remove a purchase record:** the vault row's trash clears the Paid mark and the licence type.
 - **Delete everything:** quit Sift, then remove its Application Support folder and its Keychain items. Uninstalling Sift alone leaves both behind on purpose, so a reinstall keeps your vault.
 - **Export:** File → Export to CSV writes the audit wherever you choose.

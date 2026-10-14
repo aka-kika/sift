@@ -20,7 +20,6 @@ struct AppDetailView: View {
     @State private var draftLicenseKey = ""
     @State private var draftLicenseEmail = ""
     @State private var draftLicenseType: LicenseType? = nil
-    @State private var currentLicenseKey: String? = nil
     @State private var notesSheetPresented = false
     @State private var notesSessionBundleID: String? = nil
     @State private var notesSessionInitialNotes: String? = nil
@@ -61,7 +60,6 @@ struct AppDetailView: View {
         .navigationTitle(app.name)
         .task(id: app.id) {
             loadRecord()
-            loadLicenseKey()
             similarResults = nil
             findingSimilar = false
             consumeLicensePopoverRequest()
@@ -73,7 +71,6 @@ struct AppDetailView: View {
             // The vault can delete this app's key or purchase behind our back.
             if !showing {
                 loadRecord()
-                loadLicenseKey()
             }
         }
         .sheet(isPresented: $editingDescription) {
@@ -872,7 +869,7 @@ struct AppDetailView: View {
     private var moneyState: MoneyCubeState {
         MoneyCubeState.derive(
             isAppStoreInstall: app.isAppStoreInstall,
-            hasLicenseKey: currentLicenseKey?.isEmpty == false,
+            hasLicenseKey: hasSavedKey,
             isPaidApp: record?.isPaidApp == true,
             hasSubscription: record?.hasSubscription == true,
             renewalNear: subscriptionRenewalIsNear,
@@ -900,7 +897,7 @@ struct AppDetailView: View {
                 isMyApp: app.isMyApp,
                 isPaid: record?.isPaidApp == true,
                 isFree: record?.isFreeApp == true,
-                hasKey: currentLicenseKey?.isEmpty == false,
+                hasKey: hasSavedKey,
                 hasSubscription: record?.hasSubscription == true,
                 currentLicenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:)),
                 startOnSubscription: moneyPopoverStartsOnSubscription,
@@ -913,8 +910,9 @@ struct AppDetailView: View {
                 draftSubRenewal: $draftSubRenewal,
                 draftSubEmail: $draftSubEmail,
                 onToggleFree: { toggleFree() },
-                onSaveLicense: { saveLicenseFromDrafts() },
-                onCopyKey: { if let key = currentLicenseKey { copyLicenseKey(key) } },
+                onSaveLicense: { keyEditable in saveLicenseFromDrafts(keyEditable: keyEditable) },
+                onRevealKey: { await revealLicenseKey() },
+                onCopyKey: { copyLicenseKey() },
                 onRemoveKey: { removeLicenseKey() },
                 onSaveSubscription: { saveSubscriptionFromDrafts() },
                 onRemoveSubscription: { clearSubscription() }
@@ -939,7 +937,9 @@ struct AppDetailView: View {
 
     /// Populate every draft from the record so the popover opens current.
     private func prepareMoneyDrafts() {
-        draftLicenseKey = currentLicenseKey ?? ""
+        // Never prefilled: a saved key stays in the Keychain until the panel
+        // unlocks it with Touch ID.
+        draftLicenseKey = ""
         draftLicenseEmail = record?.licenseEmail
             ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
         draftLicenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
@@ -963,7 +963,7 @@ struct AppDetailView: View {
                 ? "Mac App Store — paid, tied to your Apple ID"
                 : "Mac App Store — tied to your Apple ID"
         }
-        if let key = currentLicenseKey, !key.isEmpty {
+        if hasSavedKey {
             var parts = ["License key saved"]
             if let type {
                 parts.append(type.displayName)
@@ -1004,9 +1004,9 @@ struct AppDetailView: View {
                 Label(record?.licenseType == nil ? "Set License Type…" : "Edit License…",
                       systemImage: "pencil")
             }
-        } else if let key = currentLicenseKey, !key.isEmpty {
+        } else if hasSavedKey {
             Button {
-                copyLicenseKey(key)
+                copyLicenseKey()
             } label: {
                 Label("Copy Key (Touch ID)", systemImage: "doc.on.doc")
             }
@@ -1073,17 +1073,40 @@ struct AppDetailView: View {
         // .task(id:) has reloaded. Drafts built from the previous app's record
         // would save (or delete) its key under this app's bundle ID.
         loadRecord()
-        loadLicenseKey()
         openMoneyPopover()
     }
 
-    private func copyLicenseKey(_ key: String) {
+    /// Whether a key is saved, from the record's non-secret flag. The key
+    /// itself is read only by `readLicenseKey`, after Touch ID.
+    private var hasSavedKey: Bool {
+        record?.hasLicenseKey == true || !(record?.licenseKey ?? "").isEmpty
+    }
+
+    private func copyLicenseKey() {
         Task { @MainActor in
-            if await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(key, forType: .string)
-            }
+            guard await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)"),
+                  let key = readLicenseKey() else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(key, forType: .string)
         }
+    }
+
+    private func revealLicenseKey() async -> String? {
+        guard await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)") else { return nil }
+        return readLicenseKey()
+    }
+
+    /// Reads the key from the Keychain. Call only after Touch ID succeeded.
+    /// A key still in the old plaintext field moves into the Keychain here.
+    private func readLicenseKey() -> String? {
+        let resolution = licenseKeyStore.resolveKey(bundleID: app.bundleID, legacyValue: record?.licenseKey)
+        if resolution.didMigrateLegacyValue, let record {
+            record.licenseKey = nil
+            record.hasLicenseKey = true
+            saveRecord()
+        }
+        guard let key = resolution.value, !key.isEmpty else { return nil }
+        return key
     }
 
     /// Deleting a key is at least as sensitive as reading one, so it asks for
@@ -1099,7 +1122,6 @@ struct AppDetailView: View {
             target?.hasLicenseKey = false
             saveRecord()
             viewModel.setHasLicenseKey(bundleID: bundleID, value: false)
-            currentLicenseKey = nil
         }
     }
 
@@ -1107,23 +1129,23 @@ struct AppDetailView: View {
     /// carries no key at all, but "Lifetime, bought with this Apple ID" is
     /// exactly what the vault is for. So the type and email persist on their
     /// own, and only an emptied key field clears the keychain entry.
-    private func saveLicenseFromDrafts() {
-        let trimmed = draftLicenseKey.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func saveLicenseFromDrafts(keyEditable: Bool) {
         let ensuredRecord = ensureRecord()
-        if trimmed.isEmpty {
-            licenseKeyStore.delete(bundleID: app.bundleID)
-        } else {
-            licenseKeyStore.save(trimmed, bundleID: app.bundleID)
+        let action = LicenseDraftRules.keyAction(draft: draftLicenseKey,
+                                                 hasSavedKey: hasSavedKey,
+                                                 keyEditable: keyEditable)
+        if case .save(let key) = action {
+            licenseKeyStore.save(key, bundleID: app.bundleID)
+            ensuredRecord.licenseKey = nil
+            ensuredRecord.hasLicenseKey = true
+            viewModel.setHasLicenseKey(bundleID: app.bundleID, value: true)
         }
-        currentLicenseKey = trimmed.isEmpty ? nil : trimmed
-        ensuredRecord.licenseKey = nil
-        ensuredRecord.hasLicenseKey = !trimmed.isEmpty
-        viewModel.setHasLicenseKey(bundleID: app.bundleID, value: !trimmed.isEmpty)
+        draftLicenseKey = ""
         let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         ensuredRecord.licenseEmail = email.isEmpty ? nil : email
         ensuredRecord.licenseType = draftLicenseType?.rawValue
         viewModel.setLicenseType(bundleID: app.bundleID, rawValue: ensuredRecord.licenseType)
-        if (!trimmed.isEmpty || draftLicenseType != nil), ensuredRecord.iconPNG == nil {
+        if (ensuredRecord.hasLicenseKey || draftLicenseType != nil), ensuredRecord.iconPNG == nil {
             ensuredRecord.iconPNG = app.icon?.pngData()
         }
         saveRecord()
@@ -1249,15 +1271,6 @@ struct AppDetailView: View {
         let id = app.bundleID
         let descriptor = FetchDescriptor<AppRecord>(predicate: #Predicate { $0.bundleID == id })
         record = try? modelContext.fetch(descriptor).first
-    }
-
-    private func loadLicenseKey() {
-        let resolution = licenseKeyStore.resolveKey(bundleID: app.bundleID, legacyValue: record?.licenseKey)
-        currentLicenseKey = resolution.value
-        if resolution.didMigrateLegacyValue, let record {
-            record.licenseKey = nil
-            saveRecord()
-        }
     }
 
     private func saveRecord() {

@@ -136,3 +136,24 @@ struct StaleModelCountTests {
         #expect(viewModel.staleModelCount == 0)
     }
 }
+
+@Suite("Locked license key")
+struct LockedLicenseKeyTests {
+    @Test("A locked saved key is kept, whatever the field holds")
+    func lockedKeeps() {
+        #expect(LicenseDraftRules.keyAction(draft: "", hasSavedKey: true, keyEditable: false) == .keep)
+        #expect(LicenseDraftRules.keyAction(draft: "STRAY", hasSavedKey: true, keyEditable: false) == .keep)
+    }
+
+    @Test("An unlocked field saves what it holds, and an empty field never deletes")
+    func unlockedSaves() {
+        #expect(LicenseDraftRules.keyAction(draft: " NEW-KEY ", hasSavedKey: true, keyEditable: true) == .save("NEW-KEY"))
+        #expect(LicenseDraftRules.keyAction(draft: "  ", hasSavedKey: true, keyEditable: true) == .keep)
+    }
+
+    @Test("Without a saved key the field is open")
+    func noSavedKey() {
+        #expect(LicenseDraftRules.keyAction(draft: "ABC-123", hasSavedKey: false, keyEditable: false) == .save("ABC-123"))
+        #expect(LicenseDraftRules.keyAction(draft: "", hasSavedKey: false, keyEditable: true) == .keep)
+    }
+}

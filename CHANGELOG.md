@@ -14,6 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 
+## [1.12.3] — 2026-10-14
+
+<!-- SF Symbol: lock -->
+### Changed
+- The License panel no longer reads a saved key just because you opened an app. It shows "Key saved" with Reveal, Copy and Replace; Reveal and Copy ask for Touch ID first, and only then is the key read from the Keychain. Replace starts from an empty field. Saving the email or license type leaves the key alone, and an empty key field never deletes a key (the trash button does, behind Touch ID).
+
 ## [1.12.2] — 2026-10-14
 
 <!-- SF Symbol: hammer -->

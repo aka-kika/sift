@@ -40,6 +40,22 @@ enum LicenseDraftRules {
         if !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
         return false
     }
+
+    enum KeyAction: Equatable {
+        /// Leave the saved key (or the absence of one) as it is.
+        case keep
+        case save(String)
+    }
+
+    /// What Save does to the Keychain. A saved key stays locked until the
+    /// panel unlocks it (Reveal or Replace), and a locked field says nothing
+    /// about the key, so it is kept. An empty field never deletes a key:
+    /// removing one is the trash button, behind Touch ID.
+    static func keyAction(draft: String, hasSavedKey: Bool, keyEditable: Bool) -> KeyAction {
+        guard keyEditable || !hasSavedKey else { return .keep }
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? .keep : .save(trimmed)
+    }
 }
 
 /// Free and Paid are mutually exclusive marks; applying one clears the other.
