@@ -18,7 +18,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 
 <!-- SF Symbol: lock -->
 ### Changed
-- The License panel no longer reads a saved key just because you opened an app. It shows "Key saved" with Reveal, Copy and Replace; Reveal and Copy ask for Touch ID first, and only then is the key read from the Keychain. Replace starts from an empty field. Saving the email or license type leaves the key alone, and an empty key field never deletes a key (the trash button does, behind Touch ID).
+- The License panel no longer reads a saved key just because you opened an app. It shows "Key saved" with Reveal, Copy and Replace; Reveal and Copy ask for Touch ID first, and only then is the key read from the Keychain. Replace starts from an empty field. Saving the email or license type leaves the key alone, and an empty key field never deletes a key (the trash button does, behind Touch ID). After Reveal the panel reopens by itself, since the Touch ID prompt closes it, and closing the panel forgets the revealed key.
 
 ## [1.12.2] — 2026-10-14
 
