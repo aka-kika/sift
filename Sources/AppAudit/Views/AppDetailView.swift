@@ -18,6 +18,8 @@ struct AppDetailView: View {
     @State private var moneyPopoverPresented = false
     @State private var moneyPopoverStartsOnSubscription = false
     @State private var draftLicenseKey = ""
+    @State private var licenseKeyUnlocked = false
+    @State private var licenseKeyRevealed = false
     @State private var draftLicenseEmail = ""
     @State private var draftLicenseType: LicenseType? = nil
     @State private var notesSheetPresented = false
@@ -902,6 +904,8 @@ struct AppDetailView: View {
                 currentLicenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:)),
                 startOnSubscription: moneyPopoverStartsOnSubscription,
                 draftLicenseKey: $draftLicenseKey,
+                keyUnlocked: $licenseKeyUnlocked,
+                revealed: $licenseKeyRevealed,
                 draftLicenseEmail: $draftLicenseEmail,
                 draftLicenseType: $draftLicenseType,
                 draftSubPrice: $draftSubPrice,
@@ -911,7 +915,7 @@ struct AppDetailView: View {
                 draftSubEmail: $draftSubEmail,
                 onToggleFree: { toggleFree() },
                 onSaveLicense: { keyEditable in saveLicenseFromDrafts(keyEditable: keyEditable) },
-                onRevealKey: { await revealLicenseKey() },
+                onRevealKey: { revealLicenseKey() },
                 onCopyKey: { copyLicenseKey() },
                 onRemoveKey: { removeLicenseKey() },
                 onSaveSubscription: { saveSubscriptionFromDrafts() },
@@ -940,6 +944,8 @@ struct AppDetailView: View {
         // Never prefilled: a saved key stays in the Keychain until the panel
         // unlocks it with Touch ID.
         draftLicenseKey = ""
+        licenseKeyUnlocked = false
+        licenseKeyRevealed = false
         draftLicenseEmail = record?.licenseEmail
             ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
         draftLicenseType = record?.licenseType.flatMap(LicenseType.init(rawValue:))
@@ -1091,9 +1097,18 @@ struct AppDetailView: View {
         }
     }
 
-    private func revealLicenseKey() async -> String? {
-        guard await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)") else { return nil }
-        return readLicenseKey()
+    /// The Touch ID prompt takes focus and closes the License popover, so
+    /// after a successful unlock the popover is shown again, unlocked, with
+    /// the email and type drafts as they were.
+    private func revealLicenseKey() {
+        Task { @MainActor in
+            guard await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)"),
+                  let key = readLicenseKey() else { return }
+            draftLicenseKey = key
+            licenseKeyUnlocked = true
+            licenseKeyRevealed = true
+            moneyPopoverPresented = true
+        }
     }
 
     /// Reads the key from the Keychain. Call only after Touch ID succeeded.

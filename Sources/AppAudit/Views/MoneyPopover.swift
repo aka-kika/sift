@@ -22,6 +22,12 @@ struct MoneyPopover: View {
     var startOnSubscription: Bool = false
 
     @Binding var draftLicenseKey: String
+    /// Owned by the caller so an unlock survives the popover closing and
+    /// reopening around the Touch ID prompt. A saved key is never read until
+    /// the panel unlocks it (Reveal after Touch ID, or Replace, which starts
+    /// from an empty field).
+    @Binding var keyUnlocked: Bool
+    @Binding var revealed: Bool
     @Binding var draftLicenseEmail: String
     @Binding var draftLicenseType: LicenseType?
     @Binding var draftSubPrice: String
@@ -34,8 +40,10 @@ struct MoneyPopover: View {
     /// `keyEditable` is false while a saved key is still locked: Save then
     /// leaves the key alone and stores only the email and type.
     let onSaveLicense: (_ keyEditable: Bool) -> Void
-    /// Asks for Touch ID, then reads the saved key. nil when cancelled.
-    let onRevealKey: () async -> String?
+    /// Asks for Touch ID, then reads the saved key into `draftLicenseKey`
+    /// and sets `keyUnlocked` and `revealed`. The system prompt takes focus
+    /// and closes this popover, so the owner reopens it, already unlocked.
+    let onRevealKey: () -> Void
     let onCopyKey: () -> Void
     let onRemoveKey: () -> Void
     let onSaveSubscription: () -> Void
@@ -47,10 +55,6 @@ struct MoneyPopover: View {
     }
 
     @Environment(\.dismiss) private var dismiss
-    @State private var revealed = false
-    /// A saved key is never read until this panel unlocks it (Reveal after
-    /// Touch ID, or Replace, which starts from an empty field).
-    @State private var keyUnlocked = false
 
     private var keyEditable: Bool { !hasKey || keyUnlocked }
     @State private var tab: Tab = .key
@@ -235,14 +239,7 @@ struct MoneyPopover: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
             HStack(spacing: 14) {
-                Button("Reveal") {
-                    Task { @MainActor in
-                        guard let key = await onRevealKey() else { return }
-                        draftLicenseKey = key
-                        keyUnlocked = true
-                        revealed = true
-                    }
-                }
+                Button("Reveal") { onRevealKey() }
                 .help("Show the key (Touch ID)")
                 Button("Copy") { onCopyKey() }
                     .help("Copy the key (Touch ID)")
@@ -255,6 +252,7 @@ struct MoneyPopover: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
+            .foregroundStyle(Color.accentColor)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
