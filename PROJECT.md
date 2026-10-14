@@ -49,7 +49,7 @@ itself through Sparkle. Ships as a Developer ID–signed, notarized DMG.
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status
-`shipped` — v1.11.0 live: the pre-launch audit build (18 bug fixes, ~600 lines lighter). Free during the beta — count downloads for 14 days, then decide on price. Next: receipt extraction (specced, deferred).
+`shipped` — v1.12.2 live (2026-10-14): the Argon review fixes — safer license keys, no brew hang, two copies of one app handled. Free during the beta. Next (1.13): analysis without setup (Apple Intelligence or a small model), then real in-place updates.
 
 ## Key paths
 - **entry**: `Sources/AppAudit/AppAuditApp.swift`
@@ -73,6 +73,7 @@ isolated store) is the tester. Debt/TODO: CSV Paid column only exports for App
 Store installs; unranked-My-Apps and receipt-extraction are designed but unbuilt.
 
 ## Log
+- 2026-10-14 — v1.12.2: 14 findings from the Argon code review checked and fixed (one partly: the License panel still reads the key before Touch ID). License panel opens the right app, key removal needs Touch ID, brew output no longer hangs, duplicate bundle IDs handled per copy, links normalized to https, site countdown removed and uninstall FAQ corrected.
 - 2026-08-27 — v1.11.0: pre-launch audit (docs/audits/audit-2026-08-27.md) — 8 must-fix bugs (uninstall sweeping sibling apps, reanalyze crash, brew failure as success, detail-view record wipe, silent model switch…), 10 more, then dead code, duplicates and stale docs removed. Third release of the day; delivered through Sparkle.
 - 2026-08-27 — v1.10.0: Google Gemini + OpenRouter engines (free tiers, one shared OpenAI-compatible transport); free-beta decision; download tracking on the site. First Sparkle-delivered update.
 - 2026-08-27 — v1.9.0: Sift updates itself (Sparkle 2, appcast on sift.akakika.com). Landing page moved off GitHub Pages to Vercel at sift.akakika.com; Homebrew cask source; one-command release pipeline.
