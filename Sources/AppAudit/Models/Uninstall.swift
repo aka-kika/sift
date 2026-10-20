@@ -72,3 +72,47 @@ enum LeftoverMatcher {
         return name.compare(appName, options: .caseInsensitive) == .orderedSame
     }
 }
+
+/// The order and stop rule of one uninstall sweep, kept apart from the sheet
+/// so it can be tested without touching the disk.
+///
+/// The bundle goes first. If it cannot be moved, the sweep stops there: the
+/// app is still installed, so its settings and data are still in use, and
+/// trashing them would leave a working app with its data gone.
+enum UninstallSweep {
+    struct Outcome: Equatable {
+        var failures: [TrashService.Failure] = []
+        var removedBundle = false
+        /// The bundle stayed on disk, so the checked data was left alone.
+        var stoppedAtBundle = false
+        /// Checked items never attempted because the sweep stopped.
+        var skipped = 0
+    }
+
+    /// The checked items in sweep order: the bundle first, the rest as listed.
+    static func ordered(_ targets: [LeftoverItem]) -> [LeftoverItem] {
+        targets.filter(\.isAppBundle) + targets.filter { !$0.isAppBundle }
+    }
+
+    @MainActor
+    static func run(_ targets: [LeftoverItem],
+                    progress: (LeftoverItem) -> Void = { _ in },
+                    trash: (URL) async -> TrashService.Failure?) async -> Outcome {
+        var outcome = Outcome()
+        let queue = ordered(targets)
+        for (index, item) in queue.enumerated() {
+            progress(item)
+            if let failure = await trash(item.url) {
+                outcome.failures.append(failure)
+                if item.isAppBundle {
+                    outcome.stoppedAtBundle = true
+                    outcome.skipped = queue.count - index - 1
+                    break
+                }
+            } else if item.isAppBundle {
+                outcome.removedBundle = true
+            }
+        }
+        return outcome
+    }
+}

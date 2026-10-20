@@ -21,7 +21,7 @@ struct UninstallSheet: View {
         case scanning
         case list
         case working(current: String)
-        case done(failures: [TrashService.Failure], removedBundle: Bool)
+        case done(failures: [TrashService.Failure], removedBundle: Bool, stoppedAtBundle: Bool)
     }
 
     @State private var phase: Phase = .scanning
@@ -61,8 +61,8 @@ struct UninstallSheet: View {
                         .truncationMode(.middle)
                 }
                 .frame(minHeight: 80)
-            case .done(let failures, let removedBundle):
-                doneView(failures: failures, removedBundle: removedBundle)
+            case .done(let failures, let removedBundle, let stoppedAtBundle):
+                doneView(failures: failures, removedBundle: removedBundle, stoppedAtBundle: stoppedAtBundle)
             }
         }
         .padding(16)
@@ -201,8 +201,15 @@ struct UninstallSheet: View {
         }
     }
 
-    private func doneView(failures: [TrashService.Failure], removedBundle: Bool) -> some View {
+    private func doneView(failures: [TrashService.Failure], removedBundle: Bool, stoppedAtBundle: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            if stoppedAtBundle {
+                Label("\(app.name) could not be moved to the Trash, so its settings and data were left alone. Nothing was moved.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if failures.isEmpty {
                 Label("Moved to Trash — recoverable there, and the license record stays in your vault.",
                       systemImage: "checkmark.circle.fill")
@@ -296,17 +303,16 @@ struct UninstallSheet: View {
     @MainActor
     private func execute() async {
         let targets = items.filter { checked.contains($0.id) }
-        var failures: [TrashService.Failure] = []
-        var removedBundle = brewOutput != nil
-        for item in targets {
-            phase = .working(current: item.url.lastPathComponent)
-            if let failure = await TrashService.trash(item.url) {
-                failures.append(failure)
-            } else if item.isAppBundle {
-                removedBundle = true
-            }
-        }
-        phase = .done(failures: failures, removedBundle: removedBundle)
+        // The bundle goes first, and a bundle that stays put stops the sweep:
+        // the app still runs, so its data must stay with it.
+        let outcome = await UninstallSweep.run(
+            targets,
+            progress: { phase = .working(current: $0.url.lastPathComponent) },
+            trash: { await TrashService.trash($0) }
+        )
+        phase = .done(failures: outcome.failures,
+                      removedBundle: outcome.removedBundle || brewOutput != nil,
+                      stoppedAtBundle: outcome.stoppedAtBundle)
     }
 
     // MARK: - Formatting
