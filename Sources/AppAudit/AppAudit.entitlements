@@ -8,5 +8,11 @@
     <true/>
     <key>com.apple.security.files.user-selected.read-only</key>
     <true/>
+    <!-- Hardened runtime blocks Apple Events without this. Uninstall hands
+         root-owned bundles (App Store installs) to Finder over Apple Events
+         (TrashService.finderDelete); macOS still asks the user first, with
+         NSAppleEventsUsageDescription from Info.plist. -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
 </dict>
 </plist>
