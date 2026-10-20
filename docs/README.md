@@ -160,14 +160,19 @@ matched, all pre-checked.
 - **Everything goes to the Trash** — recoverable by design, nothing is deleted.
 - The **AppRecord survives** — licence keys, notes, and marks stay in the vault.
 - A **running app** offers Quit & Continue.
-- **Homebrew casks** can run `brew uninstall` instead.
+- **Homebrew casks** can run `brew uninstall` instead, but only for the copy Homebrew itself installed.
+- **The app goes first.** If it can't be moved, nothing else is touched.
+- **Another copy** of the app anywhere on the Mac (found with Spotlight) leaves the shared data unchecked.
+- **Quitting waits.** While the sweep or a brew command runs, Sift refuses to quit and says why.
 - **Apple system apps** (`com.apple.*`) and Sift itself are refused.
 
 Leftovers are searched across Application Support, Caches, Preferences (and
 ByHost), Logs, Containers, Group Containers, Saved Application State, WebKit,
 HTTP Storages, LaunchAgents, Application Scripts, and Cookies. Matching is
 identifier-first; a bare app name is trusted only under Application Support and
-Logs, where vendors conventionally use it.
+Logs, where vendors conventionally use it. App Group folders (`group.<bundle ID>`,
+or with the app's own team ID in front) under Group Containers and Application
+Scripts count too.
 
 **Mac App Store apps need one extra step.** Store bundles are owned by root, and
 macOS only lets Finder move them — so Sift hands those to Finder, which raises
@@ -235,7 +240,7 @@ Saving a new link re-analyzes the app with it, unless the analysis is locked.
 | Lock / Unlock Analysis | Prevent accidental regeneration |
 | Add / Remove from Favorites | Tag apps for a short review list |
 | Mark / Unmark as My App | Tag apps you build (Developer Mode) |
-| Copy Key | Copy the licence key (Touch ID) |
+| Copy Key | Copy the licence key (Touch ID). Hidden from clipboard managers and cleared after a minute |
 | Add License… / Set License Type… / Edit License… | Opens the detail License popover directly |
 | Show in Finder | Reveal the `.app` bundle |
 | Open App | Launch it |
