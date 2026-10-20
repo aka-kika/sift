@@ -6,7 +6,7 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # Sift — Roadmap
 
-**Updated:** 2026-09-19 · **Current version:** 1.12.1
+**Updated:** 2026-10-20 · **Current version:** 1.12.4
 
 ## Now
 

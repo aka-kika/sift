@@ -49,7 +49,7 @@ itself through Sparkle. Ships as a Developer ID–signed, notarized DMG.
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status
-`shipped` — v1.12.3 live (2026-10-14): all 14 Argon review fixes shipped; the License panel reads a key only after Touch ID. Free during the beta. Next (1.13): analysis without setup (Apple Intelligence or a small model), then real in-place updates.
+`shipped` — v1.12.4 live (2026-10-20): 28 of 29 findings of the 20 Oct review fixed; cloud API keys live in the login keychain. Free during the beta. Next (1.13): analysis without setup (Apple Intelligence or a small model), then real in-place updates.
 
 ## Key paths
 - **entry**: `Sources/AppAudit/AppAuditApp.swift`
@@ -69,8 +69,8 @@ bash Scripts/make_dmg.sh        # release DMG (adhoc by default)
 Bundle ID stays `com.kikaapp.appaudit` and sources stay under `Sources/AppAudit/`
 across the rename to Sift, so existing SwiftData + Keychain data carries over.
 A throwaway Sift2 side-build (`Scripts/build_sift2.sh`, bundle `com.kikaapp.sift2`,
-isolated store) is the tester. Debt/TODO: CSV Paid column only exports for App
-Store installs; unranked-My-Apps and receipt-extraction are designed but unbuilt.
+isolated store) is the tester. Debt/TODO: unranked-My-Apps and receipt-extraction
+are designed but unbuilt.
 
 ## Log
 - 2026-10-14 — v1.12.3: the last Argon item (#11). The License panel shows "Key saved" with Reveal, Copy and Replace and reads the key only after Touch ID; it reopens itself after the Touch ID prompt, which closes popovers.
