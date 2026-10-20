@@ -181,6 +181,14 @@ final class AppListViewModel {
         }
     }
 
+    nonisolated static let checkUpdatesOnScanKey = "checkUpdatesOnScan"
+
+    /// Whether each scan asks the Mac App Store, vendor update feeds and GitHub
+    /// for updates and links. On unless turned off in Settings → General.
+    nonisolated static func checksUpdatesOnScan(defaults: UserDefaults = .standard) -> Bool {
+        defaults.object(forKey: checkUpdatesOnScanKey) as? Bool ?? true
+    }
+
     func refreshUpdateStatuses() async {
         guard !isRefreshingUpdates,
               scanState != .scanning,
@@ -238,16 +246,20 @@ final class AppListViewModel {
         let updateToken = UUID()
         updateScanToken = updateToken
 
-        for index in apps.indices where !apps[index].version.isEmpty {
-            apps[index].updateState = .checking
-        }
+        // Off in Settings → General: a scan stays on this Mac. The refresh
+        // button in the sidebar still checks when clicked.
+        if Self.checksUpdatesOnScan() {
+            for index in apps.indices where !apps[index].version.isEmpty {
+                apps[index].updateState = .checking
+            }
 
-        Task {
-            await self.refreshUpdates(for: scannedApps, token: updateToken)
-        }
+            Task {
+                await self.refreshUpdates(for: scannedApps, token: updateToken)
+            }
 
-        Task {
-            await self.refreshAppLinks(for: scannedApps, token: updateToken)
+            Task {
+                await self.refreshAppLinks(for: scannedApps, token: updateToken)
+            }
         }
 
         let provider = AnalysisProviderKind.current()

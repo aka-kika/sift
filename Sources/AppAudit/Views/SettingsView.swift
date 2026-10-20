@@ -315,6 +315,7 @@ struct ScanningSettingsTab: View {
     @AppStorage("appearancePreference") private var appearancePreference = "system"
     @AppStorage("defaultLicenseEmail") private var defaultLicenseEmail = ""
     @AppStorage("developerMode") private var developerMode = false
+    @AppStorage(AppListViewModel.checkUpdatesOnScanKey) private var checkUpdatesOnScan = true
 
     var body: some View {
         Form {
@@ -339,6 +340,11 @@ struct ScanningSettingsTab: View {
                 Toggle("Include /Applications/Utilities", isOn: $includeUtilityApps)
                 Toggle("Include Apple system apps (com.apple.*)", isOn: $includeAppleApps)
                     .help("System apps can't be uninstalled — enabling adds noise to results")
+            }
+
+            Section("Updates") {
+                Toggle("Check apps for updates on every scan", isOn: $checkUpdatesOnScan)
+                SettingsFooter("Asks the Mac App Store, each app's own update feed and GitHub releases, and runs your local Homebrew. Off: a scan makes no network requests, and the refresh button in the sidebar checks only when you click it. Sift's own update check is separate (Sift › Check for Updates).")
             }
 
             Section("Developer") {

@@ -72,3 +72,16 @@ struct LegacyLicenseSweepTests {
         #expect(records.allSatisfy { $0.licenseKey == nil && $0.hasLicenseKey })
     }
 }
+
+@Suite("Update checks on scan")
+struct UpdateChecksOnScanTests {
+    @Test("On by default, off once turned off")
+    func defaultAndOff() {
+        let suite = "SiftTests.UpdateChecksOnScan"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        #expect(AppListViewModel.checksUpdatesOnScan(defaults: defaults))
+        defaults.set(false, forKey: AppListViewModel.checkUpdatesOnScanKey)
+        #expect(!AppListViewModel.checksUpdatesOnScan(defaults: defaults))
+    }
+}
