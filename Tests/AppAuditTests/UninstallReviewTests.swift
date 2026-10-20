@@ -155,6 +155,41 @@ struct RunningWorkTests {
     }
 }
 
+@Suite("Name-only folders another app may own")
+struct SharedNameLeftoverTests {
+    @Test("Same name or one name starting with the other is shared")
+    func sharers() {
+        #expect(LeftoverMatcher.nameSharers(appName: "1Password", otherAppNames: ["1Password 7", "Bear"]) == ["1Password 7"])
+        #expect(LeftoverMatcher.nameSharers(appName: "1Password 7", otherAppNames: ["1Password"]) == ["1Password"])
+        #expect(LeftoverMatcher.nameSharers(appName: "Notion", otherAppNames: ["notion"]) == ["notion"])
+    }
+
+    @Test("Unrelated names are not shared")
+    func unrelated() {
+        #expect(LeftoverMatcher.nameSharers(appName: "1Password", otherAppNames: ["Bear", "Password Hub", ""]).isEmpty)
+        #expect(LeftoverMatcher.nameSharers(appName: "Bloom", otherAppNames: []).isEmpty)
+    }
+
+    @Test("The reason names who else may use the folder")
+    func reasonText() {
+        let one = LeftoverMatcher.sharedNameReason(appName: "1Password", sharers: ["1Password 7"])
+        #expect(one.contains("1Password 7"))
+        #expect(one.contains("unchecked"))
+        let many = LeftoverMatcher.sharedNameReason(appName: "Foo", sharers: ["Foo A", "Foo B", "Foo C"])
+        #expect(many.contains("Foo A and Foo B and others"))
+    }
+
+    @Test("Shared-name rows start unchecked; the rest stays as before")
+    func initialChecks() {
+        let url = URL(fileURLWithPath: "/tmp/x")
+        let bundle = LeftoverItem(id: "bundle", url: url, category: .application, sizeBytes: 1, reason: "", isAppBundle: true)
+        let own = LeftoverItem(id: "own", url: url, category: .caches, sizeBytes: 1, reason: "")
+        let shared = LeftoverItem(id: "shared", url: url, category: .applicationSupport, sizeBytes: 1, reason: "", startsUnchecked: true)
+        #expect(UninstallSweep.initiallyChecked([bundle, own, shared], hasOtherCopy: false) == ["bundle", "own"])
+        #expect(UninstallSweep.initiallyChecked([bundle, own, shared], hasOtherCopy: true) == ["bundle"])
+    }
+}
+
 @Suite("Finder handoff does not block the window")
 struct FinderHandoffTests {
     @Test("A quick answer comes back")

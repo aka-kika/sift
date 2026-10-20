@@ -10,6 +10,9 @@ struct LeftoverItem: Identifiable, Equatable {
     let sizeBytes: Int64
     let reason: String
     var isAppBundle: Bool = false
+    /// The match could belong to another installed app, so the sheet lists
+    /// it unchecked and the reason says why.
+    var startsUnchecked: Bool = false
 }
 
 enum LeftoverCategory: String {
@@ -93,6 +96,27 @@ enum LeftoverMatcher {
         guard appName.count > 3 else { return false }
         return name.compare(appName, options: .caseInsensitive) == .orderedSame
     }
+
+    /// Other installed apps a name-only folder could just as well belong to:
+    /// the same name, or one name starting with the other ("1Password" and
+    /// "1Password 7"), ignoring case. Pass only apps with another bundle ID;
+    /// a second copy of this app is handled on its own.
+    static func nameSharers(appName: String, otherAppNames: [String]) -> [String] {
+        let own = appName.lowercased()
+        var seen = Set<String>()
+        return otherAppNames.filter { other in
+            let lower = other.lowercased()
+            guard !lower.isEmpty, lower.hasPrefix(own) || own.hasPrefix(lower) else { return false }
+            return seen.insert(lower).inserted
+        }
+    }
+
+    /// The row text for a name-only folder another app may share.
+    static func sharedNameReason(appName: String, sharers: [String]) -> String {
+        let names = sharers.prefix(2).joined(separator: " and ")
+        let more = sharers.count > 2 ? " and others" : ""
+        return "Folder named after \(appName), left unchecked: \(names)\(more) is installed too and may use it"
+    }
 }
 
 /// The order and stop rule of one uninstall sweep, kept apart from the sheet
@@ -109,6 +133,16 @@ enum UninstallSweep {
         var stoppedAtBundle = false
         /// Checked items never attempted because the sweep stopped.
         var skipped = 0
+    }
+
+    /// What starts checked: everything, except shared data when another copy
+    /// of the app exists (only its bundle then) and rows another installed
+    /// app may own.
+    static func initiallyChecked(_ items: [LeftoverItem], hasOtherCopy: Bool) -> Set<String> {
+        Set(items.filter { item in
+            if item.isAppBundle { return true }
+            return !hasOtherCopy && !item.startsUnchecked
+        }.map(\.id))
     }
 
     /// The checked items in sweep order: the bundle first, the rest as listed.
