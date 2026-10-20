@@ -153,8 +153,7 @@ actor UpdateChecker {
     }
 
     private func fetchSparkleMetadata(feedURLString: String?) async -> UpdateMetadata? {
-        guard let feedURLString,
-              let feedURL = URL(string: feedURLString) else { return nil }
+        guard let feedURL = Self.httpsURL(feedURLString) else { return nil }
 
         do {
             let data = try await client.data(for: feedURL)
@@ -182,6 +181,17 @@ actor UpdateChecker {
             outdatedCasksCache = homebrew.outdatedCasks()
         }
         return outdatedCasksCache?.first { $0.token == caskToken }
+    }
+
+    /// Feeds and download links count only over https: an http feed can be
+    /// swapped on the way, and a file: or http link would be opened as is
+    /// under the Download button.
+    static func httpsURL(_ string: String?) -> URL? {
+        guard let string = string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let url = URL(string: string),
+              url.scheme?.lowercased() == "https",
+              let host = url.host(), !host.isEmpty else { return nil }
+        return url
     }
 
     static func appStoreLookupURL(for bundleID: String) -> URL? {
@@ -231,7 +241,8 @@ actor UpdateChecker {
     /// to plain `…/releases`, which is no answer. Tags may contain slashes.
     static func parseGitHubMetadata(fromRedirect location: URL) -> UpdateMetadata? {
         let marker = "/releases/tag/"
-        guard let host = location.host()?.lowercased(), host == "github.com" || host == "www.github.com",
+        guard location.scheme?.lowercased() == "https",
+              let host = location.host()?.lowercased(), host == "github.com" || host == "www.github.com",
               let range = location.path.range(of: marker) else { return nil }
         let tag = String(location.path[range.upperBound...])
         guard !tag.isEmpty, let version = version(fromGitHubTag: tag) else { return nil }
@@ -272,7 +283,9 @@ actor UpdateChecker {
             return nil
         }
 
-        let url = result.trackID.map { "macappstore://itunes.apple.com/app/id\($0)" } ?? result.trackViewURL
+        // The macappstore: link is built here from a number, so it is safe to open.
+        let url = result.trackID.map { "macappstore://itunes.apple.com/app/id\($0)" }
+            ?? httpsURL(result.trackViewURL)?.absoluteString
         return UpdateMetadata(version: version, url: url)
     }
 
@@ -305,7 +318,7 @@ actor UpdateChecker {
             in: xml
         ).compactMap(\.first).first
 
-        return UpdateMetadata(version: newestVersion, url: fallbackURL)
+        return UpdateMetadata(version: newestVersion, url: httpsURL(fallbackURL)?.absoluteString)
     }
 
     private static func newestMetadata(in candidates: [UpdateMetadata]) -> UpdateMetadata? {
@@ -375,7 +388,8 @@ actor UpdateChecker {
         guard let version = version?.trimmingCharacters(in: .whitespacesAndNewlines), !version.isEmpty else {
             return nil
         }
-        let url = enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) }
+        // A download that is not https is no link at all: the update still counts.
+        let url = httpsURL(enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) })?.absoluteString
         let build =
             enclosure.flatMap { firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: $0) } ??
             firstCapturedValue(for: #"<sparkle:version>([^<]+)</sparkle:version>"#, in: item)
@@ -391,7 +405,7 @@ actor UpdateChecker {
             return nil
         }
 
-        return UpdateMetadata(version: version, url: url)
+        return UpdateMetadata(version: version, url: httpsURL(url)?.absoluteString)
     }
 
     private static func firstCapturedValue(for pattern: String, in text: String) -> String? {

@@ -44,6 +44,8 @@ actor AppLinkResolver {
     private func fetchSparkleWebsite(feedURLString: String?) async -> String? {
         guard let feedURLString,
               let feedURL = URL(string: feedURLString) else { return nil }
+        // Same rule as the update check: only an https feed is read.
+        guard UpdateChecker.httpsURL(feedURLString) != nil else { return Self.rootWebsite(from: feedURL) }
 
         do {
             let data = try await client.data(for: feedURL)
@@ -90,7 +92,7 @@ actor AppLinkResolver {
     }
 
     private static func rootWebsite(from url: URL) -> String? {
-        guard let scheme = url.scheme,
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
               let host = url.host else {
             return nil
         }

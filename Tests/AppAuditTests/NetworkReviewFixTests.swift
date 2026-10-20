@@ -66,3 +66,111 @@ struct LinkEvidenceHostTests {
         #expect(!prompt.contains("secret"))
     }
 }
+
+/// Answers from a fixed table and records what was asked.
+private final class RecordingUpdateClient: UpdateMetadataClient, @unchecked Sendable {
+    private let responses: [String: Data]
+    private let lock = NSLock()
+    private var requested: [String] = []
+
+    init(_ responses: [String: String] = [:]) {
+        self.responses = responses.mapValues { Data($0.utf8) }
+    }
+
+    var requestedURLs: [String] { lock.withLock { requested } }
+
+    func data(for url: URL) async throws -> Data {
+        lock.withLock { requested.append(url.absoluteString) }
+        guard let data = responses[url.absoluteString] else { throw URLError(.badServerResponse) }
+        return data
+    }
+
+    func redirectLocation(for url: URL) async throws -> URL? {
+        lock.withLock { requested.append(url.absoluteString) }
+        throw URLError(.badServerResponse)
+    }
+}
+
+private func feedApp(version: String = "1.0", feed: String?) -> AppInfo {
+    AppInfo(id: "com.example.Bloom", name: "Bloom", version: version, bundleID: "com.example.Bloom",
+            path: "/Applications/Bloom.app", humanReadableDescription: nil,
+            sparkleFeedURL: feed, isAppStoreInstall: false, icon: nil)
+}
+
+private func appcast(url: String, version: String = "2.0") -> String {
+    """
+    <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item>
+    <enclosure url="\(url)" sparkle:shortVersionString="\(version)" sparkle:version="20" />
+    </item></channel></rss>
+    """
+}
+
+@Suite("Update links are https only")
+struct HTTPSOnlyUpdateTests {
+    @Test("Only https links with a host pass")
+    func httpsURL() {
+        #expect(UpdateChecker.httpsURL("https://example.com/a.zip") == URL(string: "https://example.com/a.zip"))
+        #expect(UpdateChecker.httpsURL("HTTPS://example.com/a.zip") != nil)
+        #expect(UpdateChecker.httpsURL("http://example.com/a.zip") == nil)
+        #expect(UpdateChecker.httpsURL("file:///Applications/Calculator.app") == nil)
+        #expect(UpdateChecker.httpsURL("macappstore://itunes.apple.com/app/id1") == nil)
+        #expect(UpdateChecker.httpsURL(nil) == nil)
+    }
+
+    @Test("An http or file: feed is never fetched")
+    func insecureFeedNotFetched() async {
+        for feed in ["http://example.com/appcast.xml", "file:///tmp/appcast.xml"] {
+            let client = RecordingUpdateClient([feed: appcast(url: "https://example.com/a.zip")])
+            let state = await UpdateChecker(client: client).check(app: feedApp(feed: feed))
+            #expect(state == .unavailable)
+            #expect(client.requestedURLs.isEmpty)
+        }
+    }
+
+    @Test("A non-https download keeps the update but loses the link")
+    func insecureDownloadDropped() async throws {
+        for download in ["http://example.com/a.zip", "file:///Applications/Calculator.app"] {
+            let meta = try UpdateChecker.parseSparkleMetadata(from: Data(appcast(url: download).utf8))
+            #expect(meta?.version == "2.0")
+            #expect(meta?.url == nil)
+        }
+
+        // The Download button then points at the https feed itself, never the bad link.
+        let feed = "https://example.com/appcast.xml"
+        let client = RecordingUpdateClient([feed: appcast(url: "http://example.com/a.zip")])
+        let state = await UpdateChecker(client: client).check(app: feedApp(feed: feed))
+        #expect(state == .updateAvailable(latestVersion: "2.0", source: .sparkle, actionURL: feed))
+    }
+
+    @Test("A bare enclosure fallback drops a non-https link too")
+    func enclosureFallback() throws {
+        let xml = #"<rss><enclosure url="http://example.com/a.zip" sparkle:shortVersionString="3.0"/></rss>"#
+        let meta = try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8))
+        #expect(meta?.version == "3.0")
+        #expect(meta?.url == nil)
+    }
+
+    @Test("A GitHub release redirect must stay on https")
+    func gitHubHTTPS() {
+        #expect(UpdateChecker.parseGitHubMetadata(fromRedirect: URL(string: "http://github.com/a/b/releases/tag/v1.2")!) == nil)
+        #expect(UpdateChecker.parseGitHubMetadata(fromRedirect: URL(string: "https://github.com/a/b/releases/tag/v1.2")!)?.version == "1.2")
+    }
+
+    @Test("An App Store page link must be https")
+    func appStorePageHTTPS() throws {
+        let json = #"{"results":[{"bundleId":"com.example.Bloom","version":"2.0","trackViewUrl":"http://apps.apple.com/app/id1"}]}"#
+        let meta = try UpdateChecker.parseAppStoreMetadata(from: Data(json.utf8), preferredBundleID: "com.example.Bloom")
+        #expect(meta?.version == "2.0")
+        #expect(meta?.url == nil)
+    }
+
+    @Test("The link finder does not read an http feed")
+    func resolverSkipsInsecureFeed() async {
+        let feed = "http://updates.example.com/appcast.xml"
+        let client = RecordingUpdateClient([feed: "<rss><channel><link>https://example.com</link></channel></rss>"])
+        let link = await AppLinkResolver(client: client).resolve(app: feedApp(feed: feed))
+        #expect(client.requestedURLs.isEmpty)
+        #expect(link?.url == "http://updates.example.com")
+        #expect(await AppLinkResolver(client: client).resolve(app: feedApp(feed: "file:///tmp/appcast.xml")) == nil)
+    }
+}
