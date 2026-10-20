@@ -4,7 +4,9 @@ import Foundation
 /// automatic workflow profile. Pure code — nothing here is AI-generated, so there
 /// is nothing for a small model to hallucinate from.
 enum WorkflowDigest {
-    static func build(from apps: [AppInfo]) -> String {
+    /// `includeAppNames` adds the recently used and open apps by name. Only for a
+    /// model on this Mac: a cloud prompt carries the counts and categories alone.
+    static func build(from apps: [AppInfo], includeAppNames: Bool) -> String {
         guard !apps.isEmpty else { return "" }
 
         var counts: [String: Int] = [:]
@@ -25,6 +27,9 @@ enum WorkflowDigest {
             categories += categories.isEmpty ? "uncategorized (\(uncategorized))" : ", other (\(uncategorized))"
         }
 
+        var parts = ["Installed apps: \(apps.count). Categories: \(categories)."]
+        guard includeAppNames else { return parts.joined(separator: " ") }
+
         let recent = apps
             .compactMap { app in app.lastUsedDate.map { (app.name, $0) } }
             .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }
@@ -32,7 +37,6 @@ enum WorkflowDigest {
             .map(\.0)
         let running = apps.filter(\.isRunning).map(\.name).sorted().prefix(8)
 
-        var parts = ["Installed apps: \(apps.count). Categories: \(categories)."]
         if !recent.isEmpty { parts.append("Most recently used: \(recent.joined(separator: ", ")).") }
         if !running.isEmpty { parts.append("Open right now: \(running.joined(separator: ", ")).") }
         return parts.joined(separator: " ")

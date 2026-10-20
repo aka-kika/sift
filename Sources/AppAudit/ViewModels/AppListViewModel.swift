@@ -229,7 +229,7 @@ final class AppListViewModel {
 
         let runningIDs = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
         let scannedApps = await scanner.scan(runningBundleIDs: runningIDs)
-        let digest = WorkflowDigest.build(from: scannedApps)
+        let digest = WorkflowDigest.build(from: scannedApps, includeAppNames: AnalysisProviderKind.current().runsOnThisMac)
         UserDefaults.standard.set(digest, forKey: "lastProfileDigest")
         workflowProfile = .current(digest: digest)
         apps = scannedApps
@@ -646,7 +646,7 @@ final class AppListViewModel {
         let appURL = overrideAppURL ?? cachedRecord?.appURL
         let userNotes = cachedRecord?.notes
         let docsEvidence = cachedRecord?.docsEvidence
-        workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
+        workflowProfile = .current(digest: WorkflowDigest.build(from: apps, includeAppNames: AnalysisProviderKind.current().runsOnThisMac))
         update(bundleID: bundleID) { $0.aiState = .loading }
         let provider = AnalysisProviderKind.current()
         let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes, docsEvidence: docsEvidence)
@@ -717,7 +717,7 @@ final class AppListViewModel {
     func reanalyzeAll(scope: ReanalyzeScope) async {
         guard scanState == .done || scanState == .idle else { return }
 
-        workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
+        workflowProfile = .current(digest: WorkflowDigest.build(from: apps, includeAppNames: AnalysisProviderKind.current().runsOnThisMac))
         let provider = AnalysisProviderKind.current()
         await selectInstalledOllamaModelIfNeeded(provider: provider)
         let modelIdentifier = provider.modelIdentifier

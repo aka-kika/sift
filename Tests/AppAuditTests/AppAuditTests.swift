@@ -972,7 +972,7 @@ struct GroundedProfileTests {
             app("Figma", category: "public.app-category.graphics-design", lastUsed: now.addingTimeInterval(-120)),
             app("Mystery"),
         ]
-        let digest = WorkflowDigest.build(from: apps)
+        let digest = WorkflowDigest.build(from: apps, includeAppNames: true)
         #expect(digest.contains("Installed apps: 4."))
         #expect(digest.contains("Developer Tools (2)"))
         #expect(digest.contains("Graphics Design (1)"))
@@ -983,7 +983,7 @@ struct GroundedProfileTests {
 
     @Test("Digest of no apps is empty")
     func digestEmpty() {
-        #expect(WorkflowDigest.build(from: []) == "")
+        #expect(WorkflowDigest.build(from: [], includeAppNames: true) == "")
     }
 
     @Test("Profile resolution: custom override beats digest beats neutral")

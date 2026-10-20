@@ -27,6 +27,7 @@ struct AppDetailView: View {
     @State private var notesSessionInitialNotes: String? = nil
     @State private var similarResults: [SimilarApp]? = nil
     @State private var findingSimilar = false
+    @State private var confirmingCloudSimilar = false
     @State private var draftSubPrice = ""
     @State private var draftSubCurrency = ""
     @State private var draftSubCycle: BillingCycle = .monthly
@@ -141,6 +142,12 @@ struct AppDetailView: View {
             Button("OK") {}
         } message: {
             Text(homebrewUpdateMessage ?? "")
+        }
+        .alert("Send your app list?", isPresented: $confirmingCloudSimilar) {
+            Button("Send") { runFindSimilar() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("To find similar apps, Sift sends the names, categories and short descriptions of all your installed apps to \(AnalysisProviderKind.current().displayName). With local Ollama nothing leaves this Mac.")
         }
         .alert(
             "Docs",
@@ -642,7 +649,7 @@ struct AppDetailView: View {
                         Text("No clear overlap among your installed apps.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
-                        Button("Try again") { runFindSimilar() }
+                        Button("Try again") { requestFindSimilar() }
                             .buttonStyle(.borderless)
                             .font(.callout)
                     }
@@ -651,7 +658,7 @@ struct AppDetailView: View {
                         Label("Similar apps you have", systemImage: "square.on.square")
                             .font(.subheadline.weight(.semibold))
                         Spacer()
-                        Button { runFindSimilar() } label: {
+                        Button { requestFindSimilar() } label: {
                             Image(systemName: "arrow.clockwise")
                         }
                         .buttonStyle(.borderless)
@@ -663,7 +670,7 @@ struct AppDetailView: View {
                     }
                 }
             } else {
-                Button { runFindSimilar() } label: {
+                Button { requestFindSimilar() } label: {
                     Label("Find similar apps you have", systemImage: "square.on.square")
                 }
                 .buttonStyle(.borderless)
@@ -710,6 +717,16 @@ struct AppDetailView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    /// A cloud model gets the whole installed-app list, so ask every time.
+    /// A model on this Mac runs straight away.
+    private func requestFindSimilar() {
+        if AnalysisProviderKind.current().runsOnThisMac {
+            runFindSimilar()
+        } else {
+            confirmingCloudSimilar = true
+        }
     }
 
     private func runFindSimilar() {
