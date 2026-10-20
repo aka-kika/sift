@@ -93,7 +93,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 - **License Vault** (`⇧⌘L`) — everything you've bought, split into installed and no-longer-installed, so a key never disappears with the app
 
 ### Updates
-- Detects available versions via the **Mac App Store**, **Sparkle** feeds, and **Homebrew** casks
+- Detects available versions via the **Mac App Store**, **Sparkle** feeds, and **Homebrew** casks, and skips releases your macOS can't run
 - Open the update, run `brew upgrade --cask`, or acknowledge it and move on
 - Sift keeps itself current too — a daily Sparkle check, and **Check for Updates…** in the Sift menu
 

@@ -65,9 +65,9 @@ refresh button checks only when you click it.
 
 - **Analysis** runs on **local Ollama** by default — prompts never leave the Mac. If you switch the provider to Anthropic, OpenAI, Google Gemini or OpenRouter in Settings, the prompt (that app's metadata, your notes, fetched link evidence, attached docs evidence, and your workflow profile) goes to that provider under your own API key and their terms. The automatic workflow profile sent to a cloud provider has only the number of apps and their top categories — no app names. With local Ollama it also names your recently used and open apps. That switch is yours to make and yours to undo.
 - **Find similar apps** has to show the model your other installed apps (name, category, short description) to pick from. With a cloud provider, Sift asks before every such request; with local Ollama nothing leaves the Mac.
-- **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed or GitHub releases. Each request names only the app being checked. Homebrew checks run the local `brew` binary. You can turn the checks off in Settings → General → Updates.
+- **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed or GitHub releases, over https only. Each request names only the app being checked. Homebrew checks run the local `brew` binary with Homebrew's auto-update turned off, so a check never runs `brew update`; Homebrew reaches the network only when you click an upgrade. You can turn the checks off in Settings → General → Updates.
 - **Sift's own updates** (since 1.9.0) — Sparkle fetches `sift.akakika.com/appcast.xml` once a day and downloads the DMG only when you accept an update. The feed is a static file; nothing about you or your Mac is sent with the request.
-- **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says.
+- **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says. Links to this Mac or your local network are never fetched, redirects to them are refused, and the query and fragment are removed before fetching and before the link goes into a prompt.
 - **About tab links** open in your browser when you click them; nothing is requested in the background.
 
 ## Third-party services
@@ -76,7 +76,7 @@ refresh button checks only when you click it.
 None. No analytics, no telemetry, no crash reporting, no accounts, no
 Sift-operated server exists beyond the static site that hosts the update feed.
 Anthropic, OpenAI, Google Gemini and OpenRouter are optional providers you
-configure yourself; Apple and Homebrew are contacted only for update metadata.
+configure yourself; Apple and GitHub are contacted only for update metadata, and Homebrew only when you run an upgrade.
 
 ## Your controls
 
