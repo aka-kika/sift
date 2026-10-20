@@ -28,6 +28,8 @@ SIGNING_MODE="${SIGNING_MODE:-developer}"
 APP_IDENTITY="${APP_IDENTITY:-7E3E9BC6656A41A13F77F5C05E1663E77419388E}"
 SPARKLE_ACCOUNT="${SPARKLE_ACCOUNT:-Sift}"
 SITE_DOWNLOADS="$ROOT/site/downloads"
+# Local clone of the public tap (github.com/aka-kika/homebrew-tap); users install from it.
+TAP_DIR="${TAP_DIR:-$HOME/_KIKA_MAIN/_INFRA/apps/homebrew-tap}"
 DOWNLOAD_PREFIX="https://sift.akakika.com/downloads/"
 
 step() { printf '\n==> %s\n' "$*"; }
@@ -71,6 +73,14 @@ step "5/5 Homebrew cask"
 SHA=$(shasum -a 256 "$DMG" | awk '{print $1}')
 sed -i '' -E "s#^  version \".*\"#  version \"${VERSION}\"#; s#^  sha256 \".*\"#  sha256 \"${SHA}\"#" Scripts/homebrew/sift.rb
 grep -n "version\|sha256" Scripts/homebrew/sift.rb
+# The repo copy is the source; the tap copy is what `brew install` reads.
+if [[ -d "$TAP_DIR/Casks" ]]; then
+  git -C "$TAP_DIR" pull --ff-only --quiet || echo "warning: could not fast-forward $TAP_DIR; pull it by hand"
+  cp Scripts/homebrew/sift.rb "$TAP_DIR/Casks/sift.rb"
+  echo "Copied the cask into $TAP_DIR/Casks/sift.rb"
+else
+  echo "warning: no tap clone at $TAP_DIR (set TAP_DIR); copy Scripts/homebrew/sift.rb into the tap by hand"
+fi
 
 printf '\nSHA-256 %s  %s\n' "$SHA" "$DMG"
 cat <<EOF
@@ -79,4 +89,5 @@ Next (by hand, in this order):
   git add -A && git commit -m "release: Sift ${VERSION}" && git tag v${VERSION} && git push origin main v${VERSION}
   gh release create v${VERSION} ${DMG} --title "Sift ${VERSION}" --notes-file docs/releases/${VERSION}.md
   cd site && vercel deploy --prod --yes      # ships appcast.xml + the DMG; Sparkle users see the update
+  git -C "${TAP_DIR}" add Casks/sift.rb && git -C "${TAP_DIR}" commit -m "sift ${VERSION}" && git -C "${TAP_DIR}" push   # after the DMG is live
 EOF

@@ -95,7 +95,7 @@ The deploy is what makes the update visible — Sparkle reads the appcast from t
 
 - Tag the release (e.g. `v1.9.0`) and attach the notarized `Sift-1.9.0.dmg` to a GitHub Release.
 - Deploy `site/` so the appcast and DMG go live: `cd site && vercel deploy --prod --yes`.
-- Homebrew: `release.sh` bumps `Scripts/homebrew/sift.rb`; the public tap `aka-kika/homebrew-tap` is not created yet (see `Scripts/homebrew/README.md`).
+- Homebrew: `release.sh` bumps `Scripts/homebrew/sift.rb` and copies it into the local tap clone (`TAP_DIR`, default `~/_KIKA_MAIN/_INFRA/apps/homebrew-tap`); the tap commit and push is the last hand step it prints, after the site deploy, so `brew` never points at a DMG that is not live yet. Public tap: `aka-kika/homebrew-tap` (see `Scripts/homebrew/README.md`).
 - Installing the new `Sift.app` replaces the old `AppAudit.app` (same bundle ID); existing data and license keys carry over.
 
 ## Notes

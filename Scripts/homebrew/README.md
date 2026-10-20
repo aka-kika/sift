@@ -3,7 +3,8 @@
 **Published 2026-09-01.** The tap lives at https://github.com/aka-kika/homebrew-tap
 (public, cask at `Casks/sift.rb`); users install with
 `brew install --cask aka-kika/tap/sift`. `Scripts/release.sh` bumps the local
-`sift.rb` on every release — copy it into the tap repo and push (step 2 below).
+`sift.rb` on every release and copies it into the tap clone (`TAP_DIR`); it prints the
+tap commit and push as its last hand step.
 
 `sift.rb` is the source of truth for the Sift cask. It installs the notarized DMG
 from https://sift.akakika.com/downloads/Sift-<version>.dmg.
