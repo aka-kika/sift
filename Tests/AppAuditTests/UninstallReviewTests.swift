@@ -99,3 +99,58 @@ struct SecretClipboardTests {
         #expect(SecretClipboard.clearDelay == .seconds(60))
     }
 }
+
+@Suite("Quitting waits for running work")
+@MainActor
+struct RunningWorkTests {
+    @Test("Idle by default; busy while any work runs, counted per kind")
+    func counting() {
+        let work = RunningWork()
+        #expect(!work.isBusy)
+        work.begin(.trashSweep)
+        work.begin(.homebrew)
+        work.begin(.homebrew)
+        #expect(work.kinds == [.trashSweep, .homebrew])
+        work.end(.homebrew)
+        #expect(work.kinds == [.trashSweep, .homebrew])
+        work.end(.homebrew)
+        work.end(.trashSweep)
+        #expect(!work.isBusy)
+        work.end(.trashSweep)   // an extra end never goes negative
+        #expect(!work.isBusy)
+    }
+
+    @Test("run counts the work and always ends it")
+    func runWrapper() async {
+        let work = RunningWork()
+        let seenBusy = await work.run(.homebrew) { work.isBusy }
+        #expect(seenBusy)
+        #expect(!work.isBusy)
+    }
+
+    @Test("Closing the last window quits only when idle, else after the work ends")
+    func windowCloseHeld() {
+        let work = RunningWork()
+        var quits = 0
+        work.onIdleAfterLastWindowClosed = { quits += 1 }
+        #expect(work.shouldQuitAfterLastWindowClosed())
+
+        work.begin(.trashSweep)
+        #expect(!work.shouldQuitAfterLastWindowClosed())
+        #expect(quits == 0)
+        work.end(.trashSweep)
+        #expect(quits == 1)
+
+        // Work that ends without a window close does not quit.
+        work.begin(.homebrew)
+        work.end(.homebrew)
+        #expect(quits == 1)
+    }
+
+    @Test("The refusal names the sweep first, then brew")
+    func refusalText() {
+        #expect(RunningWork.refusalText(for: [.trashSweep]).title == "Sift is still moving items to the Trash")
+        #expect(RunningWork.refusalText(for: [.trashSweep, .homebrew]).title == "Sift is still moving items to the Trash")
+        #expect(RunningWork.refusalText(for: [.homebrew]).title == "Sift is still running Homebrew")
+    }
+}

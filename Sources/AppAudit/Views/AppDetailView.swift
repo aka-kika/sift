@@ -1420,9 +1420,11 @@ struct AppDetailView: View {
     private func runHomebrewUpdate() async {
         guard let token = app.homebrewCaskToken else { return }
         runningHomebrewUpdate = true
-        let output = await Task.detached {
-            HomebrewService().upgradeCask(token)
-        }.value
+        let output = await RunningWork.shared.run(.homebrew) {
+            await Task.detached {
+                HomebrewService().upgradeCask(token)
+            }.value
+        }
         runningHomebrewUpdate = false
         homebrewUpdateMessage = output.isEmpty ? "Homebrew finished. Rescan to refresh this app's version." : output
     }

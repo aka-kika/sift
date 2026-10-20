@@ -20,15 +20,35 @@ enum AppAppearance {
 /// Single-window utility behavior: closing the window quits the app instead of
 /// leaving a ghost Dock icon with no window to reopen. Also applies the saved
 /// appearance at launch so the window opens in the right scheme immediately.
+/// While an uninstall sweep or a brew command runs (`RunningWork`), quitting is
+/// refused and a window close holds its quit until the work ends.
 final class SiftAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        RunningWork.shared.shouldQuitAfterLastWindowClosed()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        let work = RunningWork.shared
+        guard work.isBusy else { return .terminateNow }
+        let text = RunningWork.refusalText(for: work.kinds)
+        let alert = NSAlert()
+        alert.messageText = text.title
+        alert.informativeText = text.message
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+        return .terminateCancel
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppAppearance.apply(UserDefaults.standard.string(forKey: "appearancePreference") ?? "system")
         // Touching the singleton here starts Sparkle's scheduled check at launch.
         _ = UpdateService.shared
+        // A quit held back by running work happens once it ends, unless a
+        // window was opened again in the meantime.
+        RunningWork.shared.onIdleAfterLastWindowClosed = {
+            let hasWindow = NSApp.windows.contains { $0.isVisible && !($0 is NSPanel) }
+            if !hasWindow { NSApp.terminate(nil) }
+        }
     }
 }
 

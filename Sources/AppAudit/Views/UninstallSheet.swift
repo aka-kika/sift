@@ -279,9 +279,11 @@ struct UninstallSheet: View {
     private func runBrewUninstall() {
         guard let token = app.homebrewCaskToken else { return }
         Task {
-            let outcome = await Task.detached {
-                HomebrewService().uninstall(cask: token)
-            }.value
+            let outcome = await RunningWork.shared.run(.homebrew) {
+                await Task.detached {
+                    HomebrewService().uninstall(cask: token)
+                }.value
+            }
             guard outcome.succeeded else {
                 brewFailure = outcome.message
                 return
@@ -296,6 +298,9 @@ struct UninstallSheet: View {
     @MainActor
     private func execute() async {
         let targets = items.filter { checked.contains($0.id) }
+        // Quitting mid-sweep would leave half the items behind.
+        RunningWork.shared.begin(.trashSweep)
+        defer { RunningWork.shared.end(.trashSweep) }
         var failures: [TrashService.Failure] = []
         var removedBundle = brewOutput != nil
         for item in targets {
