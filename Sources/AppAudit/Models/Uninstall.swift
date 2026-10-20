@@ -60,6 +60,28 @@ enum LeftoverMatcher {
         return !claimedBySibling
     }
 
+    /// App Group folders carry the group's identifier, not the bundle ID:
+    /// `group.<id>`, or team-prefixed `<TEAMID>.<id>` and `<TEAMID>.group.<id>`.
+    /// The prefix is stripped and the usual identifier rules run on the rest,
+    /// so `group.com.foo.bar` matches `com.foo.bar` but `group.com.foo.barbaz`
+    /// does not. Team prefixes count only for the app's own signing team.
+    static func matchesAppGroup(name: String, bundleID: String, teamID: String?, otherBundleIDs: [String] = []) -> Bool {
+        var prefixes = ["group."]
+        if let teamID, !teamID.isEmpty {
+            prefixes += [teamID + ".group.", teamID + "."]
+        }
+        return prefixes.contains { prefix in
+            name.hasPrefix(prefix)
+                && matches(name: String(name.dropFirst(prefix.count)), bundleID: bundleID, otherBundleIDs: otherBundleIDs)
+        }
+    }
+
+    /// App Group folders live under Group Containers, and macOS gives each
+    /// group an Application Scripts folder of the same name.
+    static func appGroupMatchAllowed(for category: LeftoverCategory) -> Bool {
+        category == .groupContainers || category == .applicationScripts
+    }
+
     /// Vendor-conventional name folders exist only under Application Support
     /// and Logs; everywhere else a bare app name is too risky to trust.
     static func nameMatchAllowed(for category: LeftoverCategory) -> Bool {

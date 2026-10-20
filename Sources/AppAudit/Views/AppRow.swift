@@ -154,8 +154,7 @@ struct AppRow: View {
                         // The secret is read only after Touch ID succeeds.
                         guard await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)"),
                               let licenseKey = resolveLicenseKey().value, !licenseKey.isEmpty else { return }
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(licenseKey, forType: .string)
+                        SecretClipboard.copy(licenseKey)
                     }
                 } label: {
                     Label("Copy Key", systemImage: "doc.on.doc")

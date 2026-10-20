@@ -188,8 +188,7 @@ struct LicenseVaultView: View {
             guard await LicenseKeyGuard.authenticate(reason: "copy a license key from the vault") else { return }
             let resolution = licenseKeyStore.resolveKey(bundleID: bundleID, legacyValue: nil)
             guard let key = resolution.value, !key.isEmpty else { return }
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(key, forType: .string)
+            SecretClipboard.copy(key)
             await MainActor.run { copiedBundleID = bundleID }
             try? await Task.sleep(for: .seconds(1.5))
             await MainActor.run {

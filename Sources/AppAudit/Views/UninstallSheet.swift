@@ -324,9 +324,11 @@ struct UninstallSheet: View {
     private func runBrewUninstall() {
         guard let token = brewToken else { return }
         Task {
-            let outcome = await Task.detached {
-                HomebrewService().uninstall(cask: token)
-            }.value
+            let outcome = await RunningWork.shared.run(.homebrew) {
+                await Task.detached {
+                    HomebrewService().uninstall(cask: token)
+                }.value
+            }
             guard outcome.succeeded else {
                 brewFailure = outcome.message
                 return
@@ -341,6 +343,9 @@ struct UninstallSheet: View {
     @MainActor
     private func execute() async {
         let targets = items.filter { checked.contains($0.id) }
+        // Quitting mid-sweep would leave half the items behind.
+        RunningWork.shared.begin(.trashSweep)
+        defer { RunningWork.shared.end(.trashSweep) }
         // The bundle goes first, and a bundle that stays put stops the sweep:
         // the app still runs, so its data must stay with it.
         let outcome = await UninstallSweep.run(
