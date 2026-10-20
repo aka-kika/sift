@@ -1037,6 +1037,10 @@ final class MemorySecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
         values[account]
     }
 
+    func exists(account: String) -> Bool {
+        values[account] != nil
+    }
+
     @discardableResult
     func write(_ value: String, account: String) -> Bool {
         values[account] = value
@@ -2066,6 +2070,7 @@ struct SparkleAppcastPrecedenceTests {
 /// A backend whose writes vanish — what a denied or locked Keychain looks like.
 final class DroppingSecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
     func read(account: String) -> String? { nil }
+    func exists(account: String) -> Bool { false }
     @discardableResult func write(_ value: String, account: String) -> Bool { false }
     func delete(account: String) {}
 }
