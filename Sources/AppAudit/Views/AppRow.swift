@@ -329,7 +329,7 @@ struct AppRow: View {
     }
 
     private func resolveLicenseKey() -> LicenseKeyResolution {
-        let record = fetchRecord(for: app.bundleID)
+        let record = CacheService(context: modelContext).load(bundleID: app.bundleID)
         let resolution = licenseKeyStore.resolveKey(bundleID: app.bundleID, legacyValue: record?.licenseKey)
         if resolution.didMigrateLegacyValue, let record {
             record.licenseKey = nil
@@ -337,12 +337,6 @@ struct AppRow: View {
         }
         return resolution
     }
-
-    private func fetchRecord(for bundleID: String) -> AppRecord? {
-        let descriptor = FetchDescriptor<AppRecord>(predicate: #Predicate { $0.bundleID == bundleID })
-        return try? modelContext.fetch(descriptor).first
-    }
-
 
     private func performUpdateAction(source: AppInfo.UpdateSource) {
         switch source {

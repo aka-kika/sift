@@ -204,7 +204,7 @@ struct UninstallSheet: View {
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
-                        Text(sizeText(item.sizeBytes))
+                        Text(AppFacts.sizeText(item.sizeBytes))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
@@ -365,11 +365,7 @@ struct UninstallSheet: View {
     // MARK: - Formatting
 
     private var totalText: String {
-        sizeText(items.filter { checked.contains($0.id) }.reduce(0) { $0 + $1.sizeBytes })
-    }
-
-    private func sizeText(_ bytes: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+        AppFacts.sizeText(items.filter { checked.contains($0.id) }.reduce(0) { $0 + $1.sizeBytes })
     }
 
     private func abbreviate(_ path: String) -> String {
