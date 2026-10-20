@@ -86,7 +86,10 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         let stored = userDefaults.string(forKey: modelDefaultsKey)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let effective = stored.isEmpty ? defaultModel : stored
         if models.contains(effective) { return nil }
-        return models.first
+        // Ollama lists "llama3.2" as "llama3.2:latest"; both name the same model.
+        if self == .ollama, !effective.contains(":"), models.contains(effective + ":latest") { return nil }
+        // Embedding models (nomic-embed-text, mxbai-embed-large) cannot chat.
+        return models.first { !$0.lowercased().contains("embed") } ?? models.first
     }
 
     /// True only when prompts stay on this Mac: Ollama pointed at a local

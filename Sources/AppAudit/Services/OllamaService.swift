@@ -6,13 +6,13 @@ import Foundation
 /// evidence and the workflow profile fit, and keep_alive so the model stays
 /// resident across the scan instead of reloading per app.
 enum OllamaDefaults {
-    /// Default local model for this personal edition. Picked by benchmarking the
-    /// installed models on this exact task: it follows the required structured
-    /// format reliably, gives good explanations and scoring, and is reasonably
-    /// fast. Pure "thinking" models (e.g. qwen3.6) are avoided as the default —
-    /// they spend their token budget reasoning and can return an empty answer.
-    /// Change it any time in Settings → Models (the picker lists what you have).
-    static let model = "kika-ohllama:latest"
+    /// Default local model: the public one the README tells new users to pull
+    /// (`ollama pull llama3.2`), named the way /api/tags lists it. Pure "thinking"
+    /// models (e.g. qwen3.6) are avoided as the default — they spend their token
+    /// budget reasoning and can return an empty answer. When it isn't installed,
+    /// a scan switches to the first installed chat model instead (see
+    /// `AnalysisProviderKind.modelToSelect`). Change it any time in Settings → Models.
+    static let model = "llama3.2:latest"
 
     static let baseURL = "http://localhost:11434"
 

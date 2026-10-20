@@ -20,7 +20,7 @@ server exists — see [Privacy & Permissions](privacy.md).
 |---|---|---|
 | macOS 14+ | Required OS | — |
 | [Ollama](https://ollama.ai) | Local analysis provider (default) | `brew install ollama` |
-| A pulled Ollama model | The model itself (default `kika-ohllama:latest`; any installed model works) | `ollama pull <model>` |
+| A pulled Ollama model | The model itself (default `llama3.2`; if it is missing, a scan uses the first installed model) | `ollama pull <model>` |
 | Cloud API key | Optional — ollama.com, Anthropic, OpenAI, Google Gemini, or OpenRouter instead of a local server (Gemini and OpenRouter have free tiers) | — |
 
 Building from source has its own prerequisites — see [Environment Setup](environment.md).

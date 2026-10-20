@@ -249,6 +249,7 @@ final class AppListViewModel {
         }
 
         let provider = AnalysisProviderKind.current()
+        await selectInstalledOllamaModelIfNeeded(provider: provider)
         let modelIdentifier = provider.modelIdentifier
 
         // Check cache for each app
@@ -302,6 +303,17 @@ final class AppListViewModel {
         await enrichConcurrently(apps: toEnrich, profile: workflowProfile, provider: provider, modelIdentifier: modelIdentifier)
 
         scanState = .done
+    }
+
+    /// A new Mac rarely has the default model. Before analyzing with Ollama,
+    /// switch to an installed model when the chosen one isn't there, the same
+    /// way Settings → Models does, so a first scan doesn't fail on every app.
+    /// Leaves the choice alone when Ollama can't be reached.
+    private func selectInstalledOllamaModelIfNeeded(provider: AnalysisProviderKind) async {
+        guard provider == .ollama,
+              case .models(let models) = await ollama.fetchModels(),
+              let replacement = provider.modelToSelect(from: models) else { return }
+        UserDefaults.standard.set(replacement, forKey: provider.modelDefaultsKey)
     }
 
     private func enrichConcurrently(
@@ -624,6 +636,7 @@ final class AppListViewModel {
     }
 
     func reanalyze(bundleID: String, appURL overrideAppURL: String? = nil) async {
+        await selectInstalledOllamaModelIfNeeded(provider: AnalysisProviderKind.current())
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
               !apps[idx].isAnalysisLocked else {
@@ -706,6 +719,7 @@ final class AppListViewModel {
 
         workflowProfile = .current(digest: WorkflowDigest.build(from: apps))
         let provider = AnalysisProviderKind.current()
+        await selectInstalledOllamaModelIfNeeded(provider: provider)
         let modelIdentifier = provider.modelIdentifier
 
         var targets: [AppInfo] = []
