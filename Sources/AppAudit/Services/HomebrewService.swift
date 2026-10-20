@@ -42,10 +42,6 @@ struct HomebrewService: Sendable {
         runBrewChecked(arguments: ["uninstall", "--cask", token])
     }
 
-    func uninstallCask(_ token: String) -> String {
-        runBrew(arguments: ["uninstall", "--cask", token], includeStandardError: true)
-    }
-
     func caskToken(forAppName appName: String, path: String, installedCasks: [String]) -> String? {
         if let token = Self.caskTokenFromCaskroomPath(path) {
             return token

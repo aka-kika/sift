@@ -82,17 +82,6 @@ final class CacheService {
         try? context.save()
     }
 
-    func delete(bundleID: String) {
-        if let record = load(bundleID: bundleID) {
-            context.delete(record)
-            try? context.save()
-        }
-    }
-
-    func insert(_ record: AppRecord) {
-        context.insert(record)
-    }
-
     func persist() {
         try? context.save()
     }
