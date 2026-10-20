@@ -82,3 +82,10 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 - License keys in CSV export — decided against; keys never leave the Keychain
   except by explicit per-key copy.
 - Unranked My Apps — designed, not scheduled.
+- Data folders unchecked in the uninstall sweep — decided against (Kika,
+  2026-10-20: "keep"). Everything goes to the Trash, so the sweep can be undone;
+  shared data of other copies and look-alike apps already starts unchecked.
+- Touch ID lock on the Keychain item (SecAccessControl `.userPresence`) —
+  decided against (Kika, 2026-10-20: "leave"). It needs an App ID with keychain
+  sharing and a provisioning profile in every release; Touch ID stays Sift's own
+  check before it reads a key, as privacy.md says.
