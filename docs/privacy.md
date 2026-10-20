@@ -29,7 +29,7 @@ app you linked.
 | Cloud API keys (Anthropic, OpenAI, Gemini, OpenRouter, ollama.com) | Optional cloud analysis | **macOS login keychain**, service `com.kikaapp.appaudit.apikeys`, one item per provider. Builds up to 1.12.3 kept them in the preferences file; Sift moves them on first launch and removes the old copy only once the Keychain holds the key | Only to the provider it belongs to, with each request |
 | Licence type, registered email, subscription price / cycle / renewal / billing email | Cost tracking | Local store | No |
 | App icons (PNG) | Vault rows survive uninstalling the app | Local store | No |
-| Attached project folder contents (README, manifests) for apps you mark as yours | Grounds the analysis in real evidence | Read at analysis time, not copied | Only if you pick a cloud provider |
+| Attached project folder contents (README, manifests) for apps you mark as yours | Grounds the analysis in real evidence | Read when you attach or refresh the folder; a short excerpt is kept in the local store and reused by each analysis. Detaching the folder removes it | Only if you pick a cloud provider |
 | CSV export | Your own reporting | Wherever you save it | Only if you move it |
 
 Records outlive the app they describe: uninstalling an app keeps its licence and
@@ -57,12 +57,15 @@ itself are refused outright.
 ## Network
 
 <!-- SF Symbol: network -->
-Apart from its own daily update check, Sift makes no network connections in its
-default configuration.
+In its default configuration Sift connects to: its own update feed (daily), and,
+on each scan, the Mac App Store lookup, the update feeds of apps that publish one,
+and GitHub releases for apps linked to GitHub. Settings → General → Updates turns
+the scan checks off; then a scan makes no network requests, and the sidebar's
+refresh button checks only when you click it.
 
 - **Analysis** runs on **local Ollama** by default — prompts never leave the Mac. If you switch the provider to Anthropic, OpenAI, Google Gemini or OpenRouter in Settings, the prompt (that app's metadata, your notes, fetched link evidence, attached docs evidence, and your workflow profile) goes to that provider under your own API key and their terms. The automatic workflow profile sent to a cloud provider has only the number of apps and their top categories — no app names. With local Ollama it also names your recently used and open apps. That switch is yours to make and yours to undo.
 - **Find similar apps** has to show the model your other installed apps (name, category, short description) to pick from. With a cloud provider, Sift asks before every such request; with local Ollama nothing leaves the Mac.
-- **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed. Homebrew checks run the local `brew` binary.
+- **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed or GitHub releases. Each request names only the app being checked. Homebrew checks run the local `brew` binary. You can turn the checks off in Settings → General → Updates.
 - **Sift's own updates** (since 1.9.0) — Sparkle fetches `sift.akakika.com/appcast.xml` once a day and downloads the DMG only when you accept an update. The feed is a static file; nothing about you or your Mac is sent with the request.
 - **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says.
 - **About tab links** open in your browser when you click them; nothing is requested in the background.
@@ -79,7 +82,7 @@ configure yourself; Apple and Homebrew are contacted only for update metadata.
 
 <!-- SF Symbol: slider.horizontal.3 -->
 - **Revoke Automation:** System Settings → Privacy & Security → Automation → Sift. Uninstall then reports what it cannot move rather than handing it to Finder.
-- **Stay fully offline:** keep the provider on Ollama; that is the default.
+- **Stay fully offline:** keep the provider on Ollama (the default) and turn off Settings → General → Updates → "Check apps for updates on every scan".
 - **Remove a licence key:** the trash button in the License popover or the vault row deletes the Keychain item, after Touch ID.
 - **Remove a purchase record:** the vault row's trash clears the Paid mark and the licence type.
 - **Delete everything:** quit Sift, then remove its Application Support folder and its Keychain items (services `com.kikaapp.appaudit.licensekeys` and `com.kikaapp.appaudit.apikeys`, in Keychain Access). Uninstalling Sift alone leaves both behind on purpose, so a reinstall keeps your vault.
