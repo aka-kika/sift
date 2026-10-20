@@ -13,25 +13,21 @@ actor AppScanner {
         let shouldIncludeUtilities = includeUtilities ?? (UserDefaults.standard.object(forKey: "includeUtilityApps") as? Bool ?? true)
 
         var scanDirs = ["/Applications", "\(NSHomeDirectory())/Applications"]
-        if shouldIncludeUtilities { scanDirs.append("/Applications/Utilities") }
+        // Utilities is a subfolder of /Applications, so the walk below reaches it;
+        // when it is off, it is skipped instead of added.
+        var skippedDirs: Set<String> = shouldIncludeUtilities ? [] : ["/Applications/Utilities"]
 
         // Check for debug override
         if let override = ProcessInfo.processInfo.environment["APPAUDIT_SCAN_DIR"] {
             scanDirs = [override]
+            skippedDirs = []
         }
 
         let installedCasks = homebrew.installedCasks()
         var apps: [AppInfo] = []
-        let fm = FileManager.default
 
         for dir in scanDirs {
-            guard fm.fileExists(atPath: dir) else { continue }
-            guard let contents = try? fm.contentsOfDirectory(atPath: dir) else { continue }
-
-            for item in contents {
-                guard item.hasSuffix(".app") else { continue }
-                let fullPath = (dir as NSString).appendingPathComponent(item)
-
+            for fullPath in Self.appBundlePaths(in: dir, skipping: skippedDirs) {
                 // Skip system paths
                 if skipPaths.contains(where: { fullPath.hasPrefix($0) }) { continue }
 
@@ -47,6 +43,28 @@ actor AppScanner {
         }
 
         return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    /// Every .app in `dir` and in its plain subfolders, two levels down, which is
+    /// where suites put theirs ("Adobe Photoshop 2025/Photoshop.app", "Setapp/…").
+    /// Never looks inside an app bundle, never follows a symlinked folder (no loops),
+    /// and skips hidden folders and the ones in `skipping`.
+    static func appBundlePaths(in dir: String, skipping: Set<String> = [], maxDepth: Int = 2) -> [String] {
+        let fm = FileManager.default
+        guard let contents = try? fm.contentsOfDirectory(atPath: dir) else { return [] }
+        var paths: [String] = []
+        for item in contents.sorted() where !item.hasPrefix(".") {
+            let fullPath = (dir as NSString).appendingPathComponent(item)
+            if item.hasSuffix(".app") {
+                paths.append(fullPath)
+                continue
+            }
+            guard maxDepth > 0, !skipping.contains(fullPath),
+                  let attributes = try? fm.attributesOfItem(atPath: fullPath),
+                  attributes[.type] as? FileAttributeType == .typeDirectory else { continue }
+            paths += appBundlePaths(in: fullPath, skipping: skipping, maxDepth: maxDepth - 1)
+        }
+        return paths
     }
 
     private func makeAppInfo(from path: String, includeApple: Bool, installedCasks: [String], runningBundleIDs: Set<String> = []) -> AppInfo? {

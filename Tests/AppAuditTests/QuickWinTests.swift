@@ -114,3 +114,42 @@ struct RenewalAnchorTests {
         #expect(utc.component(.year, from: next) == 2028 && utc.component(.day, from: next) == 29)
     }
 }
+
+@Suite("Apps in subfolders")
+struct AppsInSubfoldersTests {
+    private func tree(_ paths: [String]) throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SiftTests-Scan-\(UUID().uuidString)", isDirectory: true)
+        for path in paths {
+            try FileManager.default.createDirectory(at: root.appendingPathComponent(path), withIntermediateDirectories: true)
+        }
+        return root
+    }
+
+    @Test("Finds apps in suite folders, not inside bundles, not too deep")
+    func walksSubfolders() throws {
+        let root = try tree([
+            "Top.app/Contents/Helpers/Inner.app",
+            "Adobe Photoshop 2025/Photoshop.app",
+            "Setapp/Tools/Deep.app",
+            "Setapp/Tools/Deeper/TooDeep.app",
+            ".hidden/Hidden.app",
+        ])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let found = AppScanner.appBundlePaths(in: root.path).map { String($0.dropFirst(root.path.count + 1)) }
+        #expect(Set(found) == ["Top.app", "Adobe Photoshop 2025/Photoshop.app", "Setapp/Tools/Deep.app"])
+    }
+
+    @Test("A skipped folder and a symlinked folder are not walked")
+    func skipsAndSymlinks() throws {
+        let root = try tree(["Utilities/Terminal Clone.app", "Elsewhere/Linked.app"])
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createSymbolicLink(
+            at: root.appendingPathComponent("Link"),
+            withDestinationURL: root.appendingPathComponent("Elsewhere"))
+        let utilities = root.appendingPathComponent("Utilities").path
+        let found = AppScanner.appBundlePaths(in: root.path, skipping: [utilities])
+            .map { String($0.dropFirst(root.path.count + 1)) }
+        #expect(Set(found) == ["Elsewhere/Linked.app"])
+    }
+}
