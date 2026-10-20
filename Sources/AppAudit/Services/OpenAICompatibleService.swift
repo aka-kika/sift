@@ -48,8 +48,7 @@ actor OpenAICompatibleService: AnalysisService {
     private var name: String { endpoint.kind.displayName }
 
     private var apiKey: String {
-        (UserDefaults.standard.string(forKey: endpoint.kind.apiKeyDefaultsKey) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        APIKeyStore.shared.key(for: endpoint.kind)
     }
 
     private var model: String {

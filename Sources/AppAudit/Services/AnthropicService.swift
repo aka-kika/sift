@@ -1,14 +1,13 @@
 import Foundation
 
-/// Anthropic (Claude) provider via the Messages API. API key + model are read from
-/// app preferences (set in Settings).
+/// Anthropic (Claude) provider via the Messages API. The API key comes from the
+/// Keychain, the model from app preferences (both set in Settings).
 actor AnthropicService: AnalysisService {
 
     private let kind = AnalysisProviderKind.anthropic
 
     private var apiKey: String {
-        (UserDefaults.standard.string(forKey: kind.apiKeyDefaultsKey) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        APIKeyStore.shared.key(for: kind)
     }
 
     private var model: String {

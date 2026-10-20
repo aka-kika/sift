@@ -27,6 +27,8 @@ final class SiftAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppAppearance.apply(UserDefaults.standard.string(forKey: "appearancePreference") ?? "system")
+        // Before any analysis runs: cloud API keys leave the preferences plist.
+        APIKeyStore.shared.migrateFromDefaults()
         // Touching the singleton here starts Sparkle's scheduled check at launch.
         _ = UpdateService.shared
     }
