@@ -14,6 +14,25 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 
+## [1.12.4] — 2026-10-20
+
+<!-- SF Symbol: checkmark.shield -->
+### Fixed
+- Mac App Store apps could not be uninstalled in the shipped build: the hardened runtime blocked the Finder handoff. The app now carries the Apple Events entitlement; macOS asks once to let Sift control Finder.
+- When the app bundle could not be moved to the Trash, the sweep still trashed its data. The app now goes first, and if it stays, nothing else is touched.
+- `brew uninstall` could run for a different copy with the same name. It is offered only when Homebrew's install record for the cask points at this exact bundle.
+- Uninstall could pre-check shared data that a second copy outside the scanned folders still uses. Spotlight now finds every copy with the same bundle ID; another copy, or no answer from Spotlight, leaves the data unchecked.
+- A licence key showed "Key saved" even when the Keychain write failed. The panel now flips only on success and says so when the Keychain refuses.
+- At launch Sift read every licence key from the Keychain to see whether one existed. That check is now attribute-only; a key is read only after Touch ID. A Touch ID lock on the Keychain item itself is not possible for a Developer ID app without a provisioning profile (errSecMissingEntitlement), so privacy.md now says Touch ID is Sift's own gate.
+- Cloud API keys sat in plain text in the preferences plist. They live in the login keychain now (service `com.kikaapp.appaudit.apikeys`); a launch migration moves them and removes the plist copy only once the Keychain holds the key.
+- With a cloud provider every analysis sent the names of recent and open apps. The cloud workflow profile now carries counts and categories only; Find Similar, which has to send the app list, asks first every time on a cloud model.
+- The default model was a private one, so a new Mac failed every analysis. The default is `llama3.2`, and a scan switches to the first installed chat model when the chosen one is missing.
+- Any failed database open renamed the store and showed an empty vault. The open is retried, only a file that fails SQLite's quick_check is set aside, an intact but unreadable store stays in place for an in-memory session, and an alert names the file. The crash loop when a fresh store could not be created is gone too.
+
+<!-- SF Symbol: sparkles.rectangle.stack -->
+### Added
+- What's new sheet once after each update, and Help > What's New in Sift.
+
 ## [1.12.3] — 2026-10-14
 
 <!-- SF Symbol: lock -->
