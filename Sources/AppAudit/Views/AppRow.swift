@@ -245,6 +245,7 @@ struct AppRow: View {
         .sheet(isPresented: $uninstallSheetPresented) {
             UninstallSheet(app: app,
                            otherBundleIDs: viewModel.apps.map(\.bundleID).filter { $0 != app.bundleID },
+                           otherAppNames: viewModel.apps.filter { $0.bundleID != app.bundleID }.map(\.name),
                            knownOtherCopies: viewModel.apps
                                .filter { $0.bundleID == app.bundleID && $0.id != app.id }
                                .map(\.path)) { removedBundle in

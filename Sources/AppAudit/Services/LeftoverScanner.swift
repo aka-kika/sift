@@ -9,7 +9,11 @@ import Security
 /// (https://github.com/gostonx/uninstally, MIT License © 2026 Codenta).
 struct LeftoverScanner: Sendable {
 
-    func scan(appName: String, bundleID: String, appPath: String, otherBundleIDs: [String] = []) async -> [LeftoverItem] {
+    /// `otherAppNames` are the names of the other installed apps (other bundle
+    /// IDs). A folder matched only by name that one of them could own is
+    /// listed unchecked rather than taken.
+    func scan(appName: String, bundleID: String, appPath: String,
+              otherBundleIDs: [String] = [], otherAppNames: [String] = []) async -> [LeftoverItem] {
         let fm = FileManager.default
         let library = fm.homeDirectoryForCurrentUser
             .appending(path: "Library", directoryHint: .isDirectory)
@@ -36,6 +40,8 @@ struct LeftoverScanner: Sendable {
 
         // App Group folders can carry the signing team's prefix.
         let teamID = Self.teamIdentifier(ofAppAt: appPath)
+        // Apps whose name a name-only folder could equally stand for.
+        let nameSharers = LeftoverMatcher.nameSharers(appName: appName, otherAppNames: otherAppNames)
 
         var items: [LeftoverItem] = []
 
@@ -60,6 +66,7 @@ struct LeftoverScanner: Sendable {
             for child in children {
                 let name = child.lastPathComponent
                 var reason: String?
+                var startsUnchecked = false
                 if LeftoverMatcher.matches(name: name, bundleID: bundleID, otherBundleIDs: otherBundleIDs) {
                     reason = "Matches \(bundleID)"
                 } else if LeftoverMatcher.appGroupMatchAllowed(for: category),
@@ -67,7 +74,12 @@ struct LeftoverScanner: Sendable {
                     reason = "App group of \(bundleID)"
                 } else if LeftoverMatcher.nameMatchAllowed(for: category),
                           LeftoverMatcher.matchesDisplayName(name, appName: appName) {
-                    reason = "Folder named after \(appName)"
+                    if nameSharers.isEmpty {
+                        reason = "Folder named after \(appName)"
+                    } else {
+                        reason = LeftoverMatcher.sharedNameReason(appName: appName, sharers: nameSharers)
+                        startsUnchecked = true
+                    }
                 }
                 guard let matchReason = reason else { continue }
                 items.append(LeftoverItem(
@@ -75,7 +87,8 @@ struct LeftoverScanner: Sendable {
                     url: child,
                     category: category,
                     sizeBytes: Self.size(of: child),
-                    reason: matchReason
+                    reason: matchReason,
+                    startsUnchecked: startsUnchecked
                 ))
             }
         }

@@ -11,6 +11,9 @@ struct UninstallSheet: View {
     /// Every other installed app, so a sibling's files (Chrome Canary next to
     /// Chrome) are never listed as this app's leftovers.
     var otherBundleIDs: [String] = []
+    /// The names of those other apps. A folder matched only by name that one
+    /// of them could own (1Password next to 1Password 7) starts unchecked.
+    var otherAppNames: [String] = []
     /// Other copies with this bundle ID in the folders Sift scans (a test
     /// build next to the release). The sheet adds what Spotlight finds
     /// anywhere else on the Mac before it decides what to check.
@@ -280,7 +283,8 @@ struct UninstallSheet: View {
 
     private func scan() async {
         let scanner = LeftoverScanner()
-        let found = await scanner.scan(appName: app.name, bundleID: app.bundleID, appPath: app.path, otherBundleIDs: otherBundleIDs)
+        let found = await scanner.scan(appName: app.name, bundleID: app.bundleID, appPath: app.path,
+                                       otherBundleIDs: otherBundleIDs, otherAppNames: otherAppNames)
         // Spotlight sees copies outside the scanned folders (~/Downloads,
         // Toolbox, Setapp). No answer counts as "maybe": data starts unchecked.
         let spotlight = await AppCopyFinder.spotlightPaths(bundleID: app.bundleID)
@@ -293,7 +297,7 @@ struct UninstallSheet: View {
             brewToken = owns ? token : nil
         }
         items = found
-        checked = Set(found.filter { !hasOtherCopy || $0.isAppBundle }.map(\.id))
+        checked = UninstallSweep.initiallyChecked(found, hasOtherCopy: hasOtherCopy)
         refreshRunningState()
         phase = .list
     }
