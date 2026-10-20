@@ -1,6 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
-import AppKit
 
 struct AppListView: View {
     @Environment(AppListViewModel.self) private var viewModel

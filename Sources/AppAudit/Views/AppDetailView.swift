@@ -629,8 +629,6 @@ struct AppDetailView: View {
         .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Utility cards
-
     // MARK: - Similar apps
 
     @ViewBuilder
@@ -1415,10 +1413,6 @@ struct AppDetailView: View {
         return "globe"
     }
 
-    // MARK: - Score helpers
-
-
-
     // MARK: - Update helpers
 
     private func updateActionTitle(latestVersion: String) -> String {
@@ -1615,10 +1609,6 @@ struct NotesEditor: View {
     }
 }
 
-/// Tint-filled cube for the utility row — the card IS the colored chip:
-/// icon plus at most one badge, hugging its content. Disabled cards stay
-/// visible but ignore the primary tap; the context menu stays reachable
-/// (that is how Paid/Free marks remain available on a grayed card).
 /// Softens a tint for dark mode — blends it toward white so the utility cubes
 /// read as gentle pastels on a dark background instead of harsh saturated dots.
 /// Light mode is returned unchanged.
@@ -1628,7 +1618,10 @@ func pastelize(_ color: Color, _ scheme: ColorScheme) -> Color {
     return Color(ns.blended(withFraction: 0.34, of: .white) ?? ns)
 }
 
-
+/// Tint-filled cube for the utility row — the card IS the colored chip:
+/// icon plus at most one badge, hugging its content. Disabled cards stay
+/// visible but ignore the primary tap; the context menu stays reachable
+/// (that is how Paid/Free marks remain available on a grayed card).
 struct UtilityCard<Content: View>: View {
     var tint: Color
     /// Filled with `tint` when active; a neutral gray square when not.

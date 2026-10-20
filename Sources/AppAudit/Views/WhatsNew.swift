@@ -64,11 +64,7 @@ struct WhatsNewSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 8) {
-                #if os(macOS)
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 64, height: 64)
-                #else
-                Image(systemName: "viewfinder").font(.system(size: 40, weight: .light)).foregroundStyle(.tint)
-                #endif
                 Text("What's new in \(appName) \(WhatsNew.currentVersion)").font(.title3.weight(.semibold))
             }
             .padding(.top, 24)
@@ -98,8 +94,6 @@ struct WhatsNewSheet: View {
             }
             .padding(16)
         }
-        #if os(macOS)
         .frame(width: 480, height: 520)
-        #endif
     }
 }
