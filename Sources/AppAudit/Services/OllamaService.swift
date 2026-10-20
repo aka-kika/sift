@@ -70,8 +70,7 @@ actor OllamaService: AnalysisService {
     /// Optional API key. When set, sent as a Bearer token so cloud models
     /// (e.g. via https://ollama.com) authenticate. Ignored by a local server.
     private var apiKey: String {
-        (UserDefaults.standard.string(forKey: AnalysisProviderKind.ollama.apiKeyDefaultsKey) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        APIKeyStore.shared.key(for: .ollama)
     }
 
     private let systemPrompt = AnalysisHTTP.systemPrompt

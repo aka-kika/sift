@@ -1161,18 +1161,27 @@ struct AppDetailView: View {
     /// carries no key at all, but "Lifetime, bought with this Apple ID" is
     /// exactly what the vault is for. So the type and email persist on their
     /// own, and only an emptied key field clears the keychain entry.
-    private func saveLicenseFromDrafts(keyEditable: Bool) {
+    ///
+    /// Returns false when the Keychain refused the key, so the panel stays
+    /// open and says so instead of closing on a key that was never stored.
+    @discardableResult
+    private func saveLicenseFromDrafts(keyEditable: Bool) -> Bool {
         let ensuredRecord = ensureRecord()
         let action = LicenseDraftRules.keyAction(draft: draftLicenseKey,
                                                  hasSavedKey: hasSavedKey,
                                                  keyEditable: keyEditable)
+        var keySaved = true
         if case .save(let key) = action {
-            licenseKeyStore.save(key, bundleID: app.bundleID)
-            ensuredRecord.licenseKey = nil
-            ensuredRecord.hasLicenseKey = true
-            viewModel.setHasLicenseKey(bundleID: app.bundleID, value: true)
+            keySaved = licenseKeyStore.save(key, bundleID: app.bundleID)
+            if keySaved {
+                ensuredRecord.licenseKey = nil
+                ensuredRecord.hasLicenseKey = true
+                viewModel.setHasLicenseKey(bundleID: app.bundleID, value: true)
+            }
         }
-        draftLicenseKey = ""
+        // A refused write keeps the typed key in the still-open panel, so
+        // Save can be tried again instead of the key being lost.
+        if keySaved { draftLicenseKey = "" }
         let email = draftLicenseEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         ensuredRecord.licenseEmail = email.isEmpty ? nil : email
         ensuredRecord.licenseType = draftLicenseType?.rawValue
@@ -1181,6 +1190,7 @@ struct AppDetailView: View {
             ensuredRecord.iconPNG = app.icon?.pngData()
         }
         saveRecord()
+        return keySaved
     }
 
     private var subscriptionBadgeText: String {

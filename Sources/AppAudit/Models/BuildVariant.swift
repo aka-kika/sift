@@ -32,6 +32,14 @@ enum BuildVariant: Equatable {
         }
     }
 
+    /// Keychain service for cloud API keys, separate per variant for the same reason.
+    var apiKeyKeychainService: String {
+        switch self {
+        case .primary: return "com.kikaapp.appaudit.apikeys"
+        case .sift2: return "com.kikaapp.sift2.apikeys"
+        }
+    }
+
     /// Both Sift bundles: the uninstaller refuses to remove either.
     static func isSiftItself(_ bundleID: String) -> Bool {
         bundleID == primaryBundleID || bundleID == sift2BundleID

@@ -46,15 +46,13 @@ struct AnalysisSettingsTab: View {
     @AppStorage(AnalysisProviderKind.storageKey) private var providerRaw = AnalysisProviderKind.ollama.rawValue
     @AppStorage("ollamaBaseURL") private var ollamaBaseURL = OllamaDefaults.baseURL
     @AppStorage("ollamaModel") private var ollamaModel = OllamaDefaults.model
-    @AppStorage("ollamaApiKey") private var ollamaApiKey = ""
-    @AppStorage("anthropicApiKey") private var anthropicApiKey = ""
     @AppStorage("anthropicModel") private var anthropicModel = AnalysisProviderKind.anthropic.defaultModel
-    @AppStorage("openAIApiKey") private var openAIApiKey = ""
     @AppStorage("openAIModel") private var openAIModel = AnalysisProviderKind.openAI.defaultModel
-    @AppStorage("geminiApiKey") private var geminiApiKey = ""
     @AppStorage("geminiModel") private var geminiModel = AnalysisProviderKind.gemini.defaultModel
-    @AppStorage("openRouterApiKey") private var openRouterApiKey = ""
     @AppStorage("openRouterModel") private var openRouterModel = AnalysisProviderKind.openRouter.defaultModel
+    /// The API key lives in the Keychain, never in preferences: one field,
+    /// reloaded for whichever provider is selected.
+    @State private var apiKeyField = APIKeyField()
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -81,13 +79,13 @@ struct AnalysisSettingsTab: View {
                 case .ollama:
                     ollamaConfig
                 case .anthropic:
-                    cloudConfig(apiKey: $anthropicApiKey, model: $anthropicModel, hint: provider.apiKeyHint)
+                    cloudConfig(model: $anthropicModel, hint: provider.apiKeyHint)
                 case .openAI:
-                    cloudConfig(apiKey: $openAIApiKey, model: $openAIModel, hint: provider.apiKeyHint)
+                    cloudConfig(model: $openAIModel, hint: provider.apiKeyHint)
                 case .gemini:
-                    cloudConfig(apiKey: $geminiApiKey, model: $geminiModel, hint: provider.apiKeyHint)
+                    cloudConfig(model: $geminiModel, hint: provider.apiKeyHint)
                 case .openRouter:
-                    cloudConfig(apiKey: $openRouterApiKey, model: $openRouterModel, hint: provider.apiKeyHint)
+                    cloudConfig(model: $openRouterModel, hint: provider.apiKeyHint)
                 }
             }
 
@@ -113,6 +111,7 @@ struct AnalysisSettingsTab: View {
         .padding(.vertical, 12)
         .controlSize(.small)
         .task(id: providerRaw) {
+            apiKeyField.load(provider)
             availableModels = []
             fetchState = .idle
             await fetchModels()
@@ -135,10 +134,11 @@ struct AnalysisSettingsTab: View {
         HStack {
             Text("API Key")
                 .frame(width: 64, alignment: .leading)
-            SecureField("Optional — for ollama.com cloud models", text: $ollamaApiKey)
+            SecureField("Optional — for ollama.com cloud models", text: apiKeyBinding)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.small)
         }
+        apiKeySaveError
 
         SettingsFooter("Leave blank for a local Ollama server. Add an ollama.com key (and set the Base URL to https://ollama.com) to use cloud models.")
 
@@ -149,15 +149,16 @@ struct AnalysisSettingsTab: View {
     }
 
     @ViewBuilder
-    private func cloudConfig(apiKey: Binding<String>, model: Binding<String>, hint: String) -> some View {
+    private func cloudConfig(model: Binding<String>, hint: String) -> some View {
         HStack {
             Text("API Key")
                 .frame(width: 64, alignment: .leading)
-            SecureField("Paste API key", text: apiKey)
+            SecureField("Paste API key", text: apiKeyBinding)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.small)
             fetchButton
         }
+        apiKeySaveError
 
         SettingsFooter(hint)
 
@@ -165,6 +166,19 @@ struct AnalysisSettingsTab: View {
         ProviderStatusView(status: providerStatus)
         Divider()
         modelRow(model: model)
+    }
+
+    private var apiKeyBinding: Binding<String> {
+        Binding(get: { apiKeyField.text }, set: { apiKeyField.update($0) })
+    }
+
+    @ViewBuilder
+    private var apiKeySaveError: some View {
+        if apiKeyField.saveFailed {
+            Label("Key not saved: the macOS Keychain refused it.", systemImage: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
     }
 
     private var fetchButton: some View {

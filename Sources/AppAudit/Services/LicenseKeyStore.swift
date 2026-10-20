@@ -2,7 +2,11 @@ import Foundation
 import Security
 
 protocol SecretStoreBackend: Sendable {
+    /// Reads the secret itself. License keys call this only after Touch ID.
     func read(account: String) -> String?
+    /// Whether an item exists, from its attributes alone: the secret is never
+    /// read, so this is safe at launch and at render time.
+    func exists(account: String) -> Bool
     /// Returns whether the value is now stored. A denied ACL prompt or a locked
     /// keychain must not read as success — callers delete plaintext on that basis.
     @discardableResult
@@ -10,6 +14,13 @@ protocol SecretStoreBackend: Sendable {
     func delete(account: String)
 }
 
+/// Items live in the login (file-based) keychain, without a SecAccessControl.
+/// Sift is a Developer ID app with no provisioning profile, so it has no
+/// keychain access group: the data protection keychain, and a userPresence
+/// access control on any keychain, both fail with errSecMissingEntitlement
+/// (-34018; checked on macOS 26.6 with a hardened-runtime Developer ID build).
+/// Touch ID is therefore Sift's own gate before it reads a key, not a lock on
+/// the item, and every "is there a key" check must stay attribute-only.
 final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable {
     private let service: String
 
@@ -39,6 +50,17 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
             return nil
         }
         return value
+    }
+
+    func exists(account: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
     }
 
     @discardableResult
@@ -104,24 +126,29 @@ final class LicenseKeyStore: @unchecked Sendable {
         return LicenseKeyResolution(value: trimmedLegacy, didMigrateLegacyValue: migrated)
     }
 
-    func save(_ value: String?, bundleID: String) {
+    /// Returns whether the Keychain now holds the key. A failed write must not
+    /// read as saved: callers flip the record's flag and drop the typed key on
+    /// `true` only, or the key is lost. A blank value deletes and counts as done.
+    @discardableResult
+    func save(_ value: String?, bundleID: String) -> Bool {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if trimmed.isEmpty {
             backend.delete(account: bundleID)
-        } else {
-            backend.write(trimmed, account: bundleID)
+            return true
         }
+        return backend.write(trimmed, account: bundleID)
     }
 
     func delete(bundleID: String) {
         backend.delete(account: bundleID)
     }
 
-    /// True when a non-empty key is stored for this bundle ID. Reads the Keychain
-    /// item; for the app that owns the items this does not prompt.
+    /// True when a key is stored for this bundle ID. Looks at the item's
+    /// attributes only and never reads the key, so the launch sweep and the
+    /// vault can call it without Touch ID. `save` never stores a blank key, so
+    /// an existing item is a real one.
     func hasKey(bundleID: String) -> Bool {
-        guard let value = backend.read(account: bundleID) else { return false }
-        return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        backend.exists(account: bundleID)
     }
 
     /// Moves a legacy plaintext value into secure storage if no key exists yet.
@@ -131,7 +158,7 @@ final class LicenseKeyStore: @unchecked Sendable {
     func migrateLegacyKey(_ legacyValue: String?, bundleID: String) -> Bool {
         let trimmed = legacyValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !hasKey(bundleID: bundleID), !trimmed.isEmpty {
-            save(trimmed, bundleID: bundleID)
+            guard save(trimmed, bundleID: bundleID) else { return false }
         }
         return hasKey(bundleID: bundleID)
     }

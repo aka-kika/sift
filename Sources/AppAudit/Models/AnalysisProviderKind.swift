@@ -35,7 +35,11 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// UserDefaults key holding the API key for this provider (cloud only).
+    /// Keychain account for this provider's API key (see `APIKeyStore`).
+    var apiKeyAccount: String { rawValue }
+
+    /// Where builds up to 1.12.3 kept the API key, in plain text in the
+    /// preferences plist. Read only to migrate it into the Keychain.
     var apiKeyDefaultsKey: String {
         switch self {
         case .ollama: return "ollamaApiKey"
@@ -63,10 +67,10 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
     var apiKeyHint: String {
         switch self {
         case .ollama: return "Optional. Only needed for ollama.com cloud models."
-        case .anthropic: return "Anthropic API key (console.anthropic.com). Stored in app preferences."
-        case .openAI: return "OpenAI API key (platform.openai.com). Stored in app preferences."
-        case .gemini: return "Gemini API key (aistudio.google.com/apikey). The free tier covers a daily allowance of calls — enough for a full audit. Stored in app preferences."
-        case .openRouter: return "OpenRouter API key (openrouter.ai/keys). Models ending in :free cost nothing. Stored in app preferences."
+        case .anthropic: return "Anthropic API key (console.anthropic.com). Stored in the macOS Keychain."
+        case .openAI: return "OpenAI API key (platform.openai.com). Stored in the macOS Keychain."
+        case .gemini: return "Gemini API key (aistudio.google.com/apikey). The free tier covers a daily allowance of calls — enough for a full audit. Stored in the macOS Keychain."
+        case .openRouter: return "OpenRouter API key (openrouter.ai/keys). Models ending in :free cost nothing. Stored in the macOS Keychain."
         }
     }
 

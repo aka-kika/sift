@@ -38,8 +38,10 @@ struct MoneyPopover: View {
 
     let onToggleFree: () -> Void
     /// `keyEditable` is false while a saved key is still locked: Save then
-    /// leaves the key alone and stores only the email and type.
-    let onSaveLicense: (_ keyEditable: Bool) -> Void
+    /// leaves the key alone and stores only the email and type. Returns false
+    /// when the Keychain refused the key: the panel then stays open with the
+    /// typed key and says it was not saved.
+    let onSaveLicense: (_ keyEditable: Bool) -> Bool
     /// Asks for Touch ID, then reads the saved key into `draftLicenseKey`
     /// and sets `keyUnlocked` and `revealed`. The system prompt takes focus
     /// and closes this popover, so the owner reopens it, already unlocked.
@@ -58,6 +60,7 @@ struct MoneyPopover: View {
 
     private var keyEditable: Bool { !hasKey || keyUnlocked }
     @State private var tab: Tab = .key
+    @State private var keySaveFailed = false
 
     private static let currencies = ["USD", "EUR", "GBP", "ILS", "CAD", "AUD", "JPY", "CHF"]
 
@@ -196,6 +199,13 @@ struct MoneyPopover: View {
                 lockedKeyRow
             }
 
+            if keySaveFailed {
+                Label("Key not saved: the macOS Keychain refused it. Try Save again.",
+                      systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
             quietField("Registered email (optional)", text: $draftLicenseEmail)
 
             Picker("Type", selection: $draftLicenseType) {
@@ -220,8 +230,11 @@ struct MoneyPopover: View {
                 }
                 Spacer()
                 Button("Save") {
-                    onSaveLicense(keyEditable)
-                    dismiss()
+                    if onSaveLicense(keyEditable) {
+                        dismiss()
+                    } else {
+                        keySaveFailed = true
+                    }
                 }
                     .controlSize(.small)
                     .buttonStyle(.borderedProminent)
