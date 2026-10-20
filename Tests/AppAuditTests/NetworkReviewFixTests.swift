@@ -277,3 +277,25 @@ struct SparkleMinimumSystemTests {
         #expect(client.requestedURLs == [feed])
     }
 }
+
+@Suite("Homebrew checks do not update Homebrew")
+struct HomebrewAutoUpdateTests {
+    private let base = ["PATH": "/usr/bin:/bin", "HOME": "/Users/test"]
+
+    @Test("brew outdated and brew list run with auto-update off")
+    func checksTurnAutoUpdateOff() {
+        for arguments in [["outdated", "--cask", "--json=v2"], ["list", "--cask"]] {
+            let environment = HomebrewService.environment(for: arguments, base: base)
+            #expect(environment["HOMEBREW_NO_AUTO_UPDATE"] == "1")
+            #expect(environment["PATH"] == base["PATH"])
+            #expect(environment["HOME"] == base["HOME"])
+        }
+    }
+
+    @Test("brew upgrade and uninstall keep the user's own environment")
+    func actionsKeepEnvironment() {
+        #expect(HomebrewService.environment(for: ["upgrade", "--cask", "bloom"], base: base) == base)
+        #expect(HomebrewService.environment(for: ["uninstall", "--cask", "bloom"], base: base) == base)
+        #expect(HomebrewService.environment(for: [], base: base) == base)
+    }
+}
