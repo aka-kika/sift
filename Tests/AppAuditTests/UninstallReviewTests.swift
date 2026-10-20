@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import AppKit
 @testable import Sift
 
 /// Fixes from the 2026-10-20 code review.
@@ -56,5 +57,45 @@ struct AppGroupLeftoverTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         #expect(LeftoverScanner.teamIdentifier(ofAppAt: dir.path) == nil)
         #expect(LeftoverScanner.teamIdentifier(ofAppAt: "/nonexistent/Nothing.app") == nil)
+    }
+}
+
+@Suite("Copied license keys do not linger")
+struct SecretClipboardTests {
+    private func scratchPasteboard() -> NSPasteboard {
+        NSPasteboard(name: NSPasteboard.Name("com.kikaapp.SiftTests.\(UUID().uuidString)"))
+    }
+
+    @Test("The key is written with the concealed and transient markers")
+    func markers() {
+        let pasteboard = scratchPasteboard()
+        defer { pasteboard.releaseGlobally() }
+        SecretClipboard.write("KEY-1234", to: pasteboard)
+        #expect(pasteboard.string(forType: .string) == "KEY-1234")
+        let types = pasteboard.types ?? []
+        #expect(types.contains(NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")))
+        #expect(types.contains(NSPasteboard.PasteboardType("org.nspasteboard.TransientType")))
+    }
+
+    @Test("The clear runs only while the clipboard still holds the key")
+    func clearOnlyIfUnchanged() {
+        let pasteboard = scratchPasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let copied = SecretClipboard.write("KEY-1234", to: pasteboard)
+        #expect(SecretClipboard.clearIfUnchanged(pasteboard, changeCount: copied))
+        #expect(pasteboard.string(forType: .string) == nil)
+
+        let again = SecretClipboard.write("KEY-1234", to: pasteboard)
+        pasteboard.clearContents()
+        pasteboard.setString("something copied later", forType: .string)
+        #expect(!SecretClipboard.clearIfUnchanged(pasteboard, changeCount: again))
+        #expect(pasteboard.string(forType: .string) == "something copied later")
+    }
+
+    @Test("Change-count rule and delay")
+    func shouldClear() {
+        #expect(SecretClipboard.shouldClear(currentChangeCount: 7, copiedChangeCount: 7))
+        #expect(!SecretClipboard.shouldClear(currentChangeCount: 8, copiedChangeCount: 7))
+        #expect(SecretClipboard.clearDelay == .seconds(60))
     }
 }

@@ -1092,8 +1092,7 @@ struct AppDetailView: View {
         Task { @MainActor in
             guard await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)"),
                   let key = readLicenseKey() else { return }
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(key, forType: .string)
+            SecretClipboard.copy(key)
         }
     }
 
