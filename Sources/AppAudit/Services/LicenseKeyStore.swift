@@ -104,13 +104,17 @@ final class LicenseKeyStore: @unchecked Sendable {
         return LicenseKeyResolution(value: trimmedLegacy, didMigrateLegacyValue: migrated)
     }
 
-    func save(_ value: String?, bundleID: String) {
+    /// Returns whether the Keychain now holds the key. A failed write must not
+    /// read as saved: callers flip the record's flag and drop the typed key on
+    /// `true` only, or the key is lost. A blank value deletes and counts as done.
+    @discardableResult
+    func save(_ value: String?, bundleID: String) -> Bool {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if trimmed.isEmpty {
             backend.delete(account: bundleID)
-        } else {
-            backend.write(trimmed, account: bundleID)
+            return true
         }
+        return backend.write(trimmed, account: bundleID)
     }
 
     func delete(bundleID: String) {
@@ -131,7 +135,7 @@ final class LicenseKeyStore: @unchecked Sendable {
     func migrateLegacyKey(_ legacyValue: String?, bundleID: String) -> Bool {
         let trimmed = legacyValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !hasKey(bundleID: bundleID), !trimmed.isEmpty {
-            save(trimmed, bundleID: bundleID)
+            guard save(trimmed, bundleID: bundleID) else { return false }
         }
         return hasKey(bundleID: bundleID)
     }
