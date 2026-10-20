@@ -154,3 +154,35 @@ struct RunningWorkTests {
         #expect(RunningWork.refusalText(for: [.homebrew]).title == "Sift is still running Homebrew")
     }
 }
+
+@Suite("Finder handoff does not block the window")
+struct FinderHandoffTests {
+    @Test("A quick answer comes back")
+    func quickAnswer() async {
+        let value = await TrashService.waitAtMost(5) { 42 }
+        #expect(value == 42)
+    }
+
+    @Test("A slow answer is given up on at the deadline")
+    func deadline() async {
+        let start = Date()
+        let value = await TrashService.waitAtMost(0.2) { () -> Int in
+            Thread.sleep(forTimeInterval: 2)
+            return 42
+        }
+        #expect(value == nil)
+        #expect(Date().timeIntervalSince(start) < 1.5)
+    }
+
+    @Test("The work runs off the main thread")
+    func offMain() async {
+        let onMain = await TrashService.waitAtMost(5) { Thread.isMainThread }
+        #expect(onMain == false)
+    }
+
+    @Test("A timeout is reported in plain words")
+    func timeoutReason() {
+        #expect(TrashService.finderTimeout == 30)
+        #expect(TrashService.timeoutReason.contains("30 seconds"))
+    }
+}

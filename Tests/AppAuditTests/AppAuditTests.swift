@@ -1707,18 +1707,20 @@ struct TrashServiceTests {
             NSError(domain: NSOSStatusErrorDomain, code: -5000)))
     }
 
-    @Test("A plain path becomes a Finder delete command")
-    func scriptShape() {
-        #expect(TrashService.finderDeleteScript(for: "/Applications/Bear.app")
-                == "tell application \"Finder\" to delete POSIX file \"/Applications/Bear.app\"")
+    @Test("A path becomes Finder's delete event with the file as direct object")
+    func eventShape() {
+        let url = URL(fileURLWithPath: "/Applications/Bear.app")
+        let event = TrashService.finderDeleteEvent(for: url)
+        #expect(event.eventClass == AEEventClass(kAECoreSuite))
+        #expect(event.eventID == AEEventID(kAEDelete))
+        #expect(event.paramDescriptor(forKeyword: keyDirectObject)?.fileURLValue == url)
     }
 
-    @Test("Quotes and backslashes in a path survive into the script")
-    func scriptEscaping() {
-        let script = TrashService.finderDeleteScript(for: #"/Applications/We"ird\App.app"#)
-        #expect(script.contains(#"We\"ird"#))
-        #expect(script.contains(#"\\App.app"#))
-        #expect(script.hasSuffix("\""))
+    @Test("Quotes and backslashes in a path survive into the event")
+    func eventOddPath() {
+        let url = URL(fileURLWithPath: #"/Applications/We"ird\App.app"#)
+        let event = TrashService.finderDeleteEvent(for: url)
+        #expect(event.paramDescriptor(forKeyword: keyDirectObject)?.fileURLValue?.path == url.path)
     }
 
     @Test("A failure always carries a readable reason")
