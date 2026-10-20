@@ -499,29 +499,32 @@ final class AppListViewModel {
         }
     }
 
-    /// One-time sweep: move any lingering plaintext license keys out of the
-    /// SwiftData store and into the Keychain, then null the legacy field. Runs once
-    /// (guarded by a UserDefaults flag). Reads the owning app's own Keychain items,
-    /// so it does not prompt.
-    func migrateLegacyLicenseKeys() {
+    /// Sweep: move any lingering plaintext license keys out of the SwiftData store
+    /// and into the Keychain, then null the legacy field. Checks for existing keys
+    /// by attributes only, so it does not prompt. The done flag is set only once no
+    /// plaintext key is left: a key the Keychain refused is retried next launch.
+    func migrateLegacyLicenseKeys(store: LicenseKeyStore = .shared, defaults: UserDefaults = .standard) {
         let flagKey = "didMigrateLegacyLicenseKeys"
-        guard !UserDefaults.standard.bool(forKey: flagKey) else { return }
+        guard !defaults.bool(forKey: flagKey) else { return }
         guard let cache = cacheService else { return }
 
-        let store = LicenseKeyStore.shared
         var changed = false
+        var leftBehind = 0
         for record in cache.allRecords() {
             guard let legacy = record.licenseKey, !legacy.isEmpty else { continue }
             let present = store.migrateLegacyKey(legacy, bundleID: record.bundleID)
             // Only drop the plaintext once the Keychain verifiably holds the key —
             // a denied prompt here must not be the moment the key is lost.
-            guard present else { continue }
+            guard present else {
+                leftBehind += 1
+                continue
+            }
             record.licenseKey = nil
             record.hasLicenseKey = true
             changed = true
         }
         if changed { cache.persist() }
-        UserDefaults.standard.set(true, forKey: flagKey)
+        if leftBehind == 0 { defaults.set(true, forKey: flagKey) }
     }
 
     /// Runs the Save panel and writes the audit CSV. Callable from the menu bar.
@@ -535,8 +538,14 @@ final class AppListViewModel {
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.canCreateDirectories = true
         panel.title = "Export Audit to CSV"
-        if panel.runModal() == .OK, let url = panel.url {
-            try? Data(csv.utf8).write(to: url)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try Data(csv.utf8).write(to: url, options: .atomic)
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "The CSV could not be saved"
+            alert.informativeText = "\(url.path): \(error.localizedDescription)"
+            alert.runModal()
         }
     }
 
