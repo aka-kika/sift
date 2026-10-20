@@ -29,7 +29,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - The default model was a private one, so a new Mac failed every analysis. The default is `llama3.2`, and a scan switches to the first installed chat model when the chosen one is missing.
 - Any failed database open renamed the store and showed an empty vault. The open is retried, only a file that fails SQLite's quick_check is set aside, an intact but unreadable store stays in place for an in-memory session, and an alert names the file. The crash loop when a fresh store could not be created is gone too.
 
-<!-- SF Symbol: sparkles.rectangle.stack -->
+<!-- SF Symbol: doc.text -->
 ### Added
 - What's new sheet once after each update, and Help > What's New in Sift.
 
