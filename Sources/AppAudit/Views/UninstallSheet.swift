@@ -11,10 +11,10 @@ struct UninstallSheet: View {
     /// Every other installed app, so a sibling's files (Chrome Canary next to
     /// Chrome) are never listed as this app's leftovers.
     var otherBundleIDs: [String] = []
-    /// Another installed copy shares this bundle ID (a test build next to the
-    /// release). Its settings, caches, and containers are the same folders, so
-    /// they start unchecked and only this copy is quit.
-    var hasOtherCopy = false
+    /// Other copies with this bundle ID in the folders Sift scans (a test
+    /// build next to the release). The sheet adds what Spotlight finds
+    /// anywhere else on the Mac before it decides what to check.
+    var knownOtherCopies: [String] = []
     let onFinished: (_ removedBundle: Bool) -> Void
 
     private enum Phase {
@@ -33,6 +33,13 @@ struct UninstallSheet: View {
     /// The cask brew may uninstall, set only when brew's install record puts
     /// this exact bundle on disk. A name match alone could be another copy.
     @State private var brewToken: String? = nil
+    /// Every other copy of this app, scanned folders and Spotlight together.
+    @State private var copies: AppCopyFinder.Result = .unknown
+
+    /// Another copy shares this bundle ID, or Sift could not rule one out.
+    /// Its settings, caches, and containers are the same folders, so they
+    /// start unchecked and only this copy is quit.
+    private var hasOtherCopy: Bool { copies != .onlyThisCopy }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -118,7 +125,7 @@ struct UninstallSheet: View {
         HStack(spacing: 8) {
             Image(systemName: "square.on.square")
                 .foregroundStyle(.secondary)
-            Text("Another copy of \(app.name) is installed and uses the same settings and data, so only this copy's app is checked.")
+            Text(otherCopyText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
@@ -126,6 +133,19 @@ struct UninstallSheet: View {
         }
         .padding(8)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var otherCopyText: String {
+        switch copies {
+        case .others(let paths):
+            let place = paths.first.map { " at \(abbreviate($0))" } ?? ""
+            let more = paths.count > 1 ? " (and \(paths.count - 1) more)" : ""
+            return "Another copy of \(app.name) is\(place)\(more) and uses the same settings and data, so only this copy's app is checked."
+        case .unknown:
+            return "Spotlight could not confirm this is the only copy of \(app.name), so only the app is checked. Check the rest too if no other copy is on this Mac."
+        case .onlyThisCopy:
+            return ""
+        }
     }
 
     private var brewNote: some View {
@@ -257,6 +277,10 @@ struct UninstallSheet: View {
     private func scan() async {
         let scanner = LeftoverScanner()
         let found = await scanner.scan(appName: app.name, bundleID: app.bundleID, appPath: app.path, otherBundleIDs: otherBundleIDs)
+        // Spotlight sees copies outside the scanned folders (~/Downloads,
+        // Toolbox, Setapp). No answer counts as "maybe": data starts unchecked.
+        let spotlight = await AppCopyFinder.spotlightPaths(bundleID: app.bundleID)
+        copies = AppCopyFinder.classify(found: spotlight, thisPath: app.path, knownOtherPaths: knownOtherCopies)
         if let token = app.homebrewCaskToken {
             let path = app.path
             let owns = await Task.detached {

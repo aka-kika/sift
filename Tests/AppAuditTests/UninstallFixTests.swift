@@ -90,6 +90,60 @@ struct CaskOwnershipTests {
     }
 }
 
+@Suite("Copies outside the scanned folders")
+struct AppCopyFinderTests {
+    private let this = "/Applications/Reed.app"
+
+    @Test("Spotlight finding only this copy means data can be pre-checked")
+    func onlyThisCopy() {
+        #expect(AppCopyFinder.classify(found: [this], thisPath: this) == .onlyThisCopy)
+    }
+
+    @Test("A copy in Downloads is another copy")
+    func downloadsCopy() {
+        let downloads = "/Users/me/Downloads/Reed.app"
+        #expect(AppCopyFinder.classify(found: [this, downloads], thisPath: this) == .others([downloads]))
+    }
+
+    @Test("Scanned and Spotlight copies merge without repeats")
+    func merge() {
+        let test = "/Applications/Reed Test.app"
+        let toolbox = "/Users/me/Applications/JetBrains Toolbox/Reed.app"
+        #expect(AppCopyFinder.classify(found: [this, test, toolbox], thisPath: this, knownOtherPaths: [test])
+                == .others([test, toolbox]))
+    }
+
+    @Test("Helpers inside this app and copies in the Trash do not count")
+    func ignoredPaths() {
+        let found = [this, this + "/Contents/Helpers/Reed Helper.app", "/Users/me/.Trash/Reed.app"]
+        #expect(AppCopyFinder.classify(found: found, thisPath: this) == .onlyThisCopy)
+    }
+
+    @Test("No answer, or an answer missing this copy, is a maybe")
+    func failSafe() {
+        #expect(AppCopyFinder.classify(found: nil, thisPath: this) == .unknown)
+        #expect(AppCopyFinder.classify(found: [], thisPath: this) == .unknown)
+        // A failed query still reports the copies Sift scanned itself.
+        #expect(AppCopyFinder.classify(found: nil, thisPath: this, knownOtherPaths: ["/Applications/Reed Test.app"])
+                == .others(["/Applications/Reed Test.app"]))
+    }
+
+    @Test("The query escapes quotes in the bundle ID")
+    func queryEscaping() {
+        #expect(AppCopyFinder.queryString(bundleID: "com.example.reed")
+                == #"kMDItemContentType == "com.apple.application-bundle" && kMDItemCFBundleIdentifier == "com.example.reed""#)
+        #expect(AppCopyFinder.queryString(bundleID: #"a"b\c"#).hasSuffix(#"== "a\"b\\c""#))
+    }
+
+    @Test("Spotlight answers or gives up in time")
+    func timeout() async {
+        let start = ContinuousClock.now
+        _ = await AppCopyFinder.spotlightPaths(bundleID: "com.example.sift-test-none", timeout: .milliseconds(500))
+        #expect(ContinuousClock.now - start < .seconds(2))
+        #expect(await AppCopyFinder.spotlightPaths(bundleID: "") == nil)
+    }
+}
+
 @Suite("Uninstall sweep stops at a stuck bundle")
 @MainActor
 struct UninstallSweepTests {
