@@ -39,30 +39,38 @@ struct AppAuditApp: App {
     @AppStorage("developerMode") private var developerMode = false
     @NSApplicationDelegateAdaptor(SiftAppDelegate.self) private var appDelegate
 
-    private static let container: ModelContainer = {
+    private static let store: (container: ModelContainer, issue: DataStoreOpenIssue?) = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let storeDir = appSupport.appendingPathComponent(Self.dataFolderName, isDirectory: true)
         try? FileManager.default.createDirectory(at: storeDir, withIntermediateDirectories: true)
         let storeURL = storeDir.appendingPathComponent("AppAudit.store")
         let config = ModelConfiguration(url: storeURL)
-        if let container = try? ModelContainer(for: AppRecord.self, configurations: config) {
-            return container
+        // Twice: a file briefly held by another process fails the first open only.
+        for _ in 0..<2 {
+            if let container = try? ModelContainer(for: AppRecord.self, configurations: config) {
+                return (container, nil)
+            }
         }
-        // The store could not be opened (schema from a newer build, corruption).
-        // Set it aside — never delete — and start fresh, so the app still launches
-        // and the old data can be recovered by hand.
-        let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-        for suffix in ["", "-wal", "-shm"] {
-            let from = storeDir.appendingPathComponent("AppAudit.store" + suffix)
-            let to = storeDir.appendingPathComponent("AppAudit.store.broken-\(stamp)" + suffix)
-            try? FileManager.default.moveItem(at: from, to: to)
+        // Only a store SQLite itself calls damaged is set aside (never deleted) for
+        // a fresh one. Anything else, such as a schema from a newer build, stays
+        // where it is and this session runs in memory, so no data is hidden.
+        if DataStoreRecovery.isCorrupt(storeURL: storeURL),
+           let movedTo = DataStoreRecovery.setAside(storeURL: storeURL),
+           let container = try? ModelContainer(for: AppRecord.self, configurations: config) {
+            return (container, .setAside(movedTo))
         }
         do {
-            return try ModelContainer(for: AppRecord.self, configurations: config)
+            let memory = ModelConfiguration(isStoredInMemoryOnly: true)
+            return (try ModelContainer(for: AppRecord.self, configurations: memory), .leftInPlace(storeURL))
         } catch {
-            fatalError("Sift cannot open or recreate its data store at \(storeURL.path): \(error)")
+            fatalError("Sift cannot open its data store at \(storeURL.path), even in memory: \(error)")
         }
     }()
+
+    private static var container: ModelContainer { store.container }
+
+    /// Set when the library could not be opened normally; ContentView tells the user.
+    static var storeOpenIssue: DataStoreOpenIssue? { store.issue }
 
     /// Folder under Application Support for this build's SwiftData store. The side-build
     /// (Sift2 test app) gets an isolated folder so it never touches the primary app's

@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("developerMode") private var developerMode = false
+    @State private var storeOpenIssue = AppAuditApp.storeOpenIssue
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -50,6 +51,21 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             // Settings writes the provider and model straight to UserDefaults.
             viewModel.recomputeStaleModelCount()
+        }
+        .alert(
+            storeOpenIssue?.title ?? "",
+            isPresented: Binding(
+                get: { storeOpenIssue != nil },
+                set: { if !$0 { storeOpenIssue = nil } }
+            ),
+            presenting: storeOpenIssue
+        ) { issue in
+            Button("Show in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([issue.fileURL])
+            }
+            Button("OK", role: .cancel) {}
+        } message: { issue in
+            Text(issue.message)
         }
         .onChange(of: developerMode) { _, enabled in
             viewModel.setFilterMyApps(
