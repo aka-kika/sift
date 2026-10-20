@@ -216,3 +216,64 @@ struct AppStoreBundleMatchTests {
         #expect(await UpdateChecker(client: client).check(app: app) == .unavailable)
     }
 }
+
+@Suite("Sparkle minimum macOS")
+struct SparkleMinimumSystemTests {
+    /// 3.0 needs macOS 27, 2.5 needs 15.0, 2.0 states no minimum.
+    private let feedXML = """
+    <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
+    <item><title>3.0</title><sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://example.com/3.0.zip" sparkle:shortVersionString="3.0" sparkle:version="300"/></item>
+    <item><title>2.5</title><sparkle:minimumSystemVersion> 15.0 </sparkle:minimumSystemVersion>
+      <enclosure url="https://example.com/2.5.zip" sparkle:shortVersionString="2.5" sparkle:version="250"/></item>
+    <item><title>2.0</title>
+      <enclosure url="https://example.com/2.0.zip" sparkle:shortVersionString="2.0" sparkle:version="200"/></item>
+    </channel></rss>
+    """
+
+    @Test("The newest release this Mac can run is chosen")
+    func newestRunnable() throws {
+        let data = Data(feedXML.utf8)
+        #expect(try UpdateChecker.parseSparkleMetadata(from: data, systemVersion: "27.0.0")?.version == "3.0")
+        #expect(try UpdateChecker.parseSparkleMetadata(from: data, systemVersion: "26.1.0")?.version == "2.5")
+        #expect(try UpdateChecker.parseSparkleMetadata(from: data, systemVersion: "15.0.0")?.url == "https://example.com/2.5.zip")
+        #expect(try UpdateChecker.parseSparkleMetadata(from: data, systemVersion: "14.7.1")?.version == "2.0")
+    }
+
+    @Test("The older attribute form counts too")
+    func attributeForm() {
+        let item = #"<item><enclosure url="https://example.com/a.zip" sparkle:minimumSystemVersion="26.2"/></item>"#
+        #expect(!UpdateChecker.runs(item, onSystemVersion: "26.1.0"))
+        #expect(UpdateChecker.runs(item, onSystemVersion: "26.2.0"))
+        #expect(UpdateChecker.runs("<item></item>", onSystemVersion: "14.0.0"))
+    }
+
+    @Test("When no release runs here, the looser scans do not bring one back")
+    func nothingRunnable() throws {
+        let xml = """
+        <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
+        <item><sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
+          <enclosure url="https://example.com/3.0.zip" sparkle:shortVersionString="3.0"/></item>
+        </channel></rss>
+        """
+        #expect(try UpdateChecker.parseSparkleFeed(from: Data(xml.utf8), systemVersion: "26.0.0") == .nothingThisMacCanRun)
+        #expect(try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8), systemVersion: "26.0.0") == nil)
+    }
+
+    @Test("An app whose new release needs a newer macOS reads as up to date")
+    func checkerSkipsTooNew() async {
+        let feed = "https://example.com/appcast.xml"
+        let xml = """
+        <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
+        <item><sparkle:minimumSystemVersion>999.0</sparkle:minimumSystemVersion>
+          <enclosure url="https://example.com/9.0.zip" sparkle:shortVersionString="9.0"/></item>
+        </channel></rss>
+        """
+        let client = RecordingUpdateClient([feed: xml])
+        let state = await UpdateChecker(client: client).check(app: feedApp(version: "1.0", feed: feed),
+                                                              appURL: "https://github.com/author/bloom")
+        #expect(state == .upToDate(source: .sparkle))
+        // GitHub is not asked: it would offer the same release.
+        #expect(client.requestedURLs == [feed])
+    }
+}
