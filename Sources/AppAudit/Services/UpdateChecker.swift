@@ -194,6 +194,12 @@ actor UpdateChecker {
         return url
     }
 
+    /// Bundle IDs compare without case, as the store's lookup does.
+    static func isSameBundleID(_ result: String?, _ installed: String) -> Bool {
+        guard let result, !installed.isEmpty else { return false }
+        return result.caseInsensitiveCompare(installed) == .orderedSame
+    }
+
     static func appStoreLookupURL(for bundleID: String) -> URL? {
         var components = URLComponents(string: "https://itunes.apple.com/lookup")
         components?.queryItems = [
@@ -268,16 +274,16 @@ actor UpdateChecker {
         return isVersion(candidateBuild, newerThan: installedBuild)
     }
 
+    /// Only a result for this very bundle ID counts: the lookup can return a
+    /// related app, and its version or store page would be the wrong answer.
     static func parseAppStoreMetadata(
         from data: Data,
-        preferredBundleID: String? = nil
+        preferredBundleID: String
     ) throws -> UpdateMetadata? {
         let response = try JSONDecoder().decode(AppStoreLookupResponse.self, from: data)
-        let result =
-            response.results.first(where: {
-                $0.bundleID == preferredBundleID && ($0.version ?? "").isEmpty == false
-            }) ??
-            response.results.first(where: { ($0.version ?? "").isEmpty == false })
+        let result = response.results.first(where: {
+            isSameBundleID($0.bundleID, preferredBundleID) && ($0.version ?? "").isEmpty == false
+        })
 
         guard let result, let version = result.version, !version.isEmpty else {
             return nil

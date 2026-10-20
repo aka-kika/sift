@@ -55,13 +55,12 @@ actor AppLinkResolver {
         }
     }
 
-    static func parseAppStoreLink(from data: Data, preferredBundleID: String? = nil) throws -> String? {
+    /// Only this bundle ID's own store page; another app's page is no link at all.
+    static func parseAppStoreLink(from data: Data, preferredBundleID: String) throws -> String? {
         let response = try JSONDecoder().decode(AppStoreLinkLookupResponse.self, from: data)
-        let result =
-            response.results.first(where: {
-                $0.bundleID == preferredBundleID && ($0.trackViewURL ?? "").isEmpty == false
-            }) ??
-            response.results.first(where: { ($0.trackViewURL ?? "").isEmpty == false })
+        let result = response.results.first(where: {
+            UpdateChecker.isSameBundleID($0.bundleID, preferredBundleID) && ($0.trackViewURL ?? "").isEmpty == false
+        })
 
         return result?.trackViewURL
     }

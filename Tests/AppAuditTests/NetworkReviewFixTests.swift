@@ -174,3 +174,45 @@ struct HTTPSOnlyUpdateTests {
         #expect(await AppLinkResolver(client: client).resolve(app: feedApp(feed: "file:///tmp/appcast.xml")) == nil)
     }
 }
+
+@Suite("App Store lookup needs the same bundle ID")
+struct AppStoreBundleMatchTests {
+    private let otherAppOnly = Data("""
+    {"resultCount":1,"results":[{"bundleId":"com.example.Other","trackId":111,"version":"9.0",
+    "trackViewUrl":"https://apps.apple.com/app/other/id111"}]}
+    """.utf8)
+
+    @Test("Another app's version is not taken as this app's update")
+    func noVersionFromOtherApp() throws {
+        #expect(try UpdateChecker.parseAppStoreMetadata(from: otherAppOnly, preferredBundleID: "com.example.Bloom") == nil)
+    }
+
+    @Test("Another app's store page is not suggested as this app's link")
+    func noLinkFromOtherApp() throws {
+        #expect(try AppLinkResolver.parseAppStoreLink(from: otherAppOnly, preferredBundleID: "com.example.Bloom") == nil)
+    }
+
+    @Test("The matching result wins wherever it sits, and case does not matter")
+    func matchingResult() throws {
+        let data = Data("""
+        {"results":[{"bundleId":"com.example.Other","trackId":111,"version":"9.0"},
+        {"bundleId":"com.example.bloom","trackId":222,"version":"2.1","trackViewUrl":"https://apps.apple.com/app/bloom/id222"}]}
+        """.utf8)
+        let meta = try UpdateChecker.parseAppStoreMetadata(from: data, preferredBundleID: "com.example.Bloom")
+        #expect(meta?.version == "2.1")
+        #expect(meta?.url == "macappstore://itunes.apple.com/app/id222")
+        #expect(try AppLinkResolver.parseAppStoreLink(from: data, preferredBundleID: "com.example.Bloom")
+                == "https://apps.apple.com/app/bloom/id222")
+    }
+
+    @Test("A store copy with no matching result offers no update")
+    func storeCopyWithoutMatch() async throws {
+        let bundleID = "com.example.Bloom"
+        let lookup = try #require(UpdateChecker.appStoreLookupURL(for: bundleID))
+        let client = RecordingUpdateClient([lookup.absoluteString: String(decoding: otherAppOnly, as: UTF8.self)])
+        let app = AppInfo(id: bundleID, name: "Bloom", version: "1.0", bundleID: bundleID,
+                          path: "/Applications/Bloom.app", humanReadableDescription: nil,
+                          sparkleFeedURL: nil, isAppStoreInstall: true, icon: nil)
+        #expect(await UpdateChecker(client: client).check(app: app) == .unavailable)
+    }
+}
