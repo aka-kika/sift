@@ -102,10 +102,12 @@ enum AppAnalysisPrompt {
         let readablePath = pathSegments.isEmpty ? "(root)" : pathSegments.joined(separator: " / ")
         let sourceKind = referenceSourceKind(host: host, pathSegments: pathSegments)
         let slugHint = readableSlugHint(from: pathSegments)
+        // The query and fragment can hold tokens; the model only needs the page.
+        let namedURL = LinkEvidence.withoutQueryOrFragment(url)?.absoluteString ?? rawURL
 
         var block = """
 
-        Reference URL: \(rawURL)
+        Reference URL: \(namedURL)
         Reference URL context:
         - Host: \(host)
         - Source type: \(sourceKind)

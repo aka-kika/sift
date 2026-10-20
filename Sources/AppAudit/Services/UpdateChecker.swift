@@ -98,7 +98,8 @@ actor UpdateChecker {
             )
         }
 
-        if let sparkleMetadata = await fetchSparkleMetadata(feedURLString: app.sparkleFeedURL) {
+        switch await fetchSparkleFeed(feedURLString: app.sparkleFeedURL) {
+        case .release(let sparkleMetadata)?:
             if Self.isRelease(sparkleMetadata, newerThanVersion: app.version, build: app.build) {
                 let latestVersion = sparkleMetadata.displayVersion(installedVersion: app.version)
                 if acknowledgedVersion == latestVersion {
@@ -111,6 +112,12 @@ actor UpdateChecker {
                 )
             }
             return .upToDate(source: .sparkle)
+        case .nothingThisMacCanRun?:
+            // What the app's own updater says too. Asking GitHub next would
+            // offer the same release this Mac cannot run.
+            return .upToDate(source: .sparkle)
+        case nil:
+            break
         }
 
         // A store copy is answered by the store or by nobody: a GitHub build of
@@ -152,13 +159,12 @@ actor UpdateChecker {
         }
     }
 
-    private func fetchSparkleMetadata(feedURLString: String?) async -> UpdateMetadata? {
-        guard let feedURLString,
-              let feedURL = URL(string: feedURLString) else { return nil }
+    private func fetchSparkleFeed(feedURLString: String?) async -> SparkleFeedAnswer? {
+        guard let feedURL = Self.httpsURL(feedURLString) else { return nil }
 
         do {
             let data = try await client.data(for: feedURL)
-            return try Self.parseSparkleMetadata(from: data)
+            return try Self.parseSparkleFeed(from: data)
         } catch {
             return nil
         }
@@ -182,6 +188,23 @@ actor UpdateChecker {
             outdatedCasksCache = homebrew.outdatedCasks()
         }
         return outdatedCasksCache?.first { $0.token == caskToken }
+    }
+
+    /// Feeds and download links count only over https: an http feed can be
+    /// swapped on the way, and a file: or http link would be opened as is
+    /// under the Download button.
+    static func httpsURL(_ string: String?) -> URL? {
+        guard let string = string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let url = URL(string: string),
+              url.scheme?.lowercased() == "https",
+              let host = url.host(), !host.isEmpty else { return nil }
+        return url
+    }
+
+    /// Bundle IDs compare without case, as the store's lookup does.
+    static func isSameBundleID(_ result: String?, _ installed: String) -> Bool {
+        guard let result, !installed.isEmpty else { return false }
+        return result.caseInsensitiveCompare(installed) == .orderedSame
     }
 
     static func appStoreLookupURL(for bundleID: String) -> URL? {
@@ -231,7 +254,8 @@ actor UpdateChecker {
     /// to plain `…/releases`, which is no answer. Tags may contain slashes.
     static func parseGitHubMetadata(fromRedirect location: URL) -> UpdateMetadata? {
         let marker = "/releases/tag/"
-        guard let host = location.host()?.lowercased(), host == "github.com" || host == "www.github.com",
+        guard location.scheme?.lowercased() == "https",
+              let host = location.host()?.lowercased(), host == "github.com" || host == "www.github.com",
               let range = location.path.range(of: marker) else { return nil }
         let tag = String(location.path[range.upperBound...])
         guard !tag.isEmpty, let version = version(fromGitHubTag: tag) else { return nil }
@@ -257,40 +281,68 @@ actor UpdateChecker {
         return isVersion(candidateBuild, newerThan: installedBuild)
     }
 
+    /// Only a result for this very bundle ID counts: the lookup can return a
+    /// related app, and its version or store page would be the wrong answer.
     static func parseAppStoreMetadata(
         from data: Data,
-        preferredBundleID: String? = nil
+        preferredBundleID: String
     ) throws -> UpdateMetadata? {
         let response = try JSONDecoder().decode(AppStoreLookupResponse.self, from: data)
-        let result =
-            response.results.first(where: {
-                $0.bundleID == preferredBundleID && ($0.version ?? "").isEmpty == false
-            }) ??
-            response.results.first(where: { ($0.version ?? "").isEmpty == false })
+        let result = response.results.first(where: {
+            isSameBundleID($0.bundleID, preferredBundleID) && ($0.version ?? "").isEmpty == false
+        })
 
         guard let result, let version = result.version, !version.isEmpty else {
             return nil
         }
 
-        let url = result.trackID.map { "macappstore://itunes.apple.com/app/id\($0)" } ?? result.trackViewURL
+        // The macappstore: link is built here from a number, so it is safe to open.
+        let url = result.trackID.map { "macappstore://itunes.apple.com/app/id\($0)" }
+            ?? httpsURL(result.trackViewURL)?.absoluteString
         return UpdateMetadata(version: version, url: url)
     }
 
-    static func parseSparkleMetadata(from data: Data) throws -> UpdateMetadata? {
+    /// This Mac's macOS version, as `26.1.0`.
+    static var currentSystemVersion: String {
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        return "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+    }
+
+    enum SparkleFeedAnswer: Equatable {
+        case release(UpdateMetadata)
+        /// The feed has releases, but each needs a newer macOS than this Mac has.
+        case nothingThisMacCanRun
+    }
+
+    /// The newest release this Mac can run, nil when the feed names none.
+    static func parseSparkleMetadata(from data: Data, systemVersion: String = currentSystemVersion) throws -> UpdateMetadata? {
+        guard case .release(let metadata)? = try parseSparkleFeed(from: data, systemVersion: systemVersion) else { return nil }
+        return metadata
+    }
+
+    /// `systemVersion` is the macOS to judge `sparkle:minimumSystemVersion`
+    /// against; tests pass their own.
+    static func parseSparkleFeed(from data: Data, systemVersion: String = currentSystemVersion) throws -> SparkleFeedAnswer? {
         guard let xml = String(data: data, encoding: .utf8) else { return nil }
 
         // Per <item>: the human version (shortVersionString, attribute or element)
         // beats the build number (sparkle:version), and anything on a named
         // channel (beta, nightly) is not an update for a release install.
+        // An item that needs a newer macOS than this Mac has is not offered:
+        // the newest item this Mac can run is the answer.
         let items = matches(for: #"(?s)(<item\b.*?</item>)"#, in: xml).compactMap(\.first)
-        let itemVersions = items.compactMap(parseSparkleItem)
+        let runnableItems = items.filter { runs($0, onSystemVersion: systemVersion) }
+        let itemVersions = runnableItems.compactMap(parseSparkleItem)
         if let newestItem = newestMetadata(in: itemVersions) {
-            return newestItem
+            return .release(newestItem)
         }
+        // The looser scans below cannot see which item an enclosure belongs to,
+        // so they would bring a skipped release back.
+        guard runnableItems.count == items.count else { return .nothingThisMacCanRun }
 
         let enclosureVersions = enclosureTags(in: xml).compactMap(parseSparkleEnclosure)
         if let newestEnclosure = newestMetadata(in: enclosureVersions) {
-            return newestEnclosure
+            return .release(newestEnclosure)
         }
 
         let versions =
@@ -305,7 +357,7 @@ actor UpdateChecker {
             in: xml
         ).compactMap(\.first).first
 
-        return UpdateMetadata(version: newestVersion, url: fallbackURL)
+        return .release(UpdateMetadata(version: newestVersion, url: httpsURL(fallbackURL)?.absoluteString))
     }
 
     private static func newestMetadata(in candidates: [UpdateMetadata]) -> UpdateMetadata? {
@@ -361,6 +413,16 @@ actor UpdateChecker {
         }
     }
 
+    /// False when the item's `sparkle:minimumSystemVersion` (element, or the
+    /// older attribute form) is newer than `systemVersion`. No minimum: it runs.
+    static func runs(_ item: String, onSystemVersion systemVersion: String) -> Bool {
+        let minimum =
+            firstCapturedValue(for: #"<sparkle:minimumSystemVersion>\s*([^<]+?)\s*</sparkle:minimumSystemVersion>"#, in: item) ??
+            firstCapturedValue(for: #"sparkle:minimumSystemVersion="([^"]+)""#, in: item)
+        guard let minimum = minimum?.trimmingCharacters(in: .whitespacesAndNewlines), !minimum.isEmpty else { return true }
+        return !VersionComparator.isNewer(minimum, than: systemVersion)
+    }
+
     private static func parseSparkleItem(_ item: String) -> UpdateMetadata? {
         if let channel = firstCapturedValue(for: #"<sparkle:channel>\s*([^<]+?)\s*</sparkle:channel>"#, in: item),
            !channel.isEmpty {
@@ -375,7 +437,8 @@ actor UpdateChecker {
         guard let version = version?.trimmingCharacters(in: .whitespacesAndNewlines), !version.isEmpty else {
             return nil
         }
-        let url = enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) }
+        // A download that is not https is no link at all: the update still counts.
+        let url = httpsURL(enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) })?.absoluteString
         let build =
             enclosure.flatMap { firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: $0) } ??
             firstCapturedValue(for: #"<sparkle:version>([^<]+)</sparkle:version>"#, in: item)
@@ -391,7 +454,7 @@ actor UpdateChecker {
             return nil
         }
 
-        return UpdateMetadata(version: version, url: url)
+        return UpdateMetadata(version: version, url: httpsURL(url)?.absoluteString)
     }
 
     private static func firstCapturedValue(for pattern: String, in text: String) -> String? {

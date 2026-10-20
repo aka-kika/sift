@@ -153,11 +153,28 @@ struct HomebrewService: Sendable {
         return components[index + 1]
     }
 
+    /// The environment one brew run gets. `brew outdated` is on Homebrew's
+    /// auto-update list: left alone it runs `brew update` first, which fetches
+    /// for many seconds and changes the user's Homebrew during a read-only
+    /// check. So the checks Sift runs by itself turn auto-update off.
+    /// `brew upgrade` keeps it: the user asked for the update, and brew should
+    /// fetch the current cask before installing it, as it does in Terminal.
+    static func environment(for arguments: [String], base: [String: String]) -> [String: String] {
+        var environment = base
+        if let command = arguments.first, checkCommands.contains(command) {
+            environment["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+        }
+        return environment
+    }
+
+    private static let checkCommands: Set<String> = ["list", "outdated"]
+
     private func runBrewChecked(arguments: [String]) -> BrewOutcome {
         guard let brewPath = Self.brewExecutablePath() else { return BrewOutcome(exitStatus: nil, output: "") }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: brewPath)
         process.arguments = arguments
+        process.environment = Self.environment(for: arguments, base: ProcessInfo.processInfo.environment)
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
@@ -184,6 +201,7 @@ struct HomebrewService: Sendable {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: brewPath)
         process.arguments = arguments
+        process.environment = Self.environment(for: arguments, base: ProcessInfo.processInfo.environment)
 
         // Callers parse stdout (JSON, cask lists), so stderr is discarded rather
         // than piped: an unread pipe fills at 64 KB and brew blocks forever on it.
