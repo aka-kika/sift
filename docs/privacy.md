@@ -48,7 +48,9 @@ notes, which is the point of the vault. Nothing is uploaded as a consequence.
 Sift is **not sandboxed**, because auditing installed apps means reading
 `/Applications`, `~/Applications`, and the user-level Library folders directly.
 It reads app metadata and, during an uninstall sweep, moves the items you tick to
-the Trash. It never writes into another app's data, and it never deletes: every
+the Trash. Before a sweep it asks Spotlight, on this Mac, for other copies of the
+same app, so data another copy still uses is not pre-checked. If the app itself
+cannot be moved, the sweep stops and nothing else is touched. It never writes into another app's data, and it never deletes: every
 sweep is a Trash move you can undo. Apple system apps (`com.apple.*`) and Sift
 itself are refused outright.
 

@@ -101,7 +101,10 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 - Right-click → **Uninstall…** finds the bundle plus every leftover matched to its bundle ID across twelve Library locations, each with a size and the reason it matched
 - **Everything goes to the Trash** — recoverable by design; nothing is deleted
 - The licence record **survives the uninstall** and stays in your vault
-- Works on Mac App Store apps by handing root-owned bundles to Finder rather than asking you for a password
+- Works on Mac App Store apps by handing root-owned bundles to Finder rather than asking you for a password (macOS asks once to let Sift control Finder)
+- **The app goes first.** If the app itself can't be moved, nothing else is touched
+- If another copy of the app is anywhere on the Mac (Downloads, Setapp, JetBrains Toolbox), Spotlight finds it and the shared data starts unchecked
+- `brew uninstall` is offered only for the copy Homebrew itself installed
 - Apple system apps and Sift itself are refused outright
 
 ## Requirements
@@ -147,7 +150,7 @@ No. With the default local Ollama provider nothing leaves your Mac. If you switc
 For analysis, yes — or a cloud API key instead. Without either, Sift still scans, lists, tracks licences, checks updates, and uninstalls; only the AI explanation and score are unavailable.
 
 **Is it safe to uninstall with Sift?**
-Everything moves to the Trash, so any sweep is reversible until you empty it. Apple system apps and Sift itself are protected, and each leftover is listed with the reason it matched before you confirm.
+Everything moves to the Trash, so any sweep is reversible until you empty it. Apple system apps and Sift itself are protected, and each leftover is listed with the reason it matched before you confirm. If the app itself can't be moved, Sift leaves its data alone too, and if another copy of the app exists anywhere on your Mac, its shared data starts unchecked.
 
 **What happens to my licence keys when I remove an app?**
 They stay. The record moves to "No longer installed" in the License Vault and moves back if you reinstall — that's the whole reason the vault exists.
