@@ -88,7 +88,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 
 ### Money, in one place
 - One **License cube** per app whose face tells you the state at a glance: subscription, App Store, lifetime, one-time, annual, free
-- Licence keys in the **macOS Keychain**, device-bound, never iCloud-synced, revealed only with **Touch ID**
+- Licence keys in the **macOS Keychain**, device-bound, never iCloud-synced; Sift reads one only after **Touch ID**
 - Subscriptions with amount, currency, cycle, renewal date, and a countdown that turns orange as it approaches
 - **License Vault** (`⇧⌘L`) — everything you've bought, split into installed and no-longer-installed, so a key never disappears with the app
 
@@ -132,7 +132,7 @@ Building from source? See **[docs/environment.md](docs/environment.md)** — zer
 Sift collects nothing. No analytics, no crash reporting, no accounts, and no server of its own exists.
 
 - **Analysis** runs locally on Ollama by default. Switching to a cloud provider is your explicit choice, under your own API key.
-- **Licence keys** live in the macOS Keychain, never in the app's database and never in a CSV export.
+- **Licence keys and cloud API keys** live in the macOS Keychain, never in the app's database, its preferences file, or a CSV export.
 - **Network calls** happen only for update checks, fetching a page you linked, and a cloud provider you opted into.
 - **Nothing is deleted.** The uninstall sweep is a Trash move you can undo.
 
@@ -141,7 +141,7 @@ Full declaration, including every OS permission and how to revoke it: **[docs/pr
 ## FAQ
 
 **Does Sift send my app list anywhere?**
-No. With the default local Ollama provider nothing leaves your Mac. If you switch to a cloud provider (Anthropic, OpenAI, Gemini, OpenRouter), only that app's analysis prompt goes to the provider you chose, under your own key.
+No. With the default local Ollama provider nothing leaves your Mac. If you switch to a cloud provider (Anthropic, OpenAI, Gemini, OpenRouter), each analysis sends that one app's prompt plus a profile with only your app count and top categories, no app names, to the provider you chose, under your own key. Find Similar is the one exception: it has to send your installed app names to pick from, so with a cloud provider Sift asks you first, every time.
 
 **Do I need Ollama?**
 For analysis, yes — or a cloud API key instead. Without either, Sift still scans, lists, tracks licences, checks updates, and uninstalls; only the AI explanation and score are unavailable.

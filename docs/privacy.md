@@ -7,7 +7,7 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # Sift — Privacy & Permissions
 
-**Updated:** 2026-08-27 · **Version:** 1.10.0
+**Updated:** 2026-10-20 · **Version:** 1.12.4
 
 ## In one line
 
@@ -25,7 +25,8 @@ app you linked.
 | Installed-app inventory (name, bundle ID, version, path, category, last-used date) | The audit itself | SwiftData store in `~/Library/Application Support/` | No |
 | AI analysis (explanation, score, reason, best use) | The recommendation | Same local store | No |
 | Your notes and custom descriptions | Feed the analysis as evidence | Same local store | Only if you pick a cloud provider (see Network) |
-| Licence keys | The License Vault | **macOS Keychain**, service keyed to the bundle ID — never the SwiftData store | No |
+| Licence keys | The License Vault | **macOS login keychain**, service `com.kikaapp.appaudit.licensekeys`, this device only, never iCloud-synced — never the SwiftData store | No |
+| Cloud API keys (Anthropic, OpenAI, Gemini, OpenRouter, ollama.com) | Optional cloud analysis | **macOS login keychain**, service `com.kikaapp.appaudit.apikeys`, one item per provider. Builds up to 1.12.3 kept them in the preferences file; Sift moves them on first launch and removes the old copy only once the Keychain holds the key | Only to the provider it belongs to, with each request |
 | Licence type, registered email, subscription price / cycle / renewal / billing email | Cost tracking | Local store | No |
 | App icons (PNG) | Vault rows survive uninstalling the app | Local store | No |
 | Attached project folder contents (README, manifests) for apps you mark as yours | Grounds the analysis in real evidence | Read at analysis time, not copied | Only if you pick a cloud provider |
@@ -41,7 +42,7 @@ notes, which is the point of the vault. Nothing is uploaded as a consequence.
 |---|---|---|
 | **Automation → Finder** (`NSAppleEventsUsageDescription`) | First uninstall of an app Sift cannot move itself | Mac App Store bundles are owned by root, and macOS refuses the move to any process but Finder. Sift asks Finder to do it. No password passes through Sift; any authorization prompt is macOS's own. See `docs/decisions/0003-finder-does-privileged-trash-moves.md`. |
 | **Touch ID / local authentication** | Revealing, copying, or removing a licence key | Keeps a shoulder-surfer from reading a key out of an unlocked Mac. Failing it simply cancels. |
-| **Keychain access** | Saving a licence key, or reading one after Touch ID | Standard per-app Keychain items; other apps cannot read them. Sift reads a key only after Touch ID succeeds: the License panel shows "Key saved" until you reveal or copy it, and the sidebar knows only whether a key exists. |
+| **Keychain access** | Saving a licence key, reading one after Touch ID, and reading a cloud API key when it calls that provider | Standard login-keychain items. The item trusts Sift; another app asking for it gets a macOS prompt asking for your approval first. Touch ID is Sift's own check before it reads, copies, reveals or removes a licence key — it is not a lock on the Keychain item itself (a Developer ID app without a provisioning profile cannot put one there). At launch, in the sidebar and in the vault, Sift only checks whether a key exists, without reading it; it reads a licence key only after Touch ID, or once when it moves an old key out of its database. If the Keychain refuses a save, Sift says so and keeps the key in the field. |
 | **Network client** | Analysis with a cloud provider, update checks, fetching a linked app's page | See Network. |
 
 Sift is **not sandboxed**, because auditing installed apps means reading
@@ -57,7 +58,8 @@ itself are refused outright.
 Apart from its own daily update check, Sift makes no network connections in its
 default configuration.
 
-- **Analysis** runs on **local Ollama** by default — prompts never leave the Mac. If you switch the provider to Anthropic, OpenAI, Google Gemini or OpenRouter in Settings, the prompt (app metadata, your notes, fetched link evidence, attached docs evidence) goes to that provider under your own API key and their terms. That switch is yours to make and yours to undo.
+- **Analysis** runs on **local Ollama** by default — prompts never leave the Mac. If you switch the provider to Anthropic, OpenAI, Google Gemini or OpenRouter in Settings, the prompt (that app's metadata, your notes, fetched link evidence, attached docs evidence, and your workflow profile) goes to that provider under your own API key and their terms. The automatic workflow profile sent to a cloud provider has only the number of apps and their top categories — no app names. With local Ollama it also names your recently used and open apps. That switch is yours to make and yours to undo.
+- **Find similar apps** has to show the model your other installed apps (name, category, short description) to pick from. With a cloud provider, Sift asks before every such request; with local Ollama nothing leaves the Mac.
 - **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed. Homebrew checks run the local `brew` binary.
 - **Sift's own updates** (since 1.9.0) — Sparkle fetches `sift.akakika.com/appcast.xml` once a day and downloads the DMG only when you accept an update. The feed is a static file; nothing about you or your Mac is sent with the request.
 - **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says.
@@ -78,7 +80,8 @@ configure yourself; Apple and Homebrew are contacted only for update metadata.
 - **Stay fully offline:** keep the provider on Ollama; that is the default.
 - **Remove a licence key:** the trash button in the License popover or the vault row deletes the Keychain item, after Touch ID.
 - **Remove a purchase record:** the vault row's trash clears the Paid mark and the licence type.
-- **Delete everything:** quit Sift, then remove its Application Support folder and its Keychain items. Uninstalling Sift alone leaves both behind on purpose, so a reinstall keeps your vault.
+- **Delete everything:** quit Sift, then remove its Application Support folder and its Keychain items (services `com.kikaapp.appaudit.licensekeys` and `com.kikaapp.appaudit.apikeys`, in Keychain Access). Uninstalling Sift alone leaves both behind on purpose, so a reinstall keeps your vault.
+- **A damaged library:** if Sift's database file is damaged, Sift moves it aside (never deletes it), starts fresh, and tells you the file's name. If the file is intact but cannot be opened (for example, a newer Sift wrote it), Sift leaves it alone and says so.
 - **Export:** File → Export to CSV writes the audit wherever you choose.
 
 ## Contact

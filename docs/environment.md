@@ -95,8 +95,8 @@ Nothing lives in the repo, and no `.env` is used.
 
 | Secret | Where it lives | Needed for |
 |---|---|---|
-| Anthropic / OpenAI / Google Gemini / OpenRouter API key | Entered in Settings → Models, stored in the app's own store | Optional cloud analysis; Ollama is the default and needs no key |
-| Licence keys | macOS Keychain, keyed to the bundle ID | The License Vault at runtime |
+| Anthropic / OpenAI / Google Gemini / OpenRouter / ollama.com API key | Entered in Settings → Models, stored in the login keychain (service `com.kikaapp.appaudit.apikeys`) | Optional cloud analysis; Ollama is the default and needs no key |
+| Licence keys | Login keychain, service `com.kikaapp.appaudit.licensekeys`, account = the app's bundle ID | The License Vault at runtime |
 | Notarization credentials | Login Keychain profile `AC_PASSWORD` (`xcrun notarytool store-credentials`) | Release only |
 | Developer ID certificate | Login Keychain | Release only |
 
