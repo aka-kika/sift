@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 /// Discovers everything on disk that belongs to an app: the bundle itself
 /// plus leftovers across the user-level Library roots, matched identifier-
@@ -33,6 +34,9 @@ struct LeftoverScanner: Sendable {
             (.cookies, lib("Cookies")),
         ]
 
+        // App Group folders can carry the signing team's prefix.
+        let teamID = Self.teamIdentifier(ofAppAt: appPath)
+
         var items: [LeftoverItem] = []
 
         // The bundle itself always leads the list.
@@ -58,6 +62,9 @@ struct LeftoverScanner: Sendable {
                 var reason: String?
                 if LeftoverMatcher.matches(name: name, bundleID: bundleID, otherBundleIDs: otherBundleIDs) {
                     reason = "Matches \(bundleID)"
+                } else if LeftoverMatcher.appGroupMatchAllowed(for: category),
+                          LeftoverMatcher.matchesAppGroup(name: name, bundleID: bundleID, teamID: teamID, otherBundleIDs: otherBundleIDs) {
+                    reason = "App group of \(bundleID)"
                 } else if LeftoverMatcher.nameMatchAllowed(for: category),
                           LeftoverMatcher.matchesDisplayName(name, appName: appName) {
                     reason = "Folder named after \(appName)"
@@ -79,6 +86,21 @@ struct LeftoverScanner: Sendable {
         let bundle = unique.filter(\.isAppBundle)
         let rest = unique.filter { !$0.isAppBundle }.sorted { $0.sizeBytes > $1.sizeBytes }
         return bundle + rest
+    }
+
+    /// The Team ID from the bundle's code signature, or nil when it is unsigned
+    /// or ad-hoc signed. Reads the signature only, with no validation pass, so
+    /// it stays cheap.
+    static func teamIdentifier(ofAppAt path: String) -> String? {
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(URL(fileURLWithPath: path) as CFURL, [], &code) == errSecSuccess,
+              let code else { return nil }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+              let dict = info as? [String: Any],
+              let teamID = dict[kSecCodeInfoTeamIdentifier as String] as? String,
+              !teamID.isEmpty else { return nil }
+        return teamID
     }
 
     /// Recursive on-disk size; a single file answers directly. Shared with the
