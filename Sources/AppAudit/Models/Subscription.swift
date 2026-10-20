@@ -38,9 +38,9 @@ enum SubscriptionMath {
     /// after today; otherwise return it unchanged. Display-only — callers do not
     /// persist the result.
     ///
-    /// Note: month-end dates clamp per `Calendar.date(byAdding:)` — e.g. a Jan 31
-    /// renewal rolls to Feb 28, then stays on the 28th. Acceptable for a
-    /// display-only countdown.
+    /// Each step counts whole cycles from `stored` itself, so the stored day is
+    /// the anchor: a Jan 31 renewal shows Feb 28, then Mar 31 again, never
+    /// drifting to the 28th for good.
     ///
     /// Note: if the calendar cannot advance the date (Foundation returns nil, or
     /// the 1200-step guard trips), the loop breaks and returns the last computed
@@ -49,11 +49,11 @@ enum SubscriptionMath {
     static func nextRenewal(from stored: Date, cycle: BillingCycle, now: Date, calendar: Calendar = .current) -> Date {
         let today = calendar.startOfDay(for: now)
         var date = stored
-        var guardCount = 0
-        while calendar.startOfDay(for: date) < today, guardCount < 1200 {
-            guard let advanced = calendar.date(byAdding: cycle.calendarComponent, value: 1, to: date) else { break }
+        var cycles = 0
+        while calendar.startOfDay(for: date) < today, cycles < 1200 {
+            cycles += 1
+            guard let advanced = calendar.date(byAdding: cycle.calendarComponent, value: cycles, to: stored) else { break }
             date = advanced
-            guardCount += 1
         }
         return date
     }

@@ -85,3 +85,32 @@ struct UpdateChecksOnScanTests {
         #expect(!AppListViewModel.checksUpdatesOnScan(defaults: defaults))
     }
 }
+
+@Suite("Renewal anchor day")
+struct RenewalAnchorTests {
+    private var utc: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }
+
+    private func date(_ y: Int, _ m: Int, _ d: Int) -> Date {
+        utc.date(from: DateComponents(year: y, month: m, day: d, hour: 12))!
+    }
+
+    @Test("A Jan 31 renewal comes back to the 31st after February")
+    func monthEndKeepsAnchor() {
+        let stored = date(2026, 1, 31)
+        let feb = SubscriptionMath.nextRenewal(from: stored, cycle: .monthly, now: date(2026, 2, 10), calendar: utc)
+        #expect(utc.component(.day, from: feb) == 28)
+        let mar = SubscriptionMath.nextRenewal(from: stored, cycle: .monthly, now: date(2026, 3, 10), calendar: utc)
+        #expect(utc.component(.month, from: mar) == 3 && utc.component(.day, from: mar) == 31)
+    }
+
+    @Test("A Feb 29 yearly renewal comes back to the 29th in a leap year")
+    func leapYearAnchor() {
+        let stored = date(2024, 2, 29)
+        let next = SubscriptionMath.nextRenewal(from: stored, cycle: .yearly, now: date(2027, 6, 1), calendar: utc)
+        #expect(utc.component(.year, from: next) == 2028 && utc.component(.day, from: next) == 29)
+    }
+}
