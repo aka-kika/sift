@@ -29,9 +29,25 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - The default model was a private one, so a new Mac failed every analysis. The default is `llama3.2`, and a scan switches to the first installed chat model when the chosen one is missing.
 - Any failed database open renamed the store and showed an empty vault. The open is retried, only a file that fails SQLite's quick_check is set aside, an intact but unreadable store stays in place for an in-memory session, and an alert names the file. The crash loop when a fresh store could not be created is gone too.
 
+- CSV export: fields starting with = + - @ get a leading apostrophe so spreadsheets do not run them as formulas; a failed save shows an alert.
+- The legacy licence-key sweep marked itself done even when the Keychain refused a key. It now retries until no plaintext key is left.
+- README excerpts of attached project folders are kept in the local store; privacy.md said they were not.
+- Link evidence fetched local and private addresses and sent the page to a cloud model. Local, private and link-local hosts (and redirects to them) are refused, and the query and fragment are dropped before fetching and in the prompt.
+- Update feeds and Download links accepted http: and file:. They are https only now.
+- The App Store lookup fell back to the first result, attaching another app's version and link. A result must match the bundle ID.
+- Sparkle updates that need a newer macOS were offered. `sparkle:minimumSystemVersion` is read and the newest runnable release is chosen.
+- `brew outdated` could run `brew update`. Checks run with `HOMEBREW_NO_AUTO_UPDATE=1`; a clicked upgrade keeps auto-update.
+- App Group folders (`group.<id>`, team-prefixed) under Group Containers and Application Scripts stayed behind after uninstall. They are matched now, for the app's own team only.
+- A copied licence key stayed on the clipboard. It is marked concealed and transient and cleared after 60 seconds if still there.
+- Cmd-Q or closing the window quit Sift in the middle of an uninstall sweep or a brew command. Quit now waits and says why.
+- Rescan emptied the sidebar first; an interrupted scan left it empty. The old list stays until the new one is ready.
+- Apps in subfolders of /Applications (Adobe, Setapp) were never listed. The scanner walks two levels.
+- Month-end renewals drifted to the 28th after February. Renewals count whole cycles from the stored date.
+
 <!-- SF Symbol: doc.text -->
 ### Added
 - What's new sheet once after each update, and Help > What's New in Sift.
+- Settings > General > Updates: turn off the update checks a scan makes.
 
 ## [1.12.3] — 2026-10-14
 
