@@ -43,6 +43,8 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Rescan emptied the sidebar first; an interrupted scan left it empty. The old list stays until the new one is ready.
 - Apps in subfolders of /Applications (Adobe, Setapp) were never listed. The scanner walks two levels.
 - Month-end renewals drifted to the 28th after February. Renewals count whole cycles from the stored date.
+- The Finder handoff ran on the main thread and froze the window while macOS asked for permission. The Apple Event is sent off the main thread with a 30-second timeout (ADR 0004).
+- A folder named only like the app was pre-checked even when another installed app shares the name (1Password and 1Password 7). It now starts unchecked and names the other app.
 
 <!-- SF Symbol: doc.text -->
 ### Added

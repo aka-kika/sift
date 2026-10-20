@@ -170,7 +170,9 @@ Leftovers are searched across Application Support, Caches, Preferences (and
 ByHost), Logs, Containers, Group Containers, Saved Application State, WebKit,
 HTTP Storages, LaunchAgents, Application Scripts, and Cookies. Matching is
 identifier-first; a bare app name is trusted only under Application Support and
-Logs, where vendors conventionally use it. App Group folders (`group.<bundle ID>`,
+Logs, where vendors conventionally use it, and when another installed app has a
+look-alike name (1Password and 1Password 7) that folder starts unchecked and says
+why. App Group folders (`group.<bundle ID>`,
 or with the app's own team ID in front) under Group Containers and Application
 Scripts count too.
 

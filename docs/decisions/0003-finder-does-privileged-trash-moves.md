@@ -8,7 +8,7 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # 0003. Finder performs privileged trash moves
 
-**Date:** 2026-08-02 · **Status:** Accepted
+**Date:** 2026-08-02 · **Status:** Accepted, amended by [0004](0004-finder-handoff-off-main-thread.md) (the handoff now runs off the main thread with a timeout)
 
 ## Context
 
