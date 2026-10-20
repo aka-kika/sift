@@ -128,7 +128,9 @@ struct UninstallSheet: View {
             Text(otherCopyText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(3)
+                // Wrap in full: the path and the "check it yourself" part
+                // are the point of the note.
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
         }
         .padding(8)
@@ -207,7 +209,9 @@ struct UninstallSheet: View {
             }
             .padding(.vertical, 2)
         }
-        .frame(maxHeight: 440)
+        // A sheet sizes a ScrollView to almost nothing; without a floor the
+        // notes above push the list (and its checkboxes) out of sight.
+        .frame(minHeight: 160, maxHeight: 440)
     }
 
     private var footer: some View {
