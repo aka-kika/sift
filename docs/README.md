@@ -1,6 +1,6 @@
 # Sift — User and Developer Guide
 
-**Version 1.10.0** · macOS 14+ · Apple Silicon
+**Version 1.12.4** · macOS 14+ · Apple Silicon
 
 A native macOS app that audits your installed applications with a local model.
 For every app on your Mac, Sift answers three questions:
@@ -34,7 +34,7 @@ ollama serve
 ollama pull llama3.2
 ```
 
-Open `Sift-1.10.0.dmg`, drag Sift to Applications, launch it. Sift scans
+Open `Sift-1.12.4.dmg`, drag Sift to Applications, launch it. Sift scans
 `/Applications` and `~/Applications` and analyzes each app with the selected
 provider. Results are cached, so later launches are instant.
 
@@ -92,8 +92,8 @@ into the line beneath it, with no tooltip delay.
 
 ### Facts
 
-A quiet row closing the page: **on disk**, **last used**, **source**, and
-**analyzed**. Four cells on one line. Anything Sift doesn't know is left out
+A quiet row closing the page: **on disk**, **last used**, **source**,
+**built with** and **analyzed**. Five cells at most, on one line. Anything Sift doesn't know is left out
 rather than shown blank.
 
 ---
@@ -328,8 +328,8 @@ Data           SwiftData (AppRecord) + Keychain (keys) + UserDefaults (settings)
 
 Pure rules live in `Models/` as plain enums and structs so they can be unit
 tested without a view: `MoneyCubeState`, `UtilityCardRules`, `LicenseDraftRules`,
-`AppFacts`, `VaultLink`, `UninstallRules`, `LeftoverMatcher`. 133 tests across
-35 suites cover them.
+`AppFacts`, `VaultLink`, `UninstallRules`, `LeftoverMatcher`. 307 tests across
+90 suites cover them and the services.
 
 ### Key files
 

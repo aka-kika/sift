@@ -30,7 +30,7 @@ updating, and which licenses and subscriptions you're paying for.
 - One shared prompt and parser across providers; only the transport differs.
 - **Evidence-only** — analysis is grounded in each app's own metadata, its website's
   fetched words, and your workflow profile. No bundled "known apps" catalog.
-- API keys are stored in app preferences.
+- API keys are stored in the macOS **Keychain** (login keychain), never in app preferences.
 - **No auto-wipe on model change** — switching models keeps your existing analyses and
   shows a banner offering to re-analyze the affected apps.
 - **Re-analyze** a single app, or **Re-analyze All Apps** at once. Locked analyses are always skipped.
@@ -58,7 +58,7 @@ updating, and which licenses and subscriptions you're paying for.
 - Store purchased **license keys** per app in the macOS **Keychain** (device-bound; not iCloud-synced).
 - A one-time launch sweep migrates any legacy plaintext key into the Keychain.
 - **Touch ID protected** — every key copy or reveal asks for Touch ID (or your password) via the system sheet.
-- **License Vault** (File → License Vault…, ⇧⌘L, or the sidebar ⋯ menu) lists **all** your
+- **License Vault** (File → License Vault… or ⇧⌘L) lists **all** your
   license keys in one place, sectioned into **Installed** and **No longer installed** — keys
   survive uninstalls and move back when you reinstall an app.
 - **Registered email per key** — remembers which account each license belongs to; a default email in Settings prefills new keys.
@@ -85,8 +85,9 @@ updating, and which licenses and subscriptions you're paying for.
 ## Detail panel
 
 - **Recommendation-first** layout: score + best-use + reason at the top, explanation below.
-- Compact **update pill** and a single **⋯ menu** for all per-app actions
-  (re-analyze, lock, customize description, tag toggles, show in Finder, copy bundle ID).
+- Compact **update pill** and a **re-analyze chip** in the header; Lock is its own cube,
+  Customize Description lives in "What is this?", and the rest (favorite, My App, show in
+  Finder, copy bundle ID, uninstall) is in the sidebar row's right-click menu.
 - Utility cube row: **Notes, License, App Link, Lock, Favorite** as minimal icon-only cubes pinned under the header — plus **My App (hammer)** and **Docs** when Developer Mode is on. The grid balances itself (one line up to 5 cubes, otherwise two even rows), and an **instant label strip** under the grid names the hovered cube and its live state with no tooltip delay.
   - **License cube** owns everything money in one place. Its face shows the state in its own color: Mac App Store seal (blue), **license type** on the face once one is recorded — Lifetime ∞ (indigo), One-time ① (purple), Annual calendar (cyan), plain key otherwise — subscription card (teal, orange when a renewal is near), Free gift (green). Click opens one tabbed popover (**Key | Subscription**) with Touch ID reveal/copy and price/cycle/renewal; a **Free pill** shows only while nothing is recorded, and **Save closes the panel**. App Store apps get the seal as a banner and keep every field, so a store purchase can be marked **Lifetime** — the type saves on its own, with no key required, and can be corrected or cleared at any time. In the **License Vault**, the app name is a link out to the maker's site: your saved link, else Sift's suggestion, else a web search — a kept license never leaves you hunting for where you bought it. The right-click menu is state-aware — only actions that make sense for the app's current state (Mark as Paid lives there for keyless purchases). The **same icon and color appear as a badge next to the app's name in the sidebar**, and the sidebar right-click's **Add/Edit License…** opens this popover directly.
   - **App Link** shows a corner notification dot when a suggestion is available; once set, the icon reflects the host (a code glyph for GitHub/GitLab/…, a globe for websites) and clicking opens it.
