@@ -233,7 +233,8 @@ final class AppListViewModel {
 
     func runFullScan() async {
         guard scanState == .idle || scanState == .done else { return }
-        apps = []
+        // The old list stays until the new one is ready: an interrupted or slow
+        // scan never leaves an empty sidebar.
         staleModelCount = 0
         scanState = .scanning
 
