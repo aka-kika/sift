@@ -30,6 +30,9 @@ struct UninstallSheet: View {
     @State private var isRunning = false
     @State private var brewOutput: String? = nil
     @State private var brewFailure: String? = nil
+    /// The cask brew may uninstall, set only when brew's install record puts
+    /// this exact bundle on disk. A name match alone could be another copy.
+    @State private var brewToken: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -47,7 +50,7 @@ struct UninstallSheet: View {
             case .list:
                 if isRunning { runningBanner }
                 if hasOtherCopy { otherCopyNote }
-                if app.homebrewCaskToken != nil { brewNote }
+                if brewToken != nil { brewNote }
                 itemList
                 footer
             case .working(let current):
@@ -254,6 +257,13 @@ struct UninstallSheet: View {
     private func scan() async {
         let scanner = LeftoverScanner()
         let found = await scanner.scan(appName: app.name, bundleID: app.bundleID, appPath: app.path, otherBundleIDs: otherBundleIDs)
+        if let token = app.homebrewCaskToken {
+            let path = app.path
+            let owns = await Task.detached {
+                HomebrewService.caskOwnsBundle(token: token, bundlePath: path)
+            }.value
+            brewToken = owns ? token : nil
+        }
         items = found
         checked = Set(found.filter { !hasOtherCopy || $0.isAppBundle }.map(\.id))
         refreshRunningState()
@@ -284,7 +294,7 @@ struct UninstallSheet: View {
     }
 
     private func runBrewUninstall() {
-        guard let token = app.homebrewCaskToken else { return }
+        guard let token = brewToken else { return }
         Task {
             let outcome = await Task.detached {
                 HomebrewService().uninstall(cask: token)

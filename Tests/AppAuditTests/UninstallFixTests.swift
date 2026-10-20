@@ -29,6 +29,67 @@ struct FinderHandoffSigningTests {
     }
 }
 
+@Suite("brew uninstall only for the cask's own bundle")
+struct CaskOwnershipTests {
+    private let receipt = Data("""
+    {"uninstall_artifacts": [
+      {"app": ["Ghostty.app"]},
+      {"manpage": ["/Applications/Ghostty.app/Contents/Resources/man/man1/ghostty.1"]},
+      {"app": ["Payload/Beta Tool.app", {"target": "Tool Beta.app"}]},
+      {"app": ["Other.app", {"target": "~/Apps/Other.app"}]},
+      {"zap": [{"trash": ["~/Library/Caches/com.mitchellh.ghostty"]}]}
+    ]}
+    """.utf8)
+
+    @Test("App artifacts resolve to their installed paths")
+    func appPaths() {
+        let paths = HomebrewService.appPaths(fromReceipt: receipt, appdir: "/Applications")
+        #expect(paths == ["/Applications/Ghostty.app",
+                          "/Applications/Tool Beta.app",
+                          NSHomeDirectory() + "/Apps/Other.app"])
+    }
+
+    @Test("An explicit --appdir wins over brew's default")
+    func appdir() {
+        let config = Data(#"{"default":{"appdir":"/Applications"},"explicit":{"appdir":"/Users/me/Applications"}}"#.utf8)
+        #expect(HomebrewService.installedAppdir(fromConfig: config) == "/Users/me/Applications")
+        #expect(HomebrewService.installedAppdir(fromConfig: Data(#"{"default":{"appdir":"/Apps"},"explicit":{}}"#.utf8)) == "/Apps")
+        #expect(HomebrewService.installedAppdir(fromConfig: nil) == "/Applications")
+    }
+
+    @Test("Only the bundle brew installed belongs to the cask")
+    func ownership() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "SiftCaskroom-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let caskroom = root.appending(path: "Caskroom")
+        let appdir = root.appending(path: "Applications")
+        let metadata = caskroom.appending(path: "ghostty/.metadata")
+        try FileManager.default.createDirectory(at: metadata, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: appdir.appending(path: "Ghostty.app"), withIntermediateDirectories: true)
+        try receipt.write(to: metadata.appending(path: "INSTALL_RECEIPT.json"))
+        try Data(#"{"default":{"appdir":"\#(appdir.path)"},"explicit":{}}"#.utf8)
+            .write(to: metadata.appending(path: "config.json"))
+        let roots = [caskroom.path]
+
+        // The copy brew put in the appdir is the cask's.
+        #expect(HomebrewService.caskOwnsBundle(token: "ghostty", bundlePath: appdir.appending(path: "Ghostty.app").path,
+                                               caskroomRoots: roots))
+        // A manual copy with the same name elsewhere is not.
+        #expect(!HomebrewService.caskOwnsBundle(token: "ghostty", bundlePath: "/Users/me/Downloads/Ghostty.app",
+                                                caskroomRoots: roots))
+        // Nor is a beta whose name only normalises to the token.
+        #expect(!HomebrewService.caskOwnsBundle(token: "ghostty", bundlePath: appdir.appending(path: "Ghostty Beta.app").path,
+                                                caskroomRoots: roots))
+        // No install record: never offer brew.
+        #expect(!HomebrewService.caskOwnsBundle(token: "firefox", bundlePath: appdir.appending(path: "Firefox.app").path,
+                                                caskroomRoots: roots))
+        // An app left inside the Caskroom is the cask's by location.
+        #expect(HomebrewService.caskOwnsBundle(token: "ghostty", bundlePath: caskroom.appending(path: "ghostty/1.0/Ghostty.app").path,
+                                               caskroomRoots: roots))
+    }
+}
+
 @Suite("Uninstall sweep stops at a stuck bundle")
 @MainActor
 struct UninstallSweepTests {

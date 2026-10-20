@@ -78,6 +78,72 @@ struct HomebrewService: Sendable {
         }
     }
 
+    // MARK: - Does this bundle belong to the cask?
+
+    /// Where Homebrew keeps installed casks, Apple silicon first.
+    static let caskroomRoots = ["/opt/homebrew/Caskroom", "/usr/local/Caskroom"]
+
+    /// True only when brew's own install record says this cask put an app at
+    /// `bundlePath`. `caskToken(forAppName:)` also matches by name, which is
+    /// fine for showing an update but not for `brew uninstall`: a manual copy
+    /// or a beta named like the cask would have brew remove the other copy.
+    /// No record, or one that cannot be read, means no.
+    static func caskOwnsBundle(token: String, bundlePath: String,
+                               caskroomRoots: [String] = caskroomRoots) -> Bool {
+        let bundle = canonicalPath(bundlePath)
+        for root in caskroomRoots {
+            let caskDir = (root as NSString).appendingPathComponent(token)
+            // An app brew left inside the Caskroom is the cask's by location.
+            if bundle.hasPrefix(canonicalPath(caskDir) + "/") { return true }
+            let metadata = (caskDir as NSString).appendingPathComponent(".metadata")
+            guard let receipt = FileManager.default.contents(
+                atPath: (metadata as NSString).appendingPathComponent("INSTALL_RECEIPT.json")) else { continue }
+            let config = FileManager.default.contents(
+                atPath: (metadata as NSString).appendingPathComponent("config.json"))
+            let appdir = installedAppdir(fromConfig: config)
+            if appPaths(fromReceipt: receipt, appdir: appdir).map(canonicalPath).contains(bundle) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// The appdir the cask was installed with: an explicit `--appdir` wins over
+    /// brew's default, and brew's own default is /Applications.
+    static func installedAppdir(fromConfig data: Data?) -> String {
+        guard let data,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return "/Applications"
+        }
+        let explicit = (json["explicit"] as? [String: Any])?["appdir"] as? String
+        let fallback = (json["default"] as? [String: Any])?["appdir"] as? String
+        return explicit ?? fallback ?? "/Applications"
+    }
+
+    /// The `.app` paths in an INSTALL_RECEIPT's `uninstall_artifacts`. An `app`
+    /// artifact is `["Source.app"]` or `["Source.app", {"target": "Name.app"}]`;
+    /// the source may sit in a subfolder of the download, the installed name is
+    /// its last component, and a relative target lands in the appdir.
+    static func appPaths(fromReceipt data: Data, appdir: String) -> [String] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let artifacts = json["uninstall_artifacts"] as? [[String: Any]] else { return [] }
+        return artifacts.compactMap { artifact -> String? in
+            guard let entry = artifact["app"] as? [Any],
+                  let source = entry.first as? String else { return nil }
+            let target = entry.dropFirst()
+                .compactMap { ($0 as? [String: Any])?["target"] as? String }
+                .first
+            let name = target ?? (source as NSString).lastPathComponent
+            let expanded = (name as NSString).expandingTildeInPath
+            if expanded.hasPrefix("/") { return expanded }
+            return ((appdir as NSString).expandingTildeInPath as NSString).appendingPathComponent(expanded)
+        }
+    }
+
+    private static func canonicalPath(_ path: String) -> String {
+        URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath().path
+    }
+
     static func caskTokenFromCaskroomPath(_ path: String) -> String? {
         let components = URL(fileURLWithPath: path).standardized.pathComponents
         guard let index = components.firstIndex(of: "Caskroom"),
