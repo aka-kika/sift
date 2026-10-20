@@ -91,6 +91,12 @@ struct AppAuditApp: App {
         .windowResizability(.contentMinSize)
         .modelContainer(Self.container)
         .commands {
+            CommandGroup(after: .help) {
+                Button("What's New in Sift") {
+                    viewModel.whatsNewLines = WhatsNew.notes(for: WhatsNew.currentVersion)
+                }
+                .disabled(WhatsNew.notes(for: WhatsNew.currentVersion) == nil)
+            }
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") {
                     UpdateService.shared.checkForUpdates()

@@ -138,6 +138,12 @@ if [[ -d "$ROOT/Resources/socials" ]]; then
   cp "$ROOT"/Resources/socials/*.pdf "$APP/Contents/Resources/"
 fi
 
+# Bundle the release notes for the What's new sheet (Help > What's New in Sift)
+if [[ -d "$ROOT/docs/releases" ]]; then
+  mkdir -p "$APP/Contents/Resources/release-notes"
+  cp "$ROOT"/docs/releases/*.md "$APP/Contents/Resources/release-notes/"
+fi
+
 # Copy entitlements
 ENTITLEMENTS="$ROOT/Sources/AppAudit/AppAudit.entitlements"
 if [[ ! -f "$ENTITLEMENTS" ]]; then

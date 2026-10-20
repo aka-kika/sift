@@ -21,6 +21,8 @@ final class AppListViewModel {
     /// App-wide flag for presenting the License Vault sheet (set from the toolbar
     /// menu or the macOS menu bar).
     var showingVault = false
+    /// The What's new sheet's lines while it is shown (once after an update, or from Help).
+    var whatsNewLines: [WhatsNew.Line]? = nil
 
     /// Number of displayed, unlocked analyses that were generated with a model
     /// other than the one currently selected. Drives the "model changed" banner.

@@ -41,6 +41,9 @@ struct ContentView: View {
             }
         }
         .task {
+            if WhatsNew.shouldShow() {
+                viewModel.whatsNewLines = WhatsNew.notes(for: WhatsNew.currentVersion)
+            }
             viewModel.cacheService = CacheService(context: modelContext)
             viewModel.migrateDefaultProfileToAutomatic()
             viewModel.migrateStyleNotesKey()
@@ -51,6 +54,15 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             // Settings writes the provider and model straight to UserDefaults.
             viewModel.recomputeStaleModelCount()
+        }
+        .sheet(isPresented: Binding(
+            get: { viewModel.whatsNewLines != nil },
+            set: { if !$0 { viewModel.whatsNewLines = nil; WhatsNew.markSeen() } }
+        )) {
+            WhatsNewSheet(appName: "Sift", lines: viewModel.whatsNewLines ?? []) {
+                viewModel.whatsNewLines = nil
+                WhatsNew.markSeen()
+            }
         }
         .alert(
             storeOpenIssue?.title ?? "",
