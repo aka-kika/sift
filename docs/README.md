@@ -130,8 +130,7 @@ the hover line.
 Edit License…, Remove Key, or — when nothing is recorded — Mark as Paid and
 Mark as Free App.
 
-Keys live in the **macOS Keychain**, keyed to the bundle ID, device-bound and
-never iCloud-synced. Revealing, copying or replacing one asks for Touch ID.
+Keys live in the **macOS login keychain**, keyed to the bundle ID, and are not marked for iCloud. The login keychain does not honor a this-device-only flag, so a key is not locked to this Mac. Revealing, copying or replacing one asks for Touch ID.
 
 ---
 

@@ -25,7 +25,7 @@ app you linked.
 | Installed-app inventory (name, bundle ID, version, path, category, last-used date) | The audit itself | SwiftData store in `~/Library/Application Support/` | No |
 | AI analysis (explanation, score, reason, best use) | The recommendation | Same local store | No |
 | Your notes and custom descriptions | Feed the analysis as evidence | Same local store | Only if you pick a cloud provider (see Network) |
-| Licence keys | The License Vault | **macOS login keychain**, service `com.kikaapp.appaudit.licensekeys`, this device only, never iCloud-synced — never the SwiftData store | No |
+| Licence keys | The License Vault | **macOS login keychain**, service `com.kikaapp.appaudit.licensekeys`, not marked for iCloud. The login keychain does not honor a this-device-only flag — never the SwiftData store | No |
 | Cloud API keys (Anthropic, OpenAI, Gemini, OpenRouter, ollama.com) | Optional cloud analysis | **macOS login keychain**, service `com.kikaapp.appaudit.apikeys`, one item per provider. Builds up to 1.12.3 kept them in the preferences file; Sift moves them on first launch and removes the old copy only once the Keychain holds the key | Only to the provider it belongs to, with each request |
 | Licence type, registered email, subscription price / cycle / renewal / billing email | Cost tracking | Local store | No |
 | App icons (PNG) | Vault rows survive uninstalling the app | Local store | No |

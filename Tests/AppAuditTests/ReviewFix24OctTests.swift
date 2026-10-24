@@ -408,3 +408,13 @@ struct ScanShortcutTests {
         #expect(AppListViewModel.ScanCommands.shortcut(sortIsUpdates: false) == .rescan)
     }
 }
+
+@Suite("Licence keys are not called device-bound")
+struct LicenseKeyWordingTests {
+    @Test("The README matches the login keychain")
+    func readme() throws {
+        let text = try String(contentsOf: repoRoot.appending(path: "README.md"), encoding: .utf8)
+        #expect(text.contains("does not honor a this-device-only flag"))
+        #expect(!text.contains("device-bound"))
+    }
+}

@@ -104,7 +104,8 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
             kSecAttrAccount as String: account
         ]
 
-        // Device-bound: not synced to iCloud Keychain, only available while unlocked.
+        // Not marked for iCloud. The login keychain ignores a this-device-only
+        // flag, so the item is not locked to this Mac. The docs say so.
         let accessibility = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         let attributes: [String: Any] = [
             kSecValueData as String: data,
