@@ -8,11 +8,14 @@ protocol UpdateMetadataClient: Sendable {
 
 struct LiveUpdateMetadataClient: UpdateMetadataClient {
     func data(for url: URL) async throws -> Data {
+        guard await UpdateFetchGuard.allows(url) else { throw URLError(.appTransportSecurityRequiresSecureConnection) }
         // Abandoned apps have dead feeds; 60 s per host would stall the whole refresh.
         let request = URLRequest(url: url, timeoutInterval: 15)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request, delegate: UpdateFetchGuard())
+        // A refused redirect comes back as the 3xx itself, so the 2xx check drops it.
         guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
+              (200..<300).contains(httpResponse.statusCode),
+              let finalURL = httpResponse.url, await UpdateFetchGuard.allows(finalURL) else {
             throw URLError(.badServerResponse)
         }
         return data
@@ -28,6 +31,23 @@ struct LiveUpdateMetadataClient: UpdateMetadataClient {
             throw URLError(.badServerResponse)
         }
         return httpResponse.value(forHTTPHeaderField: "Location").flatMap { URL(string: $0, relativeTo: url)?.absoluteURL }
+    }
+}
+
+/// Feeds, store lookups and link pages are read over https from a public
+/// host only, and every redirect is held to the same rule, as LinkEvidence
+/// does for saved links. A feed redirected to http or to this Mac's network
+/// is not read.
+final class UpdateFetchGuard: NSObject, URLSessionTaskDelegate {
+    static func allows(_ url: URL) async -> Bool {
+        await LinkEvidence.mayFetch(url, httpsOnly: true)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest) async -> URLRequest? {
+        guard let url = request.url, await Self.allows(url) else { return nil }
+        return request
     }
 }
 

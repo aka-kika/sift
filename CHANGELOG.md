@@ -60,6 +60,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Quit & Continue looked once, after one second, so a slow-quitting app stayed "running", and the sweep did not look again before moving. Sift now keeps looking for up to 10 seconds, and checks again right before the sweep.
 - An app locked before it had any analysis showed Waiting to analyze forever, and the lock blocked Re-analyze. The detail view now says it was locked before analysis and offers Unlock and Analyze.
 - The local-link guard checked the name only, so a public name pointing at 127.0.0.1 or the local network was still fetched. Sift now looks up the address of a saved link, and of each redirect, before fetching.
+- Update feeds, store lookups and link lookups followed redirects without checking them, so a feed could be moved to plain http or the local network. Each redirect now has to stay on https and a public host.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

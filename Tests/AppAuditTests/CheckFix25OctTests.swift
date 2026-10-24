@@ -382,3 +382,23 @@ struct LinkHostResolutionTests {
         #expect(addresses.contains { $0 == "127.0.0.1" || $0 == "::1" })
     }
 }
+
+@Suite("Update feeds follow only https redirects to public hosts")
+struct UpdateRedirectGuardTests {
+    @Test("A redirect to plain http is refused")
+    func http() async {
+        #expect(!(await UpdateFetchGuard.allows(URL(string: "http://93.184.216.34/appcast.xml")!)))
+    }
+
+    @Test("A redirect to this Mac or the local network is refused")
+    func local() async {
+        #expect(!(await UpdateFetchGuard.allows(URL(string: "https://localhost/appcast.xml")!)))
+        #expect(!(await UpdateFetchGuard.allows(URL(string: "https://192.168.1.2/appcast.xml")!)))
+        #expect(!(await UpdateFetchGuard.allows(URL(string: "https://nas.local/appcast.xml")!)))
+    }
+
+    @Test("https to a public address passes")
+    func publicHTTPS() async {
+        #expect(await UpdateFetchGuard.allows(URL(string: "https://93.184.216.34/appcast.xml")!))
+    }
+}
