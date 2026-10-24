@@ -316,3 +316,24 @@ struct BrewDeadlineTests {
         #expect(HomebrewService.deadline(for: ["outdated", "--cask"]) < HomebrewService.deadline(for: ["upgrade", "--cask", "x"]))
     }
 }
+
+@Suite("Quit & Continue waits until the app is gone")
+@MainActor
+struct QuitWaitTests {
+    @Test("An app that quits after a few looks counts as quit")
+    func quitsLater() async {
+        var looks = 0
+        let quit = await QuitWait.untilQuit(interval: .milliseconds(5), limit: .seconds(2)) {
+            looks += 1
+            return looks < 4
+        }
+        #expect(quit)
+        #expect(looks == 4)
+    }
+
+    @Test("An app still running at the limit does not count as quit")
+    func stillRunning() async {
+        let quit = await QuitWait.untilQuit(interval: .milliseconds(5), limit: .milliseconds(50)) { true }
+        #expect(!quit)
+    }
+}

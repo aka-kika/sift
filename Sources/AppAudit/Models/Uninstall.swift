@@ -159,6 +159,28 @@ enum LeftoverMatcher {
     }
 }
 
+/// Quit & Continue: an app can take a few seconds to quit (a save prompt,
+/// a slow shutdown), so the sheet keeps looking until it is gone or the
+/// limit passes, instead of looking once after a second.
+enum QuitWait {
+    static let interval: Duration = .milliseconds(250)
+    static let limit: Duration = .seconds(10)
+
+    /// True once `isRunning` says no, false if it still runs at the limit.
+    @MainActor
+    static func untilQuit(interval: Duration = interval,
+                          limit: Duration = limit,
+                          isRunning: () -> Bool) async -> Bool {
+        let clock = ContinuousClock()
+        let end = clock.now.advanced(by: limit)
+        while isRunning() {
+            guard clock.now < end else { return false }
+            try? await Task.sleep(for: interval)
+        }
+        return true
+    }
+}
+
 /// The order and stop rule of one uninstall sweep, kept apart from the sheet
 /// so it can be tested without touching the disk.
 ///

@@ -32,6 +32,7 @@ struct UninstallSheet: View {
     @State private var items: [LeftoverItem] = []
     @State private var checked: Set<String> = []
     @State private var isRunning = false
+    @State private var quitting = false
     @State private var brewOutput: String? = nil
     @State private var brewFailure: String? = nil
     @State private var brewRunning = false
@@ -117,10 +118,11 @@ struct UninstallSheet: View {
             Text("\(app.name) is running")
                 .font(.caption)
             Spacer()
-            Button("Quit & Continue") {
+            Button(quitting ? "Quitting…" : "Quit & Continue") {
                 quitApp()
             }
             .controlSize(.small)
+            .disabled(quitting)
         }
         .padding(8)
         .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -231,6 +233,9 @@ struct UninstallSheet: View {
                     .keyboardShortcut(.escape)
                 Spacer()
                 Button("Move to Trash", role: .destructive) {
+                    // The app may have been opened again since the list loaded.
+                    refreshRunningState()
+                    guard !isRunning else { return }
                     guard confirmDataOnlySweepIfNeeded() else { return }
                     Task { await execute() }
                 }
@@ -329,8 +334,10 @@ struct UninstallSheet: View {
         for running in runningInstances {
             running.terminate()
         }
+        quitting = true
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
+            _ = await QuitWait.untilQuit { !runningInstances.isEmpty }
+            quitting = false
             refreshRunningState()
         }
     }
@@ -373,6 +380,9 @@ struct UninstallSheet: View {
 
     @MainActor
     private func execute() async {
+        // Checked again after the question: the app may have been opened meanwhile.
+        refreshRunningState()
+        guard !isRunning else { return }
         let targets = items.filter { checked.contains($0.id) }
         // Quitting mid-sweep would leave half the items behind.
         RunningWork.shared.begin(.trashSweep)

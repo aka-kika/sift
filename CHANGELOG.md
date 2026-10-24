@@ -57,6 +57,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - With the app row unticked, Move to Trash swept all the app's data while the app stayed installed. Sift now asks first: "The app stays installed. Delete only its data?", with Cancel as the default.
 - Run Update ran brew upgrade on a cask matched only by name, so a hand-installed copy stayed old, and a failed brew could still read as finished. Run Update now checks that brew installed this copy and reads brew's exit status.
 - A stuck brew command had no time limit, so the Homebrew work stayed open and quitting waited on it. Checks stop after 2 minutes, an uninstall after 10 and an update after 30, and the row says brew was stopped.
+- Quit & Continue looked once, after one second, so a slow-quitting app stayed "running", and the sweep did not look again before moving. Sift now keeps looking for up to 10 seconds, and checks again right before the sweep.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.
