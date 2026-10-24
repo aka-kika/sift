@@ -575,3 +575,17 @@ struct WhatsNewUpgradeTests {
         #expect(store.string(forKey: WhatsNew.lastSeenKey) == "1.12.4")
     }
 }
+
+@Suite("Closing the licence panel forgets the key")
+struct RevealedLicenseKeyTests {
+    @Test("A closed panel forgets the key")
+    func closed() {
+        #expect(RevealedLicenseKey.shouldForget(popoverOpen: false, waitingForTouchID: false))
+    }
+
+    @Test("The Touch ID gap does not forget it")
+    func prompt() {
+        #expect(!RevealedLicenseKey.shouldForget(popoverOpen: false, waitingForTouchID: true))
+        #expect(!RevealedLicenseKey.shouldForget(popoverOpen: true, waitingForTouchID: false))
+    }
+}

@@ -44,6 +44,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Uninstalling a symlink of an app counted as the only copy, so the real app's data was checked. Copy paths are compared without resolving symlinks.
 - After unmarking My App, the attached project excerpt was still sent with each analysis. It is sent only while the app is marked My App. The excerpt stays stored.
 - What's New treated a missing last-seen key as a first install, so an upgrade that predated the sheet never saw it. An existing library now gets the sheet.
+- A revealed licence key stayed in memory after the panel closed. Closing the panel forgets it. The Touch ID prompt, which closes the panel for a moment, does not.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

@@ -58,6 +58,14 @@ enum LicenseDraftRules {
     }
 }
 
+/// A revealed licence key stays in memory only while the panel is open.
+/// Touch ID closes the panel for a moment; that gap is not a close.
+enum RevealedLicenseKey {
+    static func shouldForget(popoverOpen: Bool, waitingForTouchID: Bool) -> Bool {
+        !popoverOpen && !waitingForTouchID
+    }
+}
+
 /// Replace on a saved licence key. Touch ID has to succeed before the field
 /// opens empty; otherwise Save could overwrite the key from an unlocked Mac.
 enum LicenseKeyReplace {

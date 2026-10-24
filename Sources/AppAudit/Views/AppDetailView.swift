@@ -16,6 +16,8 @@ struct AppDetailView: View {
     @State private var editingURL = false
     @State private var draftURL = ""
     @State private var moneyPopoverPresented = false
+    /// Touch ID closes the popover and reopens it. Don't forget the key in that gap.
+    @State private var holdingKeyForPrompt = false
     @State private var moneyPopoverStartsOnSubscription = false
     @State private var draftLicenseKey = ""
     @State private var licenseKeyUnlocked = false
@@ -943,6 +945,11 @@ struct AppDetailView: View {
                 onRemoveSubscription: { clearSubscription() }
             )
         }
+        .onChange(of: moneyPopoverPresented) { _, open in
+            if RevealedLicenseKey.shouldForget(popoverOpen: open, waitingForTouchID: holdingKeyForPrompt) {
+                forgetRevealedLicenseKey()
+            }
+        }
     }
 
     private func moneyHelp(for state: MoneyCubeState) -> String {
@@ -1121,7 +1128,9 @@ struct AppDetailView: View {
     /// after a successful unlock the popover is shown again, unlocked, with
     /// the email and type drafts as they were.
     private func revealLicenseKey() {
+        holdingKeyForPrompt = true
         Task { @MainActor in
+            defer { holdingKeyForPrompt = false }
             guard await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)"),
                   let key = readLicenseKey() else { return }
             draftLicenseKey = key
@@ -1133,8 +1142,16 @@ struct AppDetailView: View {
 
     /// Touch ID first, then an empty field. A cancelled prompt leaves the saved
     /// key locked, so Save cannot overwrite it. The saved key is not read.
+    private func forgetRevealedLicenseKey() {
+        draftLicenseKey = ""
+        licenseKeyUnlocked = false
+        licenseKeyRevealed = false
+    }
+
     private func replaceLicenseKey() {
+        holdingKeyForPrompt = true
         Task { @MainActor in
+            defer { holdingKeyForPrompt = false }
             let ok = await LicenseKeyGuard.authenticate(reason: "replace the license key for \(app.name)")
             guard LicenseKeyReplace.mayUnlock(authenticated: ok) else { return }
             draftLicenseKey = ""
