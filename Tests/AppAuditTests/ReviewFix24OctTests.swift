@@ -190,3 +190,23 @@ struct ScanCommandsBusyTests {
         #expect(!AppListViewModel.ScanCommands.isBusy(.error("x")))
     }
 }
+
+@Suite("Brew uninstall can finish the sheet")
+struct BrewUninstallFooterTests {
+    @Test("Nothing left to sweep offers Done and reports the app removed")
+    func done() {
+        #expect(BrewUninstallFooter.action(homebrewRemovedTheApp: true, anythingChecked: false) == .doneRemoved)
+    }
+
+    @Test("Checked leftovers still go to the Trash")
+    func leftovers() {
+        #expect(BrewUninstallFooter.action(homebrewRemovedTheApp: true, anythingChecked: true) == .moveToTrash)
+        #expect(BrewUninstallFooter.action(homebrewRemovedTheApp: false, anythingChecked: false) == .moveToTrash)
+    }
+
+    @Test("The brew button is disabled while brew runs")
+    func running() {
+        #expect(!BrewUninstallFooter.brewButtonEnabled(running: true))
+        #expect(BrewUninstallFooter.brewButtonEnabled(running: false))
+    }
+}

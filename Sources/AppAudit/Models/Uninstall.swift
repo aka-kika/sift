@@ -43,6 +43,21 @@ enum UninstallDoneCopy {
     }
 }
 
+/// The uninstall sheet after `brew uninstall`, and while brew is still running.
+enum BrewUninstallFooter {
+    enum Action: Equatable { case moveToTrash, doneRemoved }
+
+    /// Brew deleted the app and nothing else is checked: Move to Trash would
+    /// be grey, and Cancel would leave the removed app in the sidebar.
+    /// Done reports the app as removed.
+    static func action(homebrewRemovedTheApp: Bool, anythingChecked: Bool) -> Action {
+        if homebrewRemovedTheApp && !anythingChecked { return .doneRemoved }
+        return .moveToTrash
+    }
+
+    static func brewButtonEnabled(running: Bool) -> Bool { !running }
+}
+
 /// Apps Sift refuses to uninstall: the system's and its own.
 enum UninstallRules {
     static func isProtected(bundleID: String) -> Bool {

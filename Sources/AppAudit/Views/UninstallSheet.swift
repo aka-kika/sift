@@ -34,6 +34,7 @@ struct UninstallSheet: View {
     @State private var isRunning = false
     @State private var brewOutput: String? = nil
     @State private var brewFailure: String? = nil
+    @State private var brewRunning = false
     /// The cask brew may uninstall, set only when brew's install record puts
     /// this exact bundle on disk. A name match alone could be another copy.
     @State private var brewToken: String? = nil
@@ -171,6 +172,7 @@ struct UninstallSheet: View {
                     runBrewUninstall()
                 }
                 .controlSize(.small)
+                .disabled(!BrewUninstallFooter.brewButtonEnabled(running: brewRunning))
             }
         }
         .padding(8)
@@ -220,15 +222,21 @@ struct UninstallSheet: View {
 
     private var footer: some View {
         HStack {
-            Button("Cancel") { onFinished(false) }
-                .keyboardShortcut(.escape)
-            Spacer()
-            Button("Move to Trash", role: .destructive) {
-                Task { await execute() }
+            if BrewUninstallFooter.action(homebrewRemovedTheApp: brewOutput != nil, anythingChecked: !checked.isEmpty) == .doneRemoved {
+                Spacer()
+                Button("Done") { onFinished(true) }
+                    .keyboardShortcut(.defaultAction)
+            } else {
+                Button("Cancel") { onFinished(false) }
+                    .keyboardShortcut(.escape)
+                Spacer()
+                Button("Move to Trash", role: .destructive) {
+                    Task { await execute() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .disabled(checked.isEmpty || isRunning || brewRunning)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
-            .disabled(checked.isEmpty || isRunning)
         }
     }
 
@@ -327,13 +335,16 @@ struct UninstallSheet: View {
     }
 
     private func runBrewUninstall() {
-        guard let token = brewToken else { return }
+        guard let token = brewToken, !brewRunning else { return }
+        brewRunning = true
+        brewFailure = nil
         Task {
             let outcome = await RunningWork.shared.run(.homebrew) {
                 await Task.detached {
                     HomebrewService().uninstall(cask: token)
                 }.value
             }
+            brewRunning = false
             guard outcome.succeeded else {
                 brewFailure = outcome.message
                 return
