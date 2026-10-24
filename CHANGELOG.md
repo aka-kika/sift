@@ -14,6 +14,9 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 
+## [1.12.5] — 2026-10-25
+
+<!-- SF Symbol: checkmark.shield -->
 ### Fixed
 - `brew uninstall` deletes the app, but the finished screen and the docs said everything goes to the Trash and nothing is deleted. The screen now says removed by Homebrew, not in the Trash, and the README, guide, FEATURES and privacy note match.
 - Replace on a saved licence key asked for no Touch ID, so anyone at an unlocked Mac could overwrite the key. Replace now asks for Touch ID first, the same as Reveal, Copy and Remove.

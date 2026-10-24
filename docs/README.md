@@ -1,6 +1,6 @@
 # Sift — User and Developer Guide
 
-**Version 1.12.4** · macOS 14+ · Apple Silicon
+**Version 1.12.5** · macOS 14+ · Apple Silicon
 
 A native macOS app that audits your installed applications with a local model.
 For every app on your Mac, Sift answers three questions:
@@ -34,7 +34,7 @@ ollama serve
 ollama pull llama3.2
 ```
 
-Open `Sift-1.12.4.dmg`, drag Sift to Applications, launch it. Sift scans
+Open `Sift-1.12.5.dmg`, drag Sift to Applications, launch it. Sift scans
 `/Applications` and `~/Applications` and analyzes each app with the selected
 provider. Results are cached, so later launches are instant.
 

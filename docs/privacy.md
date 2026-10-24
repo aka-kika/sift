@@ -7,7 +7,7 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # Sift — Privacy & Permissions
 
-**Updated:** 2026-10-20 · **Version:** 1.12.4
+**Updated:** 2026-10-25 · **Version:** 1.12.5
 
 ## In one line
 
@@ -26,7 +26,7 @@ app you linked.
 | AI analysis (explanation, score, reason, best use) | The recommendation | Same local store | No |
 | Your notes and custom descriptions | Feed the analysis as evidence | Same local store | Only if you pick a cloud provider (see Network) |
 | Licence keys | The License Vault | **macOS login keychain**, service `com.kikaapp.appaudit.licensekeys`, not marked for iCloud. The login keychain does not honor a this-device-only flag — never the SwiftData store | No |
-| Cloud API keys (Anthropic, OpenAI, Gemini, OpenRouter, ollama.com) | Optional cloud analysis | **macOS login keychain**, service `com.kikaapp.appaudit.apikeys`, one item per provider. Builds up to 1.12.3 kept them in the preferences file; Sift moves them on first launch and removes the old copy only once the Keychain holds the key | Only to the provider it belongs to, with each request |
+| Cloud API keys (Anthropic, OpenAI, Gemini, OpenRouter, ollama.com) | Optional cloud analysis | **macOS login keychain**, service `com.kikaapp.appaudit.apikeys`, one item per provider. Builds up to 1.12.3 kept them in the preferences file; Sift moves them on first launch and removes the old copy only once the Keychain holds the key | Only to the provider it belongs to, with each request, over https. Plain http only to this Mac itself (localhost or its own .local name) |
 | Licence type, registered email, subscription price / cycle / renewal / billing email | Cost tracking | Local store | No |
 | App icons (PNG) | Vault rows survive uninstalling the app | Local store | No |
 | Attached project folder contents (README, manifests) for apps you mark as yours | Grounds the analysis in real evidence | Read when you attach or refresh the folder; a short excerpt is kept in the local store and reused by each analysis. Detaching the folder removes it | Only if you pick a cloud provider |
@@ -64,7 +64,7 @@ refresh button checks only when you click it.
 
 - **Analysis** runs on **local Ollama** by default — prompts never leave the Mac. If you switch the provider to Anthropic, OpenAI, Google Gemini or OpenRouter in Settings, the prompt (that app's metadata, your notes, fetched link evidence, attached docs evidence, and your workflow profile) goes to that provider under your own API key and their terms. The automatic workflow profile sent to a cloud provider has only the number of apps and their top categories — no app names. With local Ollama it also names your recently used and open apps. That switch is yours to make and yours to undo.
 - **Find similar apps** has to show the model your other installed apps (name, category, short description) to pick from. With a cloud provider, Sift asks before every such request; with local Ollama nothing leaves the Mac.
-- **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed or GitHub releases, over https only. Each request names only the app being checked. Homebrew checks run the local `brew` binary with Homebrew's auto-update turned off, so a check never runs `brew update`; Homebrew reaches the network only when you click an upgrade. You can turn the checks off in Settings → General → Updates.
+- **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed or GitHub releases, over https only, and a redirect has to stay on https and a public host. Each request names only the app being checked. Homebrew checks run the local `brew` binary with Homebrew's auto-update turned off, so a check never runs `brew update`; Homebrew reaches the network only when you click an upgrade. You can turn the checks off in Settings → General → Updates.
 - **Sift's own updates** (since 1.9.0) — Sparkle fetches `sift.akakika.com/appcast.xml` once a day and downloads the DMG only when you accept an update. The feed is a static file; nothing about you or your Mac is sent with the request.
 - **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says. Links to this Mac or your local network are never fetched, including a public name that points there (Sift looks up the address first), redirects to them are refused, and the query and fragment are removed before fetching and before the link goes into a prompt.
 - **About tab links** open in your browser when you click them; nothing is requested in the background.
