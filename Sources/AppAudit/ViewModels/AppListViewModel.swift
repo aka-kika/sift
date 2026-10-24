@@ -51,7 +51,6 @@ final class AppListViewModel {
         case enriching(completed: Int, total: Int)
         case done
         case error(String)
-
     }
 
     /// Rescan and Re-analyze while a scan or analysis is already running.
@@ -264,6 +263,10 @@ final class AppListViewModel {
     var cacheService: CacheService?
     private var updateScanToken = UUID()
 
+    /// A link, note or docs folder saved while a scan runs. That app's analysis
+    /// runs again once the scan is done, so the change is not dropped.
+    private(set) var queuedReanalysis: [(bundleID: String, appURL: String?)] = []
+
     func runFullScan() async {
         guard !ScanCommands.isBusy(scanState) else { return }
         guard scanState == .idle || scanState == .done else { return }
@@ -352,6 +355,7 @@ final class AppListViewModel {
         await enrichConcurrently(apps: toEnrich, profile: workflowProfile, provider: provider, modelIdentifier: modelIdentifier)
 
         scanState = .done
+        runQueuedReanalysis()
     }
 
     /// A new Mac rarely has the default model. Before analyzing with Ollama,
@@ -698,7 +702,13 @@ final class AppListViewModel {
     }
 
     func reanalyze(bundleID: String, appURL overrideAppURL: String? = nil) async {
-        guard !ScanCommands.isBusy(scanState) else { return }
+        guard !ScanCommands.isBusy(scanState) else {
+            // The buttons are disabled meanwhile; this is a saved link, note or
+            // docs folder. The newest link wins.
+            queuedReanalysis.removeAll { $0.bundleID == bundleID }
+            queuedReanalysis.append((bundleID, overrideAppURL))
+            return
+        }
         await selectInstalledOllamaModelIfNeeded(provider: AnalysisProviderKind.current())
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
@@ -815,6 +825,18 @@ final class AppListViewModel {
         await enrichConcurrently(apps: targets, profile: workflowProfile, provider: provider, modelIdentifier: modelIdentifier)
         scanState = .done
         staleModelCount = 0
+        runQueuedReanalysis()
+    }
+
+    private func runQueuedReanalysis() {
+        let queued = queuedReanalysis
+        queuedReanalysis = []
+        guard !queued.isEmpty else { return }
+        Task {
+            for item in queued {
+                await reanalyze(bundleID: item.bundleID, appURL: item.appURL)
+            }
+        }
     }
 
     func reanalyzeAfterLinkChange(bundleID: String, appURL: String? = nil) {
