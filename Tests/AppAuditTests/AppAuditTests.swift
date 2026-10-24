@@ -1565,10 +1565,13 @@ struct AnalysisPromptDocsEvidenceTests {
 struct MoneyCubeStateTests {
     @Test("Precedence: subscription > App Store > licensed > free > none")
     func precedence() {
-        // Subscription wins over everything.
+        // Subscription wins over a store install, until Free, Lifetime or My App.
         #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: true, isPaidApp: true,
-                                      hasSubscription: true, renewalNear: false, isFreeApp: true)
+                                      hasSubscription: true, renewalNear: false, isFreeApp: false)
                 == .subscription(renewalNear: false))
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: true)
+                == .free)
         // App Store beats licensed/paid and free.
         #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: true,
                                       hasSubscription: false, renewalNear: false, isFreeApp: false)
@@ -1583,10 +1586,15 @@ struct MoneyCubeStateTests {
                                       hasSubscription: false, renewalNear: false, isFreeApp: false,
                                       licenseType: .oneTime)
                 == .licensed(.oneTime))
-        // Subscription still outranks a typed App Store purchase.
+        // Lifetime (and any forever licence) outranks a leftover subscription.
         #expect(MoneyCubeState.derive(isAppStoreInstall: true, hasLicenseKey: false, isPaidApp: false,
                                       hasSubscription: true, renewalNear: false, isFreeApp: false,
                                       licenseType: .lifetime)
+                == .licensed(.lifetime))
+        // An annual licence does not. The subscription is still the face.
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: false,
+                                      licenseType: .annual)
                 == .subscription(renewalNear: false))
         // Key or paid mark → licensed, carrying the license type.
         #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: true, isPaidApp: false,

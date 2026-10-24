@@ -895,7 +895,8 @@ struct AppDetailView: View {
             hasSubscription: record?.hasSubscription == true,
             renewalNear: subscriptionRenewalIsNear,
             isFreeApp: record?.isFreeApp == true,
-            licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:))
+            licenseType: record?.licenseType.flatMap(LicenseType.init(rawValue:)),
+            isMyApp: app.isMyApp
         )
     }
 

@@ -19,8 +19,13 @@ enum MoneyCubeState: Equatable {
                        hasSubscription: Bool,
                        renewalNear: Bool,
                        isFreeApp: Bool,
-                       licenseType: LicenseType? = nil) -> MoneyCubeState {
-        if hasSubscription { return .subscription(renewalNear: renewalNear) }
+                       licenseType: LicenseType? = nil,
+                       isMyApp: Bool = false) -> MoneyCubeState {
+        // Lifetime, one-time, Free and My App are not a subscription. The old
+        // subscription face stays out, and Remove stays available so the
+        // record can be cleared.
+        let hidesSubscription = isMyApp || isFreeApp || (licenseType?.coversForever ?? false)
+        if hasSubscription && !hidesSubscription { return .subscription(renewalNear: renewalNear) }
         if isAppStoreInstall {
             if let licenseType { return .licensed(licenseType) }
             return .appStore

@@ -305,6 +305,7 @@ struct MoneyPopover: View {
 
     private var subscriptionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 quietField("Amount", text: $draftSubPrice)
                     .frame(maxWidth: 110)
@@ -344,17 +345,6 @@ struct MoneyPopover: View {
             quietField("Billing email (optional)", text: $draftSubEmail)
 
             HStack {
-                if hasSubscription {
-                    Button(role: .destructive) {
-                        onRemoveSubscription()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .help("Remove subscription")
-                }
                 Spacer()
                 Button(hasSubscription ? "Save" : "Mark Subscribed") {
                     onSaveSubscription()
@@ -367,5 +357,18 @@ struct MoneyPopover: View {
         }
         .disabled(subscriptionDisabled)
         .opacity(subscriptionDisabled ? 0.5 : 1)
+
+        if hasSubscription {
+            Button(role: .destructive) {
+                onRemoveSubscription()
+                dismiss()
+            } label: {
+                Label("Remove subscription", systemImage: "trash")
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .help("Remove subscription")
+        }
+        }
     }
 }

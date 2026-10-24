@@ -317,7 +317,8 @@ struct AppRow: View {
             hasSubscription: app.isSubscribed,
             renewalNear: false,
             isFreeApp: app.isFreeApp,
-            licenseType: app.licenseType
+            licenseType: app.licenseType,
+            isMyApp: app.isMyApp
         )
     }
 

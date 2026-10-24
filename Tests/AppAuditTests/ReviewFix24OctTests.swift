@@ -284,3 +284,32 @@ struct StoreRecoveryGuideTests {
         #expect(!text.contains("rm ~/Library/Application\\ Support/AppAudit/AppAudit.store*"))
     }
 }
+
+@Suite("Lifetime, Free and My App outrank a leftover subscription")
+struct SubscriptionOutrankedTests {
+    @Test("Lifetime, one-time, Free and My App hide the subscription face")
+    func hidden() {
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: false,
+                                      licenseType: .lifetime) == .licensed(.lifetime))
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: false,
+                                      licenseType: .oneTime) == .licensed(.oneTime))
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: true) == .free)
+        #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
+                                      hasSubscription: true, renewalNear: false, isFreeApp: false,
+                                      isMyApp: true) == .none)
+    }
+
+    @Test("Remove subscription is outside the disabled section")
+    func removeStays() throws {
+        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/MoneyPopover.swift"), encoding: .utf8)
+        guard let disabled = source.range(of: ".disabled(subscriptionDisabled)"),
+              let remove = source.range(of: "Remove subscription") else {
+            Issue.record("subscription section markers missing")
+            return
+        }
+        #expect(remove.lowerBound > disabled.upperBound)
+    }
+}
