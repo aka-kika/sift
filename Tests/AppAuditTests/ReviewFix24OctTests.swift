@@ -625,3 +625,19 @@ struct BrewCheckFailedTests {
         #expect(UpdateChecker.caskStatus(token: "ghostty", answer: answer) == .outdated("1.2.0"))
     }
 }
+
+@Suite("An analysis names the app version it was written for")
+struct AnalysisVersionTests {
+    @Test("A different installed version is stale")
+    func stale() {
+        #expect(CacheService.versionIsStale(analyzedVersion: "1.2", appVersion: "1.3"))
+        #expect(CacheService.versionNote(analyzedVersion: "1.2", appVersion: "1.3")?.contains("Re-analyze") == true)
+    }
+
+    @Test("The same version, or an old record with no version, is left alone")
+    func current() {
+        #expect(!CacheService.versionIsStale(analyzedVersion: "1.2", appVersion: "1.2"))
+        #expect(!CacheService.versionIsStale(analyzedVersion: nil, appVersion: "1.3"))
+        #expect(CacheService.versionNote(analyzedVersion: nil, appVersion: "1.3") == nil)
+    }
+}

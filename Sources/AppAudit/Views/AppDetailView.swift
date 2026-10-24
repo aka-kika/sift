@@ -493,6 +493,13 @@ struct AppDetailView: View {
                     }
                 }
 
+                if let note = CacheService.versionNote(analyzedVersion: record?.analyzedAppVersion, appVersion: app.version) {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 VStack(alignment: .leading, spacing: 4) {
                     microLabel("Tip")
                     Text(reason)

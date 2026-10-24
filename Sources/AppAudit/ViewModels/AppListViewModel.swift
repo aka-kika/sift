@@ -415,7 +415,8 @@ final class AppListViewModel {
                                 reason: reason,
                                 bestUse: bestUse,
                                 ollamaModel: modelIdentifier,
-                                analysisAppURL: analysisAppURL
+                                analysisAppURL: analysisAppURL,
+                                analyzedAppVersion: self.apps[idx].version
                             )
                         }
                     }
@@ -732,7 +733,8 @@ final class AppListViewModel {
                 reason: reason,
                 bestUse: bestUse,
                 ollamaModel: modelIdentifier,
-                analysisAppURL: appURL
+                analysisAppURL: appURL,
+                analyzedAppVersion: apps[idx].version
             )
             // Re-sync isMyApp (save() preserves it; read back to stay in sync)
             if let record = cache.load(bundleID: bundleID) {

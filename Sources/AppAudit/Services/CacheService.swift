@@ -53,7 +53,8 @@ final class CacheService {
     func save(
         bundleID: String, appName: String,
         explanation: String, score: Int, reason: String,
-        bestUse: String, ollamaModel: String, analysisAppURL: String? = nil
+        bestUse: String, ollamaModel: String, analysisAppURL: String? = nil,
+        analyzedAppVersion: String? = nil
     ) {
         if let existing = load(bundleID: bundleID) {
             guard !existing.isAnalysisLocked else { return }
@@ -65,6 +66,7 @@ final class CacheService {
             existing.bestUse = bestUse.isEmpty ? nil : bestUse
             existing.ollamaModel = ollamaModel
             existing.analysisAppURL = normalizedURL(analysisAppURL)
+            existing.analyzedAppVersion = analyzedAppVersion
             existing.generatedAt = Date()
         } else {
             let record = AppRecord(
@@ -77,6 +79,7 @@ final class CacheService {
                 ollamaModel: ollamaModel
             )
             record.analysisAppURL = normalizedURL(analysisAppURL)
+            record.analyzedAppVersion = analyzedAppVersion
             context.insert(record)
         }
         try? context.save()
@@ -84,6 +87,19 @@ final class CacheService {
 
     func persist() {
         try? context.save()
+    }
+
+    /// True when a saved analysis names a different app version than the one
+    /// installed now. An analysis with no stored version is left alone.
+    nonisolated static func versionIsStale(analyzedVersion: String?, appVersion: String) -> Bool {
+        guard let analyzedVersion, !analyzedVersion.isEmpty, !appVersion.isEmpty else { return false }
+        return analyzedVersion != appVersion
+    }
+
+    nonisolated static func versionNote(analyzedVersion: String?, appVersion: String) -> String? {
+        guard versionIsStale(analyzedVersion: analyzedVersion, appVersion: appVersion),
+              let analyzedVersion else { return nil }
+        return "Written for \(analyzedVersion). This app is now \(appVersion). Re-analyze to refresh it."
     }
 
     private func normalizedURL(_ value: String?) -> String? {

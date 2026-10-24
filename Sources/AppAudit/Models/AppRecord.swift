@@ -33,6 +33,9 @@ final class AppRecord {
     var appURL: String? = nil
     var suggestedAppURL: String? = nil
     var analysisAppURL: String? = nil
+    /// The app's marketing version when this analysis was written. Nil on
+    /// older records, which are not nagged.
+    var analyzedAppVersion: String? = nil
     var acknowledgedUpdateVersion: String? = nil
     // Migration-only bridge for older stores. New writes go to Keychain via LicenseKeyStore.
     var licenseKey: String? = nil
