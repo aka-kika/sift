@@ -372,10 +372,24 @@ struct UninstallSheet: View {
         alert.alertStyle = .warning
         alert.messageText = UninstallSweep.DataOnlyConfirmation.title
         alert.informativeText = UninstallSweep.DataOnlyConfirmation.message(appName: app.name)
-        alert.addButton(withTitle: "Cancel")
+        // NSAlert gives a button titled Cancel the Escape key, not Return, so
+        // Return is set by hand to keep Cancel the default, and Escape is
+        // caught while the alert runs so it still cancels too.
+        let cancel = alert.addButton(withTitle: "Cancel")
+        cancel.keyEquivalent = "\r"
         let confirm = alert.addButton(withTitle: UninstallSweep.DataOnlyConfirmation.confirm)
         confirm.hasDestructiveAction = true
-        return alert.runModal() == .alertSecondButtonReturn
+        confirm.keyEquivalent = ""
+        let escape = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.keyCode == 53 else { return event }
+            NSApp.stopModal(withCode: .alertFirstButtonReturn)
+            return nil
+        }
+        let answer = alert.runModal()
+        escape.map(NSEvent.removeMonitor)
+        // stopModal leaves the alert on screen; a button click does not.
+        alert.window.orderOut(nil)
+        return answer == .alertSecondButtonReturn
     }
 
     @MainActor
