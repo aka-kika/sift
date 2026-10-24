@@ -210,3 +210,17 @@ struct BrewUninstallFooterTests {
         #expect(BrewUninstallFooter.brewButtonEnabled(running: false))
     }
 }
+
+@Suite("Edge Canary is not an Apple system app")
+struct EdgeCanaryScanTests {
+    @Test("Edge Canary stays in the list")
+    func edge() {
+        #expect(!AppScanner.isHiddenAsSystemApp("com.microsoft.edgemac.Canary"))
+    }
+
+    @Test("Apple's own apps stay hidden behind the existing toggle")
+    func apple() {
+        #expect(AppScanner.isHiddenAsSystemApp("com.apple.Safari"))
+        #expect(!AppScanner.isHiddenAsSystemApp("com.example.app"))
+    }
+}

@@ -4,8 +4,13 @@ import AppKit
 
 actor AppScanner {
 
-    private let systemPrefixes = ["com.apple.", "com.microsoft.edgemac.Canary"]
     private let skipPaths = ["/System/", "/Library/Frameworks/", "/private/"]
+
+    /// Hidden with Apple's own apps unless that toggle is on. Microsoft Edge
+    /// Canary is not one of them.
+    static func isHiddenAsSystemApp(_ bundleID: String) -> Bool {
+        bundleID.hasPrefix("com.apple.")
+    }
     private let homebrew = HomebrewService()
 
     func scan(includeApple: Bool? = nil, includeUtilities: Bool? = nil, runningBundleIDs: Set<String> = []) async -> [AppInfo] {
@@ -74,7 +79,7 @@ actor AppScanner {
               let bundleID = plist["CFBundleIdentifier"] as? String else { return nil }
 
         // Filter Apple system apps unless toggled
-        if !includeApple && systemPrefixes.contains(where: { bundleID.hasPrefix($0) }) { return nil }
+        if !includeApple && Self.isHiddenAsSystemApp(bundleID) { return nil }
 
         let version = plist["CFBundleShortVersionString"] as? String ?? ""
         let humanDesc = plist["NSHumanReadableDescription"] as? String

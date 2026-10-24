@@ -25,6 +25,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A rescan replaced the sidebar list with a spinner. The list stays once apps are loaded; the spinner is only for the first scan.
 - Rescan, Cmd-R and Re-analyze looked tappable while an analysis was running, then did nothing. They stay disabled until it finishes, and the help text says why.
 - After brew uninstall with nothing else checked, Move to Trash was grey and Cancel was the only way out, so the removed app stayed in the sidebar. The sheet offers Done and reports the app as removed. The brew button stays disabled while brew runs.
+- Microsoft Edge Canary was hidden as if it were an Apple system app. It shows in the list now.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.
