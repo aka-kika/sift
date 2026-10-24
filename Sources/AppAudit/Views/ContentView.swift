@@ -41,7 +41,8 @@ struct ContentView: View {
             }
         }
         .task {
-            if WhatsNew.shouldShow() {
+            let priorRecords = (try? modelContext.fetchCount(FetchDescriptor<AppRecord>())) ?? 0
+            if WhatsNew.shouldShow(hasPriorRecords: priorRecords > 0) {
                 viewModel.whatsNewLines = WhatsNew.notes(for: WhatsNew.currentVersion)
             }
             viewModel.cacheService = CacheService(context: modelContext)

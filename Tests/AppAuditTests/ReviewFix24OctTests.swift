@@ -551,3 +551,27 @@ struct DocsPromptTests {
         #expect(DocsPrompt.evidenceToSend(isMyApp: true, stored: "  ") == nil)
     }
 }
+
+@Suite("What's New for an existing library")
+struct WhatsNewUpgradeTests {
+    private func defaults() -> UserDefaults {
+        let name = "SiftWhatsNew-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }
+
+    @Test("A library that predates the sheet is offered the notes")
+    func upgrade() {
+        let store = defaults()
+        #expect(WhatsNew.shouldShow(defaults: store, hasPriorRecords: true, notesAvailable: true, version: "1.12.4"))
+        #expect(store.string(forKey: WhatsNew.lastSeenKey) == nil)
+    }
+
+    @Test("A first install only remembers the version")
+    func first() {
+        let store = defaults()
+        #expect(!WhatsNew.shouldShow(defaults: store, hasPriorRecords: false, notesAvailable: true, version: "1.12.4"))
+        #expect(store.string(forKey: WhatsNew.lastSeenKey) == "1.12.4")
+    }
+}

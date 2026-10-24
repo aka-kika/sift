@@ -10,13 +10,21 @@ enum WhatsNew {
 
     static var currentVersion: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "" }
 
-    /// True once after an update. A first install only remembers the version: nothing is new yet.
-    static func shouldShow(defaults: UserDefaults = .standard) -> Bool {
-        let current = currentVersion
+    /// True once after an update. A first install only remembers the version.
+    /// An existing library with no last-seen key is an upgrade from before
+    /// this sheet existed, so the notes are shown. `notesAvailable` is for
+    /// tests; the app reads the bundled notes.
+    static func shouldShow(defaults: UserDefaults = .standard, hasPriorRecords: Bool = false, notesAvailable: Bool? = nil, version: String? = nil) -> Bool {
+        let current = version ?? currentVersion
         guard !current.isEmpty else { return false }
+        let hasNotes = notesAvailable ?? (notes(for: current) != nil)
         let last = defaults.string(forKey: lastSeenKey)
-        if last == nil { defaults.set(current, forKey: lastSeenKey); return false }
-        return last != current && notes(for: current) != nil
+        if last == nil {
+            if hasPriorRecords && hasNotes { return true }
+            defaults.set(current, forKey: lastSeenKey)
+            return false
+        }
+        return last != current && hasNotes
     }
 
     static func markSeen(defaults: UserDefaults = .standard) { defaults.set(currentVersion, forKey: lastSeenKey) }
