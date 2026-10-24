@@ -2,10 +2,11 @@ import Foundation
 
 /// What a scan may fetch. With update checks off, Settings and privacy.md
 /// promise a scan makes no network requests, so the saved app link page stays
-/// unread too. The sidebar refresh still checks updates when the user clicks it.
+/// unread too. A Re-analyze the user asks for still reads it, the same way the
+/// sidebar refresh still checks updates when clicked.
 enum ScanNetwork {
-    static func fetchesSavedLinkPage(checksUpdatesOnScan: Bool) -> Bool {
-        checksUpdatesOnScan
+    static func fetchesSavedLinkPage(checksUpdatesOnScan: Bool, userAsked: Bool = false) -> Bool {
+        userAsked || checksUpdatesOnScan
     }
 }
 

@@ -72,10 +72,9 @@ struct ScanNetworkTests {
         #expect(ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: true))
     }
 
-    @Test("Analysis uses that decision before it fetches")
-    func wired() throws {
-        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/ViewModels/AppListViewModel.swift"), encoding: .utf8)
-        #expect(source.contains("ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan())"))
+    @Test("A Re-analyze the user asks for reads the page even with the switch off")
+    func userAsked() {
+        #expect(ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: false, userAsked: true))
     }
 }
 

@@ -17,7 +17,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 ### Fixed
 - `brew uninstall` deletes the app, but the finished screen and the docs said everything goes to the Trash and nothing is deleted. The screen now says removed by Homebrew, not in the Trash, and the README, guide, FEATURES and privacy note match.
 - Replace on a saved licence key asked for no Touch ID, so anyone at an unlocked Mac could overwrite the key. Replace now asks for Touch ID first, the same as Reveal, Copy and Remove.
-- With update checks off, a scan still fetched each saved app link page, against the promise that a scan makes no network requests. That fetch is skipped while the switch is off.
+- With update checks off, a scan still fetched each saved app link page, against the promise that a scan makes no network requests. That fetch is skipped during a scan while the switch is off. A Re-analyze you ask for still reads the page.
 - A Keychain error at launch (locked or denied) was treated as no key, so the vault hid those purchases. The flag is cleared only when the item is not found.
 - A subscription with no key and no Paid mark never appeared in the License Vault, so a monthly app vanished from "everything you've bought" after uninstall. Subscriptions are listed now.
 - Mark Subscribed stored today as the renewal date when the date was never picked, so the cube said the subscription renews today. The date stays empty until you set one.

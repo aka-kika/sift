@@ -373,7 +373,8 @@ final class AppListViewModel {
         apps toEnrich: [AppInfo],
         profile: WorkflowProfile,
         provider: AnalysisProviderKind,
-        modelIdentifier: String
+        modelIdentifier: String,
+        userAsked: Bool = false
     ) async {
         let concurrencyLimit = enrichmentConcurrency
         var completed = self.apps.count - toEnrich.count
@@ -392,7 +393,7 @@ final class AppListViewModel {
                 let capturedNotes = capturedRecord?.notes
                 let capturedDocs = DocsPrompt.evidenceToSend(isMyApp: capturedRecord?.isMyApp == true, stored: capturedRecord?.docsEvidence)
                 group.addTask {
-                    let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs)
+                    let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs, userAsked: userAsked)
                     return (result.0, result.1, capturedAppURL)
                 }
                 pendingCount += 1
@@ -438,7 +439,7 @@ final class AppListViewModel {
                     let capturedNotes = capturedRecord?.notes
                     let capturedDocs = DocsPrompt.evidenceToSend(isMyApp: capturedRecord?.isMyApp == true, stored: capturedRecord?.docsEvidence)
                     group.addTask {
-                        let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs)
+                        let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs, userAsked: userAsked)
                         return (result.0, result.1, capturedAppURL)
                     }
                 }
@@ -452,9 +453,10 @@ final class AppListViewModel {
         provider: AnalysisProviderKind,
         appURL: String? = nil,
         userNotes: String? = nil,
-        docsEvidence: String? = nil
+        docsEvidence: String? = nil,
+        userAsked: Bool = false
     ) async -> (String, AppInfo.AIState) {
-        let linkEvidence = ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan())
+        let linkEvidence = ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan(), userAsked: userAsked)
             ? await linkEvidenceService.evidence(for: appURL)
             : nil
         let result = await service(for: provider).analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
@@ -722,7 +724,7 @@ final class AppListViewModel {
         workflowProfile = .current(digest: WorkflowDigest.build(from: apps, includeAppNames: AnalysisProviderKind.current().runsOnThisMac))
         update(bundleID: bundleID) { $0.aiState = .loading }
         let provider = AnalysisProviderKind.current()
-        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes, docsEvidence: docsEvidence)
+        let result = await enrichSingle(app: apps[idx], profile: workflowProfile, provider: provider, appURL: appURL, userNotes: userNotes, docsEvidence: docsEvidence, userAsked: true)
         // `apps` may have been rescanned or shrunk (⌘R, Uninstall) while we waited —
         // the old index could now point at another app, or past the end.
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
@@ -822,7 +824,7 @@ final class AppListViewModel {
         }
 
         scanState = .enriching(completed: apps.count - targets.count, total: apps.count)
-        await enrichConcurrently(apps: targets, profile: workflowProfile, provider: provider, modelIdentifier: modelIdentifier)
+        await enrichConcurrently(apps: targets, profile: workflowProfile, provider: provider, modelIdentifier: modelIdentifier, userAsked: true)
         scanState = .done
         staleModelCount = 0
         runQueuedReanalysis()
