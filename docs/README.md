@@ -141,7 +141,7 @@ never iCloud-synced. Revealing, copying or replacing one asks for Touch ID.
 place, split into **Installed** and **No longer installed** — uninstall an app
 and its licence simply moves sections, then moves back if you reinstall.
 
-A row appears if it has a key, a Paid mark, **or** a licence type. Rows show the
+A row appears if it has a key, a Paid mark, a licence type, or a subscription. Rows show the
 icon, name, bundle ID, registered email, and either a Copy Key button or a
 coloured pill naming the licence type.
 

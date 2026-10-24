@@ -1,5 +1,13 @@
 import Foundation
 
+/// Which records belong in the License Vault. A subscription is a purchase
+/// even when there is no key, Paid mark or licence type.
+enum VaultMembership {
+    static func includes(hasLicenseKey: Bool, isPaidApp: Bool, hasLicenseType: Bool, hasSubscription: Bool) -> Bool {
+        hasLicenseKey || isPaidApp || hasLicenseType || hasSubscription
+    }
+}
+
 /// Where the app name in the License Vault takes you. A vault entry often
 /// outlives the app itself, and the reason you kept it — the key, the receipt,
 /// the reinstall — usually lives on the maker's site. So the name is always a

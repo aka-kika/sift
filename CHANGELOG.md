@@ -19,6 +19,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Replace on a saved licence key asked for no Touch ID, so anyone at an unlocked Mac could overwrite the key. Replace now asks for Touch ID first, the same as Reveal, Copy and Remove.
 - With update checks off, a scan still fetched each saved app link page, against the promise that a scan makes no network requests. That fetch is skipped while the switch is off.
 - A Keychain error at launch (locked or denied) was treated as no key, so the vault hid those purchases. The flag is cleared only when the item is not found.
+- A subscription with no key and no Paid mark never appeared in the License Vault, so a monthly app vanished from "everything you've bought" after uninstall. Subscriptions are listed now.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

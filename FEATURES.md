@@ -59,8 +59,8 @@ updating, and which licenses and subscriptions you're paying for.
 - A one-time launch sweep migrates any legacy plaintext key into the Keychain.
 - **Touch ID protected** — every key copy, reveal, replace or remove asks for Touch ID (or your password) via the system sheet.
 - **License Vault** (File → License Vault… or ⇧⌘L) lists **all** your
-  license keys in one place, sectioned into **Installed** and **No longer installed** — keys
-  survive uninstalls and move back when you reinstall an app.
+  purchases in one place — licence keys, paid apps and subscriptions — sectioned into **Installed** and **No longer installed**.
+  They survive uninstalls and move back when you reinstall an app.
 - **Registered email per key** — remembers which account each license belongs to; a default email in Settings prefills new keys.
 
 ## App links

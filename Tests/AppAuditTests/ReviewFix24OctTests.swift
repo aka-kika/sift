@@ -100,3 +100,22 @@ struct LicenseFlagOnKeychainErrorTests {
         #expect(KeychainSecretStoreBackend.presence(for: errSecSuccess) == .present)
     }
 }
+
+@Suite("Subscriptions belong in the License Vault")
+struct VaultSubscriptionTests {
+    @Test("A subscription alone is a purchase")
+    func subscriptionOnly() {
+        #expect(VaultMembership.includes(hasLicenseKey: false, isPaidApp: false, hasLicenseType: false, hasSubscription: true))
+    }
+
+    @Test("Nothing bought stays out")
+    func empty() {
+        #expect(!VaultMembership.includes(hasLicenseKey: false, isPaidApp: false, hasLicenseType: false, hasSubscription: false))
+    }
+
+    @Test("The vault query includes hasSubscription")
+    func query() throws {
+        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/LicenseVaultView.swift"), encoding: .utf8)
+        #expect(source.contains("$0.hasSubscription"))
+    }
+}

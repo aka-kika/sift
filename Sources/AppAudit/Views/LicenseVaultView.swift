@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import AppKit
 
-/// Shows everything you've bought — license keys and paid Mac App Store apps —
+/// Shows everything you've bought — license keys, paid apps and subscriptions —
 /// split into Installed and No longer installed. Records persist after an app is
 /// removed; uninstalled apps simply move to the "No longer installed" section and
 /// move back when reinstalled.
@@ -17,7 +17,7 @@ struct LicenseVaultView: View {
     /// A recorded license type counts as a purchase on its own — that is the
     /// only trace a keyless App Store buy ever leaves, and losing it here
     /// would defeat the point of installing an app just to vault its license.
-    @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey || $0.isPaidApp || $0.licenseType != nil },
+    @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey || $0.isPaidApp || $0.licenseType != nil || $0.hasSubscription },
            sort: \AppRecord.appName)
     private var ownedRecords: [AppRecord]
 
@@ -52,7 +52,7 @@ struct LicenseVaultView: View {
                 ContentUnavailableView {
                     Label("Nothing Bought Yet", systemImage: "bag")
                 } description: {
-                    Text("Save a license key, set a license type, or mark a Mac App Store app as paid, and it appears here. Items stay in this vault even after you uninstall the app.")
+                    Text("Save a license key, set a license type, mark a Mac App Store app as paid, or mark a subscription, and it appears here. Items stay in this vault even after you uninstall the app.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
