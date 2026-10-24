@@ -386,7 +386,7 @@ final class AppListViewModel {
                 let capturedRecord = self.cacheService?.load(bundleID: app.bundleID)
                 let capturedAppURL = capturedRecord?.appURL
                 let capturedNotes = capturedRecord?.notes
-                let capturedDocs = capturedRecord?.docsEvidence
+                let capturedDocs = DocsPrompt.evidenceToSend(isMyApp: capturedRecord?.isMyApp == true, stored: capturedRecord?.docsEvidence)
                 group.addTask {
                     let result = await self.enrichSingle(app: capturedApp, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs)
                     return (result.0, result.1, capturedAppURL)
@@ -431,7 +431,7 @@ final class AppListViewModel {
                     let capturedRecord = self.cacheService?.load(bundleID: next.bundleID)
                     let capturedAppURL = capturedRecord?.appURL
                     let capturedNotes = capturedRecord?.notes
-                    let capturedDocs = capturedRecord?.docsEvidence
+                    let capturedDocs = DocsPrompt.evidenceToSend(isMyApp: capturedRecord?.isMyApp == true, stored: capturedRecord?.docsEvidence)
                     group.addTask {
                         let result = await self.enrichSingle(app: capturedNext, profile: capturedProfile, provider: capturedProvider, appURL: capturedAppURL, userNotes: capturedNotes, docsEvidence: capturedDocs)
                         return (result.0, result.1, capturedAppURL)
@@ -707,7 +707,7 @@ final class AppListViewModel {
         let cachedRecord = cacheService?.load(bundleID: bundleID)
         let appURL = overrideAppURL ?? cachedRecord?.appURL
         let userNotes = cachedRecord?.notes
-        let docsEvidence = cachedRecord?.docsEvidence
+        let docsEvidence = DocsPrompt.evidenceToSend(isMyApp: apps[idx].isMyApp, stored: cachedRecord?.docsEvidence)
         workflowProfile = .current(digest: WorkflowDigest.build(from: apps, includeAppNames: AnalysisProviderKind.current().runsOnThisMac))
         update(bundleID: bundleID) { $0.aiState = .loading }
         let provider = AnalysisProviderKind.current()

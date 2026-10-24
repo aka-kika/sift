@@ -42,6 +42,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A name-only match could claim a macOS folder (CloudDocs, MobileSync) or Sift's own AppAudit folder if an app had that name. Those names never match.
 - When every item in a Sparkle feed was on a beta channel, the fallback scan could still offer that beta. The fallback is skipped when the items were filtered out.
 - Uninstalling a symlink of an app counted as the only copy, so the real app's data was checked. Copy paths are compared without resolving symlinks.
+- After unmarking My App, the attached project excerpt was still sent with each analysis. It is sent only while the app is marked My App. The excerpt stays stored.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

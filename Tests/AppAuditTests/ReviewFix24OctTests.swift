@@ -541,3 +541,13 @@ struct SymlinkCopyTests {
         #expect(result == .others([AppCopyFinder.canonical(real.path)]))
     }
 }
+
+@Suite("Project excerpts go out only for My App")
+struct DocsPromptTests {
+    @Test("Unmarking My App stops the excerpt, without deleting it from the decision")
+    func unmarked() {
+        #expect(DocsPrompt.evidenceToSend(isMyApp: false, stored: "README text") == nil)
+        #expect(DocsPrompt.evidenceToSend(isMyApp: true, stored: "README text") == "README text")
+        #expect(DocsPrompt.evidenceToSend(isMyApp: true, stored: "  ") == nil)
+    }
+}

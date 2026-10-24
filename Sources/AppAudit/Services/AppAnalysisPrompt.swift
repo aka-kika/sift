@@ -1,5 +1,16 @@
 import Foundation
 
+/// A project-folder excerpt is evidence for an app you build. After My App
+/// is turned off it stays stored, but it is not sent until you mark it again.
+enum DocsPrompt {
+    static func evidenceToSend(isMyApp: Bool, stored: String?) -> String? {
+        guard isMyApp else { return nil }
+        guard let stored else { return nil }
+        let trimmed = stored.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : stored
+    }
+}
+
 enum AppAnalysisPrompt {
     static let system = """
     You are an expert macOS app analyst helping a developer audit installed applications.
