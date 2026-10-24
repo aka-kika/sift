@@ -274,3 +274,13 @@ struct AppStoreMinimumOSTests {
         #expect(UpdateChecker.runsOnThisMac(minimumOS: nil, systemVersion: "15.0.0"))
     }
 }
+
+@Suite("The crash guide does not delete the store")
+struct StoreRecoveryGuideTests {
+    @Test("It says move the store to the Desktop")
+    func desktop() throws {
+        let text = try String(contentsOf: repoRoot.appending(path: "docs/README.md"), encoding: .utf8)
+        #expect(text.contains("mv ~/Library/Application\\ Support/AppAudit/AppAudit.store* ~/Desktop/"))
+        #expect(!text.contains("rm ~/Library/Application\\ Support/AppAudit/AppAudit.store*"))
+    }
+}

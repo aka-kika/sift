@@ -388,10 +388,10 @@ Expected, and only on the first uninstall of an app Sift can't move itself. See
 [Privacy & Permissions](privacy.md).
 
 **Crash on launch**
-Reset the store — this drops your audit and notes, but not your keys:
+Sift already sets a damaged store aside (next to the original, named `AppAudit.store.broken-<date>`) and opens an empty library. That move deletes nothing: notes and licence records are in the set-aside file, and licence keys stay in the Keychain. If you still need to move the store by hand, move it to the Desktop. Do not delete it:
 
 ```bash
-rm ~/Library/Application\ Support/AppAudit/AppAudit.store*
+mv ~/Library/Application\ Support/AppAudit/AppAudit.store* ~/Desktop/
 ```
 
 **App icon not showing in the Dock**
