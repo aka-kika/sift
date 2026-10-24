@@ -254,3 +254,28 @@ struct DataOnlySweepConfirmationTests {
         #expect(UninstallSweep.DataOnlyConfirmation.message(appName: "Reed").contains("Reed stays"))
     }
 }
+
+@Suite("Run Update says what brew really did")
+struct HomebrewUpgradeReportTests {
+    @Test("A failed brew never reads as finished")
+    func failed() {
+        let outcome = HomebrewService.BrewOutcome(exitStatus: 1, output: "Error: Download failed")
+        let message = HomebrewService.UpgradeReport.message(for: outcome)
+        #expect(!message.contains("finished"))
+        #expect(message.contains("Download failed"))
+    }
+
+    @Test("A clean brew run says finished")
+    func succeeded() {
+        let outcome = HomebrewService.BrewOutcome(exitStatus: 0, output: "==> Upgrading 1 outdated package")
+        #expect(HomebrewService.UpgradeReport.message(for: outcome).hasPrefix("Homebrew finished"))
+    }
+
+    @Test("A copy brew did not install is not brew's to update")
+    func notBrewsCopy() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "sift-caskroom-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appending(path: "ghostty/.metadata"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        #expect(!HomebrewService.caskOwnsBundle(token: "ghostty", bundlePath: "/Users/me/Downloads/Ghostty.app", caskroomRoots: [root.path]))
+    }
+}

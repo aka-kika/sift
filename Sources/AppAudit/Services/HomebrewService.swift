@@ -34,8 +34,22 @@ struct HomebrewService: Sendable {
         return .list(casks)
     }
 
-    func upgradeCask(_ token: String) -> String {
-        runBrew(arguments: ["upgrade", "--cask", token], includeStandardError: true)
+    func upgradeCask(_ token: String) -> BrewOutcome {
+        runBrewChecked(arguments: ["upgrade", "--cask", token])
+    }
+
+    /// What Run Update tells the user. brew upgrade updates only the copy brew
+    /// installed, so a hand-installed copy matched by name is not handed to
+    /// brew, and brew's exit status, not its output, says whether it worked.
+    enum UpgradeReport {
+        static let notBrewsCopy = "This copy was not installed by Homebrew, so brew upgrade would not update it. Update it from the app or its website."
+
+        static func message(for outcome: BrewOutcome) -> String {
+            guard outcome.succeeded else { return "Homebrew could not update it. \(outcome.message)" }
+            let output = outcome.output.trimmingCharacters(in: .whitespacesAndNewlines)
+            let done = "Homebrew finished. Rescan to refresh this app's version."
+            return output.isEmpty ? done : done + "\n\n" + output
+        }
     }
 
     /// What `brew` actually did. `exitStatus` is nil when brew could not be run at all.
@@ -206,13 +220,7 @@ struct HomebrewService: Sendable {
         }
     }
 
-    private func runBrew(arguments: [String], includeStandardError: Bool = false) -> String {
-        // stdout and stderr share one pipe here, drained before the wait.
-        if includeStandardError {
-            return runBrewChecked(arguments: arguments).output
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
+    private func runBrew(arguments: [String]) -> String {
         guard let brewPath = Self.brewExecutablePath() else { return "" }
 
         let process = Process()

@@ -1499,14 +1499,19 @@ struct AppDetailView: View {
 
     private func runHomebrewUpdate() async {
         guard let token = app.homebrewCaskToken else { return }
+        let path = app.path
         runningHomebrewUpdate = true
-        let output = await RunningWork.shared.run(.homebrew) {
-            await Task.detached {
-                HomebrewService().upgradeCask(token)
+        let message = await RunningWork.shared.run(.homebrew) {
+            await Task.detached { () -> String in
+                // A name match alone could be a copy brew never installed.
+                guard HomebrewService.caskOwnsBundle(token: token, bundlePath: path) else {
+                    return HomebrewService.UpgradeReport.notBrewsCopy
+                }
+                return HomebrewService.UpgradeReport.message(for: HomebrewService().upgradeCask(token))
             }.value
         }
         runningHomebrewUpdate = false
-        homebrewUpdateMessage = output.isEmpty ? "Homebrew finished. Rescan to refresh this app's version." : output
+        homebrewUpdateMessage = message
     }
 }
 

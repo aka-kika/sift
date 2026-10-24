@@ -55,6 +55,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Quitting within a minute of copying a licence key left it on the clipboard. Quit clears it too, if it is still the thing that was copied.
 - A denied Finder Automation prompt said only that macOS refused the move. The row now names System Settings, Privacy & Security, Automation.
 - With the app row unticked, Move to Trash swept all the app's data while the app stayed installed. Sift now asks first: "The app stays installed. Delete only its data?", with Cancel as the default.
+- Run Update ran brew upgrade on a cask matched only by name, so a hand-installed copy stayed old, and a failed brew could still read as finished. Run Update now checks that brew installed this copy and reads brew's exit status.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.
