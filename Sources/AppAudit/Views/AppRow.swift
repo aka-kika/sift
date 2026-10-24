@@ -289,7 +289,7 @@ struct AppRow: View {
                             mirror: (String, Bool) -> Void) {
         let record = CacheService(context: modelContext).ensureRecord(bundleID: app.bundleID, appName: app.name)
         record[keyPath: keyPath].toggle()
-        try? modelContext.save()
+        modelContext.saveReportingFailure()
         mirror(app.bundleID, record[keyPath: keyPath])
     }
 
@@ -337,7 +337,7 @@ struct AppRow: View {
         let resolution = licenseKeyStore.resolveKey(bundleID: app.bundleID, legacyValue: record?.licenseKey)
         if resolution.didMigrateLegacyValue, let record {
             record.licenseKey = nil
-            try? modelContext.save()
+            modelContext.saveReportingFailure()
         }
         return resolution
     }

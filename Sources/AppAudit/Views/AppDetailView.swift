@@ -1387,7 +1387,7 @@ struct AppDetailView: View {
     }
 
     private func saveRecord() {
-        try? modelContext.save()
+        modelContext.saveReportingFailure()
     }
 
     private func togglePaid() {

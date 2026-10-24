@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import AppKit
+import SwiftData
 @testable import Sift
 
 /// Fixes from the 2026-10-25 second check of the 24 Oct review branch.
@@ -400,5 +401,28 @@ struct UpdateRedirectGuardTests {
     @Test("https to a public address passes")
     func publicHTTPS() async {
         #expect(await UpdateFetchGuard.allows(URL(string: "https://93.184.216.34/appcast.xml")!))
+    }
+}
+
+@Suite("A failed save is shown, not hidden")
+@MainActor
+struct SaveFailuresTests {
+    @Test("A reported failure shows until dismissed")
+    func reportAndDismiss() {
+        let failures = SaveFailures()
+        #expect(failures.message == nil)
+        failures.report(CocoaError(.fileWriteOutOfSpace))
+        #expect(failures.message?.contains("could not save") == true)
+        failures.dismiss()
+        #expect(failures.message == nil)
+    }
+
+    @Test("A save that works reports nothing")
+    func cleanSave() throws {
+        let container = try ModelContainer(for: AppRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let failures = SaveFailures()
+        container.mainContext.insert(AppRecord(stub: "com.example.app", appName: "Example"))
+        container.mainContext.saveReportingFailure(to: failures)
+        #expect(failures.message == nil)
     }
 }

@@ -205,7 +205,7 @@ struct LicenseVaultView: View {
             licenseKeyStore.delete(bundleID: bundleID)
             record.hasLicenseKey = false
             record.licenseKey = nil
-            try? modelContext.save()
+            modelContext.saveReportingFailure()
             viewModel.setHasLicenseKey(bundleID: bundleID, value: false)
         }
     }
@@ -217,7 +217,7 @@ struct LicenseVaultView: View {
         viewModel.setPaidApp(bundleID: record.bundleID, value: false)
         record.licenseType = nil
         viewModel.setLicenseType(bundleID: record.bundleID, rawValue: nil)
-        try? modelContext.save()
+        modelContext.saveReportingFailure()
     }
 }
 

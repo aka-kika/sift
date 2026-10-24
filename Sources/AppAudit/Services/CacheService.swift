@@ -82,11 +82,11 @@ final class CacheService {
             record.analyzedAppVersion = analyzedAppVersion
             context.insert(record)
         }
-        try? context.save()
+        context.saveReportingFailure()
     }
 
     func persist() {
-        try? context.save()
+        context.saveReportingFailure()
     }
 
     /// True when a saved analysis names a different app version than the one

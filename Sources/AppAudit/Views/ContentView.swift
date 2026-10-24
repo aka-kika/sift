@@ -12,6 +12,9 @@ struct ContentView: View {
         @Bindable var vm = viewModel
 
         VStack(spacing: 0) {
+            if let message = SaveFailures.shared.message {
+                saveFailedBanner(message)
+            }
             if viewModel.staleModelCount > 0 {
                 modelChangedBanner
             }
@@ -104,6 +107,26 @@ struct ContentView: View {
             .help(AppListViewModel.ScanCommands.busyReason)
             Button("Dismiss") {
                 viewModel.dismissModelChangeBanner()
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func saveFailedBanner(_ message: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(pastelize(.red, colorScheme))
+            Text(message)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Button("Dismiss") {
+                SaveFailures.shared.dismiss()
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
