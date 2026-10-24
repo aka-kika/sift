@@ -185,6 +185,23 @@ enum UninstallSweep {
         }.map(\.id))
     }
 
+    /// The app row is unticked while the app is still on disk, and data is
+    /// checked: the app would stay installed with its data gone, so the sheet
+    /// asks first. After brew removed the app there is no bundle row to ask about.
+    static func needsDataOnlyConfirmation(items: [LeftoverItem], checked: Set<String>) -> Bool {
+        guard let bundle = items.first(where: \.isAppBundle), !checked.contains(bundle.id) else { return false }
+        return items.contains { !$0.isAppBundle && checked.contains($0.id) }
+    }
+
+    /// The question, with Cancel as the default button.
+    enum DataOnlyConfirmation {
+        static let title = "The app stays installed. Delete only its data?"
+        static func message(appName: String) -> String {
+            "The \(appName) row is unticked, so \(appName) stays. Its checked settings, caches and data go to the Trash, and it may lose its setup."
+        }
+        static let confirm = "Delete Data Only"
+    }
+
     /// The checked items in sweep order: the bundle first, the rest as listed.
     static func ordered(_ targets: [LeftoverItem]) -> [LeftoverItem] {
         targets.filter(\.isAppBundle) + targets.filter { !$0.isAppBundle }

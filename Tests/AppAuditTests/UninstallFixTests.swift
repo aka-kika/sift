@@ -201,7 +201,9 @@ struct UninstallSweepTests {
         #expect(outcome.failures.count == 1)
     }
 
-    @Test("Data alone, with the bundle unchecked, still sweeps")
+    // The sheet asks before a data-only sweep (needsDataOnlyConfirmation);
+    // once confirmed, the sweep itself moves the data.
+    @Test("Data alone, confirmed with the bundle unchecked, sweeps")
     func dataOnly() async {
         let outcome = await UninstallSweep.run(targets.filter { !$0.isAppBundle }) { _ in nil }
         #expect(!outcome.removedBundle)

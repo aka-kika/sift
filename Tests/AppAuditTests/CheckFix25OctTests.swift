@@ -224,3 +224,33 @@ struct SparkleDottedBuildLabelTests {
         #expect(item.displayVersion(installedVersion: "1.2.3") == "1.2.3 (2045)")
     }
 }
+
+@Suite("A data-only sweep asks first")
+struct DataOnlySweepConfirmationTests {
+    private let bundle = LeftoverItem(id: "/Applications/Reed.app", url: URL(fileURLWithPath: "/Applications/Reed.app"),
+                                      category: .application, sizeBytes: 1, reason: "bundle", isAppBundle: true)
+    private let support = LeftoverItem(id: "/Users/me/Library/Application Support/Reed",
+                                       url: URL(fileURLWithPath: "/Users/me/Library/Application Support/Reed"),
+                                       category: .applicationSupport, sizeBytes: 1, reason: "data")
+
+    @Test("App row unticked with data checked asks")
+    func asks() {
+        #expect(UninstallSweep.needsDataOnlyConfirmation(items: [bundle, support], checked: [support.id]))
+    }
+
+    @Test("The app checked too does not ask")
+    func appChecked() {
+        #expect(!UninstallSweep.needsDataOnlyConfirmation(items: [bundle, support], checked: [bundle.id, support.id]))
+    }
+
+    @Test("After brew removed the app there is nothing to ask")
+    func brewRemoved() {
+        #expect(!UninstallSweep.needsDataOnlyConfirmation(items: [support], checked: [support.id]))
+    }
+
+    @Test("The question says the app stays")
+    func wording() {
+        #expect(UninstallSweep.DataOnlyConfirmation.title == "The app stays installed. Delete only its data?")
+        #expect(UninstallSweep.DataOnlyConfirmation.message(appName: "Reed").contains("Reed stays"))
+    }
+}

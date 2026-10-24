@@ -231,6 +231,7 @@ struct UninstallSheet: View {
                     .keyboardShortcut(.escape)
                 Spacer()
                 Button("Move to Trash", role: .destructive) {
+                    guard confirmDataOnlySweepIfNeeded() else { return }
                     Task { await execute() }
                 }
                 .buttonStyle(.borderedProminent)
@@ -354,6 +355,20 @@ struct UninstallSheet: View {
             items.removeAll(where: \.isAppBundle)
             checked = checked.intersection(Set(items.map(\.id)))
         }
+    }
+
+    /// Unticking the app row keeps the app, so a sweep of its data alone is
+    /// asked about first. Cancel is the default button, Return included.
+    private func confirmDataOnlySweepIfNeeded() -> Bool {
+        guard UninstallSweep.needsDataOnlyConfirmation(items: items, checked: checked) else { return true }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = UninstallSweep.DataOnlyConfirmation.title
+        alert.informativeText = UninstallSweep.DataOnlyConfirmation.message(appName: app.name)
+        alert.addButton(withTitle: "Cancel")
+        let confirm = alert.addButton(withTitle: UninstallSweep.DataOnlyConfirmation.confirm)
+        confirm.hasDestructiveAction = true
+        return alert.runModal() == .alertSecondButtonReturn
     }
 
     @MainActor
