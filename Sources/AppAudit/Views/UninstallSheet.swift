@@ -367,6 +367,7 @@ struct UninstallSheet: View {
         let outcome = await UninstallSweep.run(
             targets,
             progress: { phase = .working(current: $0.url.lastPathComponent) },
+            beforeTrash: { await LaunchAgentUnload.bootout(plistPath: $0.url.path) },
             trash: { await TrashService.trash($0) }
         )
         phase = .done(failures: outcome.failures,

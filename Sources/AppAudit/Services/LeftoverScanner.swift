@@ -7,6 +7,28 @@ import Security
 ///
 /// Scanning strategy adapted from uninstally's AssociatedFileScanner
 /// (https://github.com/gostonx/uninstally, MIT License © 2026 Codenta).
+/// A Launch Agent plist has to be unloaded before it is trashed, or the
+/// helper keeps running until logout.
+enum LaunchAgentUnload {
+    static func needsUnload(_ category: LeftoverCategory) -> Bool {
+        category == .launchAgents
+    }
+
+    static func arguments(plistPath: String, uid: uid_t = getuid()) -> [String] {
+        ["bootout", "gui/\(uid)", plistPath]
+    }
+
+    static func bootout(plistPath: String) async {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = arguments(plistPath: plistPath)
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try? process.run()
+        process.waitUntilExit()
+    }
+}
+
 struct LeftoverScanner: Sendable {
 
     /// `otherAppNames` are the names of the other installed apps (other bundle

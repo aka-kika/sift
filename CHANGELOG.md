@@ -32,6 +32,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A subscribed app later marked Lifetime, Free or My App kept the subscription face, and Remove was greyed out with the rest of that section. Those marks now outrank the subscription, and Remove subscription stays available.
 - A very short bundle ID such as com.apple or com.google could pre-check other apps' Library files. A bundle ID now needs three parts, and com.apple never matches.
 - Any permission-denied leftover was handed to Finder, which can open an unexplained prompt. Finder is asked only for the app bundle.
+- A Launch Agent was moved to the Trash while it was still loaded, so the helper kept running until logout. Sift runs `launchctl bootout` first.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

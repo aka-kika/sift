@@ -353,3 +353,30 @@ struct FinderOnlyForAppBundleTests {
         #expect(!TrashService.shouldAskFinder(url: URL(fileURLWithPath: "/Applications/Example.app"), error: other))
     }
 }
+
+@Suite("Launch Agents are unloaded before they are trashed")
+struct LaunchAgentUnloadTests {
+    @Test("Only a Launch Agent plist is unloaded")
+    func category() {
+        #expect(LaunchAgentUnload.needsUnload(.launchAgents))
+        #expect(!LaunchAgentUnload.needsUnload(.preferences))
+    }
+
+    @Test("bootout targets this user's gui domain and the plist")
+    func arguments() {
+        let args = LaunchAgentUnload.arguments(plistPath: "/Users/me/Library/LaunchAgents/com.example.app.plist", uid: 501)
+        #expect(args == ["bootout", "gui/501", "/Users/me/Library/LaunchAgents/com.example.app.plist"])
+    }
+
+    @Test("The sweep asks to unload before it trashes")
+    func order() async {
+        let plist = URL(fileURLWithPath: "/Users/me/Library/LaunchAgents/com.example.app.plist")
+        let item = LeftoverItem(id: plist.path, url: plist, category: .launchAgents, sizeBytes: 1, reason: "agent")
+        var events: [String] = []
+        _ = await UninstallSweep.run([item], beforeTrash: { _ in events.append("unload") }, trash: { _ in
+            events.append("trash")
+            return nil
+        })
+        #expect(events == ["unload", "trash"])
+    }
+}
