@@ -224,3 +224,30 @@ struct EdgeCanaryScanTests {
         #expect(!AppScanner.isHiddenAsSystemApp("com.example.app"))
     }
 }
+
+@Suite("A Sparkle build number is not a marketing version")
+struct SparkleBuildOnlyTests {
+    private let xml = """
+    <rss><channel><item>
+      <enclosure url="https://example.com/App.zip" sparkle:version="2045" length="1" type="application/octet-stream"/>
+    </item></channel></rss>
+    """
+
+    @Test("Only sparkle:version is stored as the build")
+    func parsed() throws {
+        let meta = try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8))
+        #expect(meta?.version.isEmpty == true)
+        #expect(meta?.build == "2045")
+    }
+
+    @Test("It is newer only than an older build, and the label keeps the installed version")
+    func compared() throws {
+        let meta = try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8))
+        let item = try #require(meta)
+        #expect(!UpdateChecker.isRelease(item, newerThanVersion: "1.2.3", build: "3000"))
+        #expect(!UpdateChecker.isRelease(item, newerThanVersion: "1.2.3", build: nil))
+        #expect(UpdateChecker.isRelease(item, newerThanVersion: "1.2.3", build: "100"))
+        #expect(item.displayVersion(installedVersion: "1.2.3") == "1.2.3 (2045)")
+        #expect(item.displayVersion(installedVersion: "1.2.3") != "2045")
+    }
+}

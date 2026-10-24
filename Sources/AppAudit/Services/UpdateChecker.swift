@@ -48,10 +48,18 @@ actor UpdateChecker {
         var build: String? = nil
 
         /// What the update button shows: the build joins the version only when
-        /// the version alone would read as "no change".
+        /// the version alone would read as "no change". A feed that names only
+        /// a build keeps the installed version in the label, so it does not
+        /// read as "Update to 2045".
         func displayVersion(installedVersion: String) -> String {
-            guard let build, VersionComparator.compare(version, installedVersion) == .orderedSame else { return version }
-            return "\(version) (\(build))"
+            let marketing = version.trimmingCharacters(in: .whitespacesAndNewlines)
+            if marketing.isEmpty {
+                guard let build, !build.isEmpty else { return installedVersion }
+                let installed = installedVersion.trimmingCharacters(in: .whitespacesAndNewlines)
+                return installed.isEmpty ? build : "\(installed) (\(build))"
+            }
+            guard let build, VersionComparator.compare(marketing, installedVersion) == .orderedSame else { return marketing }
+            return "\(marketing) (\(build))"
         }
     }
 
@@ -274,8 +282,15 @@ actor UpdateChecker {
     /// only ever breaks a tie: feeds and bundles do not always number builds the
     /// same way, so it never overrules the version.
     static func isRelease(_ candidate: UpdateMetadata, newerThanVersion installedVersion: String, build installedBuild: String?) -> Bool {
-        if isVersion(candidate.version, newerThan: installedVersion) { return true }
-        guard VersionComparator.compare(candidate.version, installedVersion) == .orderedSame,
+        let marketing = candidate.version.trimmingCharacters(in: .whitespacesAndNewlines)
+        if marketing.isEmpty {
+            // The feed named a build and no marketing version. Compare that
+            // build with the app's build, never with the marketing version.
+            guard let candidateBuild = candidate.build, let installedBuild else { return false }
+            return isVersion(candidateBuild, newerThan: installedBuild)
+        }
+        if isVersion(marketing, newerThan: installedVersion) { return true }
+        guard VersionComparator.compare(marketing, installedVersion) == .orderedSame,
               let candidateBuild = candidate.build, let installedBuild,
               !installedVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         return isVersion(candidateBuild, newerThan: installedBuild)
@@ -429,32 +444,31 @@ actor UpdateChecker {
             return nil
         }
         let enclosure = enclosureTags(in: item).first
-        let version =
+        let shortVersion =
             enclosure.flatMap { firstCapturedValue(for: #"sparkle:shortVersionString="([^"]+)""#, in: $0) } ??
-            firstCapturedValue(for: #"<sparkle:shortVersionString>([^<]+)</sparkle:shortVersionString>"#, in: item) ??
-            enclosure.flatMap { firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: $0) } ??
-            firstCapturedValue(for: #"<sparkle:version>([^<]+)</sparkle:version>"#, in: item)
-        guard let version = version?.trimmingCharacters(in: .whitespacesAndNewlines), !version.isEmpty else {
-            return nil
-        }
-        // A download that is not https is no link at all: the update still counts.
-        let url = httpsURL(enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) })?.absoluteString
+            firstCapturedValue(for: #"<sparkle:shortVersionString>([^<]+)</sparkle:shortVersionString>"#, in: item)
         let build =
             enclosure.flatMap { firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: $0) } ??
             firstCapturedValue(for: #"<sparkle:version>([^<]+)</sparkle:version>"#, in: item)
-        return UpdateMetadata(version: version, url: url,
-                              build: build?.trimmingCharacters(in: .whitespacesAndNewlines))
+        let marketing = shortVersion?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let buildNumber = build?.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A build number on its own is not a marketing version. "2045" must
+        // not be offered as "Update to 2045".
+        guard !marketing.isEmpty || (buildNumber?.isEmpty == false) else { return nil }
+        // A download that is not https is no link at all: the update still counts.
+        let url = httpsURL(enclosure.flatMap { firstCapturedValue(for: #"url="([^"]+)""#, in: $0) })?.absoluteString
+        return UpdateMetadata(version: marketing, url: url, build: buildNumber?.isEmpty == true ? nil : buildNumber)
     }
 
     private static func parseSparkleEnclosure(from tag: String) -> UpdateMetadata? {
-        guard let url = firstCapturedValue(for: #"url="([^"]+)""#, in: tag),
-              let version =
-                firstCapturedValue(for: #"sparkle:shortVersionString="([^"]+)""#, in: tag) ??
-                firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: tag) else {
-            return nil
-        }
-
-        return UpdateMetadata(version: version, url: httpsURL(url)?.absoluteString)
+        guard let url = firstCapturedValue(for: #"url="([^"]+)""#, in: tag) else { return nil }
+        let shortVersion = firstCapturedValue(for: #"sparkle:shortVersionString="([^"]+)""#, in: tag)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let build = firstCapturedValue(for: #"sparkle:version="([^"]+)""#, in: tag)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !shortVersion.isEmpty || (build?.isEmpty == false) else { return nil }
+        return UpdateMetadata(version: shortVersion, url: httpsURL(url)?.absoluteString,
+                              build: build?.isEmpty == true ? nil : build)
     }
 
     private static func firstCapturedValue(for pattern: String, in text: String) -> String? {
