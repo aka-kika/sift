@@ -155,3 +155,21 @@ struct PromptPathTests {
         #expect(AppAnalysisPrompt.promptPath("/Applications/Example.app") == "/Applications/Example.app")
     }
 }
+
+@Suite("The sidebar list stays during a rescan")
+struct SidebarDuringScanTests {
+    @Test("A loaded list is not replaced by the spinner")
+    func rescan() {
+        #expect(!SidebarDuringScan.showsSpinner(hasApps: true, phase: .waiting))
+    }
+
+    @Test("The first scan, with nothing loaded, still shows the spinner")
+    func firstScan() {
+        #expect(SidebarDuringScan.showsSpinner(hasApps: false, phase: .waiting))
+    }
+
+    @Test("A finished scan with no apps shows the empty state, not the spinner")
+    func emptyDone() {
+        #expect(!SidebarDuringScan.showsSpinner(hasApps: false, phase: .ready))
+    }
+}

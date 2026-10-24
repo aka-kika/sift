@@ -1,18 +1,38 @@
 import SwiftUI
 
+/// The sidebar keeps the app list once one is loaded. A rescan used to
+/// replace it with a spinner, which the 1.12.4 notes said it would not do.
+/// The spinner is only for the first scan, before any app is loaded.
+enum SidebarDuringScan {
+    enum Phase: Equatable { case waiting, ready }
+
+    static func showsSpinner(hasApps: Bool, phase: Phase) -> Bool {
+        !hasApps && phase == .waiting
+    }
+}
+
 struct AppListView: View {
     @Environment(AppListViewModel.self) private var viewModel
+
+    private var scanPhase: SidebarDuringScan.Phase {
+        switch viewModel.scanState {
+        case .idle, .scanning: return .waiting
+        case .enriching, .done, .error: return .ready
+        }
+    }
 
     var body: some View {
         @Bindable var vm = viewModel
 
         Group {
             switch viewModel.scanState {
-            case .idle, .scanning:
-                ProgressView("Scanning apps\u{2026}")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .enriching, .done:
-                if let emptyState = viewModel.sidebarEmptyState {
+            case .error(let msg):
+                ContentUnavailableView("Scan Failed", systemImage: "xmark.circle", description: Text(msg))
+            case .idle, .scanning, .enriching, .done:
+                if SidebarDuringScan.showsSpinner(hasApps: !viewModel.apps.isEmpty, phase: scanPhase) {
+                    ProgressView("Scanning apps\u{2026}")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let emptyState = viewModel.sidebarEmptyState, viewModel.scanState != .scanning {
                     sidebarEmptyView(emptyState)
                 } else {
                     List(viewModel.filteredApps, selection: $vm.selectedAppID) { app in
@@ -22,8 +42,6 @@ struct AppListView: View {
                     .listStyle(.sidebar)
                     .softTopScrollEdge()
                 }
-            case .error(let msg):
-                ContentUnavailableView("Scan Failed", systemImage: "xmark.circle", description: Text(msg))
             }
         }
         .navigationTitle("Sift")
