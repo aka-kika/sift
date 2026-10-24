@@ -113,4 +113,13 @@ final class APIKeyField {
         hasStoredKey = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         text = ""
     }
+
+    /// Remove Key: deletes the saved key and drops any draft.
+    func remove() {
+        store.setKey("", for: kind)
+        text = ""
+        edited = false
+        saveFailed = false
+        hasStoredKey = !store.key(for: kind).isEmpty
+    }
 }

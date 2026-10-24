@@ -114,6 +114,8 @@ struct AnalysisSettingsTab: View {
         .onChange(of: apiKeyFocused) { _, focused in
             if !focused { apiKeyField.commit() }
         }
+        // Closing Settings, or another tab, right after typing keeps the key.
+        .onDisappear { apiKeyField.commit() }
         .task(id: providerRaw) {
             apiKeyField.commit()
             apiKeyField.load(provider)
@@ -186,9 +188,14 @@ struct AnalysisSettingsTab: View {
     @ViewBuilder
     private var apiKeySavedNote: some View {
         if apiKeyField.hasStoredKey && apiKeyField.text.isEmpty {
-            Text("A key is saved. It stays hidden. Type a new one and press Return to replace it.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("A key is saved. It stays hidden. Type a new one and press Return to replace it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Remove Key") { apiKeyField.remove() }
+                    .controlSize(.small)
+            }
         }
     }
 

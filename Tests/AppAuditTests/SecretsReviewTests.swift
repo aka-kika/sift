@@ -209,4 +209,20 @@ struct APIKeyFieldTests {
         #expect(field.saveFailed)
         #expect(field.text == "sk-ant")
     }
+
+    @Test("Remove Key deletes the saved key and any draft")
+    func removeKey() {
+        let backend = MemorySecretStoreBackend()
+        backend.write("sk-old", account: AnalysisProviderKind.openAI.apiKeyAccount)
+        let field = APIKeyField(store: APIKeyStore(backend: backend, defaults: scratchDefaults()))
+        field.load(.openAI)
+        field.update("sk-half")
+        field.remove()
+        #expect(!field.hasStoredKey)
+        #expect(field.text.isEmpty)
+        #expect(backend.read(account: AnalysisProviderKind.openAI.apiKeyAccount) == nil)
+        // A later commit, such as Settings closing, writes nothing back.
+        field.commit()
+        #expect(backend.read(account: AnalysisProviderKind.openAI.apiKeyAccount) == nil)
+    }
 }
