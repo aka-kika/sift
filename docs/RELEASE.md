@@ -110,7 +110,7 @@ The deploy is what makes the update visible — Sparkle reads the appcast from t
   (P5RB3W3D58)` certificates, so passing `APP_IDENTITY` by name fails with
   "ambiguous". Pass the SHA-1 hash instead — list them with
   `security find-identity -v -p codesigning`. Both are valid; `Scripts/release.sh`
-  defaults to `APP_IDENTITY=D833417579CBB62121FD344B1513AE5D44A36762`, so use that
+  defaults to `APP_IDENTITY=7E3E9BC6656A41A13F77F5C05E1663E77419388E`, so use that
   one for manual builds too and the signature stays consistent across releases.
 
 - `Scripts/package_app.sh` defaults to ad-hoc signing for local builds.

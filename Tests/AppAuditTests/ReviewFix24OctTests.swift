@@ -418,3 +418,23 @@ struct LicenseKeyWordingTests {
         #expect(!text.contains("device-bound"))
     }
 }
+
+@Suite("Release docs match the release script")
+struct ReleaseDocsTests {
+    @Test("RELEASE.md uses the identity release.sh signs with")
+    func identity() throws {
+        let script = try String(contentsOf: repoRoot.appending(path: "Scripts/release.sh"), encoding: .utf8)
+        let notes = try String(contentsOf: repoRoot.appending(path: "docs/RELEASE.md"), encoding: .utf8)
+        let hash = "7E3E9BC6656A41A13F77F5C05E1663E77419388E"
+        #expect(script.contains(hash))
+        #expect(notes.contains(hash))
+        #expect(!notes.contains("D833417579CBB62121FD344B1513AE5D44A36762"))
+    }
+
+    @Test("SECURITY.md supports the current release")
+    func supported() throws {
+        let text = try String(contentsOf: repoRoot.appending(path: "SECURITY.md"), encoding: .utf8)
+        #expect(text.contains("1.12.x"))
+        #expect(!text.contains("1.10.x"))
+    }
+}
