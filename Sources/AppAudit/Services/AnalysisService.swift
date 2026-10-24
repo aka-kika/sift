@@ -14,6 +14,26 @@ extension AnalysisResult {
     }
 }
 
+/// A cloud API key may leave this Mac only over https. A host on this Mac
+/// (localhost, loopback, .local) may use http. Anything else keeps the key.
+enum APIKeyTransport {
+    static let refusal = "The API address must be https, unless it is on this Mac. The key was not sent."
+
+    static func maySendKey(to urlString: String) -> Bool {
+        guard let url = URL(string: urlString),
+              let scheme = url.scheme?.lowercased(),
+              let host = url.host(percentEncoded: false)?.lowercased() else { return false }
+        if isThisMac(host) { return scheme == "http" || scheme == "https" }
+        return scheme == "https"
+    }
+
+    static func isThisMac(_ host: String) -> Bool {
+        var name = host
+        while name.hasSuffix(".") { name.removeLast() }
+        return name == "localhost" || name == "127.0.0.1" || name == "::1" || name.hasSuffix(".local")
+    }
+}
+
 /// Result of fetching the list of available models from a provider.
 enum ModelFetchResult: Sendable {
     case models([String])

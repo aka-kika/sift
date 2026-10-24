@@ -48,6 +48,9 @@ actor AnthropicService: AnalysisService {
         guard !key.isEmpty else {
             return .unavailable("Add an Anthropic API key in Settings → Models.")
         }
+        guard APIKeyTransport.maySendKey(to: baseURL) else {
+            return .unavailable(APIKeyTransport.refusal)
+        }
         guard var request = makeRequest(path: "v1/messages", method: "POST", timeout: 90, key: key) else {
             return .unavailable("Invalid Anthropic URL")
         }
@@ -85,6 +88,7 @@ actor AnthropicService: AnalysisService {
     func fetchModels() async -> ModelFetchResult {
         let key = apiKey
         guard !key.isEmpty else { return .failure("Add an Anthropic API key first.") }
+        guard APIKeyTransport.maySendKey(to: baseURL) else { return .failure(APIKeyTransport.refusal) }
         guard let request = makeRequest(path: "v1/models", method: "GET", timeout: 8, key: key) else {
             return .failure("Invalid URL")
         }

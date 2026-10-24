@@ -589,3 +589,20 @@ struct RevealedLicenseKeyTests {
         #expect(!RevealedLicenseKey.shouldForget(popoverOpen: true, waitingForTouchID: false))
     }
 }
+
+@Suite("An API key leaves this Mac only over https")
+struct APIKeyTransportTests {
+    @Test("http to a public host is refused")
+    func http() {
+        #expect(!APIKeyTransport.maySendKey(to: "http://api.example.com/v1"))
+        #expect(APIKeyTransport.maySendKey(to: "https://api.example.com/v1"))
+    }
+
+    @Test("This Mac may use http")
+    func local() {
+        #expect(APIKeyTransport.maySendKey(to: "http://localhost:11434"))
+        #expect(APIKeyTransport.maySendKey(to: "http://127.0.0.1:11434"))
+        #expect(APIKeyTransport.maySendKey(to: "http://mac.local:11434"))
+        #expect(!APIKeyTransport.maySendKey(to: "ftp://localhost/x"))
+    }
+}

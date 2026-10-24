@@ -88,6 +88,9 @@ actor OllamaService: AnalysisService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let key = apiKey
         if !key.isEmpty {
+            guard APIKeyTransport.maySendKey(to: baseURL) else {
+                return .unavailable(APIKeyTransport.refusal)
+            }
             request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         }
 
@@ -225,6 +228,9 @@ actor OllamaService: AnalysisService {
         request.httpMethod = "GET"
         let key = apiKey
         if !key.isEmpty {
+            guard APIKeyTransport.maySendKey(to: baseURL) else {
+                return .failure(APIKeyTransport.refusal)
+            }
             request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         }
         do {
