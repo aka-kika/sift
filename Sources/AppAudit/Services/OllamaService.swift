@@ -136,17 +136,25 @@ actor OllamaService: AnalysisService {
         var reason: String?
         var bestUse: String?
 
-        // Strip any leading markdown noise from a label line so "**EXPLANATION:**"
-        // and "- EXPLANATION:" match the same way "EXPLANATION:" does.
+        // A label needs its colon. "Reason this app is useful" is a sentence,
+        // not a new REASON field. Markdown around the label is ignored.
         func normalizedLabel(_ line: String, _ label: String) -> String? {
             var s = line.trimmingCharacters(in: .whitespaces)
             while let first = s.first, "*#>-•".contains(first) || first == " " {
                 s.removeFirst()
             }
             guard s.uppercased().hasPrefix(label) else { return nil }
-            var value = String(s.dropFirst(label.count))
-            value = value.trimmingCharacters(in: CharacterSet(charactersIn: " *:#"))
-            return value.trimmingCharacters(in: .whitespaces)
+            var rest = s.dropFirst(label.count)
+            while let first = rest.first, first == " " || first == "*" { rest = rest.dropFirst() }
+            guard rest.first == ":" else { return nil }
+            rest = rest.dropFirst()
+            return rest.trimmingCharacters(in: CharacterSet(charactersIn: " *#"))
+                .trimmingCharacters(in: .whitespaces)
+        }
+
+        func join(_ existing: String?, _ extra: String) -> String {
+            guard let existing, !existing.isEmpty else { return extra }
+            return existing + " " + extra
         }
 
         // First 1–5 digit anywhere in the value: handles "4", "4/5", "Score 4 of 5".
@@ -157,15 +165,32 @@ actor OllamaService: AnalysisService {
             return nil
         }
 
+        enum Field { case explanation, score, reason, bestUse }
+        var current: Field?
         for line in stripThinking(from: response).components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { continue }
             if let v = normalizedLabel(line, "EXPLANATION") {
                 explanation = v
+                current = .explanation
             } else if let v = normalizedLabel(line, "SCORE") {
-                score = firstScore(in: v)
+                if let n = firstScore(in: v) { score = n }
+                current = .score
             } else if let v = normalizedLabel(line, "REASON") {
                 reason = v
+                current = .reason
             } else if let v = normalizedLabel(line, "BEST_USE") {
                 bestUse = v
+                current = .bestUse
+            } else if current == .score, score == nil, let n = firstScore(in: trimmed) {
+                score = n
+            } else {
+                switch current {
+                case .explanation: explanation = join(explanation, trimmed)
+                case .reason: reason = join(reason, trimmed)
+                case .bestUse: bestUse = join(bestUse, trimmed)
+                case .score, nil: break
+                }
             }
         }
 

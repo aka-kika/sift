@@ -438,3 +438,38 @@ struct ReleaseDocsTests {
         #expect(!text.contains("1.10.x"))
     }
 }
+
+@Suite("Analysis labels need a colon")
+struct AnalysisLabelTests {
+    @Test("A sentence that starts with Reason does not replace the reason")
+    func noColon() async {
+        let response = """
+        EXPLANATION: A notes app.
+        SCORE: 4
+        REASON: It fits the writing workflow.
+        Reason this score is conservative.
+        BEST_USE: Keep it for drafts.
+        """
+        let parsed = await OllamaService().parseAnalysis(from: response)
+        #expect(parsed?.reason == "It fits the writing workflow. Reason this score is conservative.")
+    }
+
+    @Test("A label on its own line keeps the text on the next line")
+    func nextLine() async {
+        let response = """
+        EXPLANATION:
+        A notes app for long writing.
+        SCORE:
+        3
+        REASON:
+        Useful once a week.
+        BEST_USE:
+        Open it for essays.
+        """
+        let parsed = await OllamaService().parseAnalysis(from: response)
+        #expect(parsed?.explanation == "A notes app for long writing.")
+        #expect(parsed?.score == 3)
+        #expect(parsed?.reason == "Useful once a week.")
+        #expect(parsed?.bestUse == "Open it for essays.")
+    }
+}

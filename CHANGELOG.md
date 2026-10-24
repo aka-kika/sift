@@ -37,6 +37,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Cmd-R always ran a full rescan, while the guide said it refreshes updates in the Updates sort. It now does what the sidebar button does.
 - The README called licence keys device-bound. A login-keychain item does not honor that flag. The README, guide, FEATURES and privacy note now say so.
 - RELEASE.md named a different signing identity than release.sh, and SECURITY.md still listed 1.10.x as supported. Both now match the 1.12.4 release.
+- The answer parser took a label with no colon, and only the label's own line. A line starting with "Reason" could replace the reason, and a label on its own line lost the text under it. A label now needs a colon, and the following lines join that field.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.
