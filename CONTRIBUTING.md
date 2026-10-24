@@ -66,6 +66,6 @@ across 35 suites; that number should go up.
 Worth knowing before proposing a feature:
 
 - **Nothing leaves the machine by default.** Any feature that requires a network call has to work, or degrade honestly, with the local provider.
-- **Nothing is deleted.** The uninstall sweep moves to the Trash and always will.
+- **A sweep is not a delete.** The uninstall sweep moves files to the Trash and always will. `brew uninstall` is the exception: Homebrew removes that app for good, and the screen must say so.
 - **No telemetry, no accounts, no Sift-operated server.**
 - **No guessing.** Analysis is grounded in real evidence; a bundled catalogue of "known apps" was deliberately removed in 1.3.3 and is not coming back.

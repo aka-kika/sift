@@ -2,8 +2,9 @@ import SwiftUI
 import AppKit
 
 /// The uninstall sweep panel: the app bundle plus every discovered leftover,
-/// each pre-checked with a reason and size. Everything goes to the Trash —
-/// recoverable by design. The AppRecord (license keys, notes, marks) is
+/// each pre-checked with a reason and size. A sweep moves files to the Trash.
+/// `brew uninstall` removes the app for good; that copy is not in the Trash.
+/// The AppRecord (license keys, notes, marks) is
 /// never touched; the vault keeps gone apps under "No longer installed".
 struct UninstallSheet: View {
     let app: AppInfo
@@ -241,7 +242,7 @@ struct UninstallSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if failures.isEmpty {
-                Label("Moved to Trash — recoverable there, and the license record stays in your vault.",
+                Label(UninstallDoneCopy.success(homebrewRemovedTheApp: brewOutput != nil),
                       systemImage: "checkmark.circle.fill")
                     .font(.callout)
                     .foregroundStyle(.green)

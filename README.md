@@ -99,7 +99,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 
 ### Uninstall that doesn't lose the receipt
 - Right-click → **Uninstall…** finds the bundle plus every leftover matched to its bundle ID across twelve Library locations, each with a size and the reason it matched
-- **Everything goes to the Trash** — recoverable by design; nothing is deleted
+- **Leftovers go to the Trash** and can be put back. **`brew uninstall` removes the app for good** — that copy is not in the Trash
 - The licence record **survives the uninstall** and stays in your vault
 - Works on Mac App Store apps by handing root-owned bundles to Finder rather than asking you for a password (macOS asks once to let Sift control Finder)
 - **The app goes first.** If the app itself can't be moved, nothing else is touched
@@ -137,7 +137,7 @@ Sift collects nothing. No analytics, no crash reporting, no accounts, and no ser
 - **Analysis** runs locally on Ollama by default. Switching to a cloud provider is your explicit choice, under your own API key.
 - **Licence keys and cloud API keys** live in the macOS Keychain, never in the app's database, its preferences file, or a CSV export.
 - **Network calls** happen only for update checks, fetching a page you linked, and a cloud provider you opted into.
-- **Nothing is deleted.** The uninstall sweep is a Trash move you can undo.
+- **A sweep goes to the Trash.** You can put those files back. `brew uninstall` removes the app for good; that copy is not in the Trash.
 
 Full declaration, including every OS permission and how to revoke it: **[docs/privacy.md](docs/privacy.md)**.
 
@@ -150,7 +150,7 @@ No. With the default local Ollama provider nothing leaves your Mac. If you switc
 For analysis, yes — or a cloud API key instead. Without either, Sift still scans, lists, tracks licences, checks updates, and uninstalls; only the AI explanation and score are unavailable.
 
 **Is it safe to uninstall with Sift?**
-Everything moves to the Trash, so any sweep is reversible until you empty it. Apple system apps and Sift itself are protected, and each leftover is listed with the reason it matched before you confirm. If the app itself can't be moved, Sift leaves its data alone too, and if another copy of the app exists anywhere on your Mac, its shared data starts unchecked.
+The sweep moves files to the Trash, so you can put them back until you empty it. `brew uninstall` is different: Homebrew removes that app for good, and it is not in the Trash. Apple system apps and Sift itself are protected, and each leftover is listed with the reason it matched before you confirm. If the app itself can't be moved, Sift leaves its data alone too, and if another copy of the app exists anywhere on your Mac, its shared data starts unchecked.
 
 **What happens to my licence keys when I remove an app?**
 They stay. The record moves to "No longer installed" in the License Vault and moves back if you reinstall — that's the whole reason the vault exists.

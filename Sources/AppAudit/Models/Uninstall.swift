@@ -31,6 +31,18 @@ enum LeftoverCategory: String {
     case cookies = "Cookies"
 }
 
+/// Words for the uninstall sheet once a sweep has finished with nothing left behind.
+enum UninstallDoneCopy {
+    /// `homebrewRemovedTheApp` is true after `brew uninstall` deleted the bundle.
+    /// That copy is gone for good. It is not sitting in the Trash.
+    static func success(homebrewRemovedTheApp: Bool) -> String {
+        if homebrewRemovedTheApp {
+            return "Removed by Homebrew — not in the Trash. Anything else you swept is in the Trash, and the license record stays in your vault."
+        }
+        return "Moved to Trash — recoverable there, and the license record stays in your vault."
+    }
+}
+
 /// Apps Sift refuses to uninstall: the system's and its own.
 enum UninstallRules {
     static func isProtected(bundleID: String) -> Bool {

@@ -50,8 +50,7 @@ Sift is **not sandboxed**, because auditing installed apps means reading
 It reads app metadata and, during an uninstall sweep, moves the items you tick to
 the Trash. Before a sweep it asks Spotlight, on this Mac, for other copies of the
 same app, so data another copy still uses is not pre-checked. If the app itself
-cannot be moved, the sweep stops and nothing else is touched. It never writes into another app's data, and it never deletes: every
-sweep is a Trash move you can undo. Apple system apps (`com.apple.*`) and Sift
+cannot be moved, the sweep stops and nothing else is touched. It never writes into another app's data. A sweep moves files to the Trash, which you can undo. `brew uninstall` removes the app for good; that copy is not in the Trash. Apple system apps (`com.apple.*`) and Sift
 itself are refused outright.
 
 ## Network

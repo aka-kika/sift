@@ -157,7 +157,7 @@ Right-click any app → **Uninstall…** opens the sweep panel: the bundle plus
 every leftover matched to its bundle ID, each with a size and the reason it
 matched, all pre-checked.
 
-- **Everything goes to the Trash** — recoverable by design, nothing is deleted.
+- **Leftovers go to the Trash** and can be put back. **`brew uninstall` removes the app for good** — that copy is not in the Trash.
 - The **AppRecord survives** — licence keys, notes, and marks stay in the vault.
 - A **running app** offers Quit & Continue.
 - **Homebrew casks** can run `brew uninstall` instead, but only for the copy Homebrew itself installed.

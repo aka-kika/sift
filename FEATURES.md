@@ -71,7 +71,7 @@ updating, and which licenses and subscriptions you're paying for.
 ## Uninstall
 
 - Right-click any app → **Uninstall…** opens a sweep panel: the app bundle plus every leftover found by bundle identifier (Application Support, Caches, Preferences incl. ByHost, Logs, Containers, Group Containers, Saved State, WebKit, Launch Agents…), each pre-checked with its size and the reason it matched.
-- **Trash-only** — everything is recoverable from the Trash, nothing is permanently deleted; user-level files only, no admin prompts.
+- **Sweep goes to the Trash** — leftovers can be put back; user-level files only, no admin prompts. `brew uninstall` removes the app for good, and that copy is not in the Trash.
 - Running apps offer **Quit & Continue**; Homebrew casks can run **brew uninstall** instead.
 - When a second copy of the app is installed (a test build beside the release), the shared settings and data start unchecked and only this copy is quit.
 - **Records survive**: license keys, notes, and marks are kept, and the License Vault lists the app under "No longer installed".
