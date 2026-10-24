@@ -8,6 +8,9 @@ enum SecretClipboard {
     static let concealedType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
     static let transientType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
     static let clearDelay: Duration = .seconds(60)
+    /// The change count of a key still waiting out its minute. Quit clears it
+    /// early, if the clipboard still holds that key.
+    @MainActor private static var pendingChangeCount: Int?
 
     /// Writes `secret` with the markers and returns the clipboard's change
     /// count, the token `clearIfUnchanged` checks against.
@@ -38,9 +41,34 @@ enum SecretClipboard {
     static func copy(_ secret: String) {
         let pasteboard = NSPasteboard.general
         let changeCount = write(secret, to: pasteboard)
+        pendingChangeCount = changeCount
         Task { @MainActor in
             try? await Task.sleep(for: clearDelay)
-            clearIfUnchanged(pasteboard, changeCount: changeCount)
+            if clearIfUnchanged(pasteboard, changeCount: changeCount) {
+                pendingChangeCount = nil
+            }
         }
+    }
+
+    /// Quit within the minute. Clears only when the clipboard still holds the key.
+    @MainActor
+    static func clearOnQuit() {
+        _ = clearRemembered(on: .general)
+    }
+
+    /// Test hook and the body of `clearOnQuit`. A private pasteboard keeps the
+    /// test off the real clipboard.
+    @MainActor
+    static func remember(_ changeCount: Int) {
+        pendingChangeCount = changeCount
+    }
+
+    @MainActor
+    @discardableResult
+    static func clearRemembered(on pasteboard: NSPasteboard) -> Bool {
+        guard let changeCount = pendingChangeCount else { return false }
+        let cleared = clearIfUnchanged(pasteboard, changeCount: changeCount)
+        if cleared { pendingChangeCount = nil }
+        return cleared
     }
 }

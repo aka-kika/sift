@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import AppKit
 @testable import Sift
 
 private let repoRoot = URL(fileURLWithPath: #filePath)
@@ -679,5 +680,28 @@ struct TouchIDWordingTests {
     func readme() throws {
         let text = try String(contentsOf: repoRoot.appending(path: "README.md"), encoding: .utf8)
         #expect(text.contains("Touch ID or your password"))
+    }
+}
+
+@Suite("Quit clears a copied licence key")
+@MainActor
+struct ClipboardQuitTests {
+    @Test("A key still on the clipboard is cleared")
+    func clears() {
+        let board = NSPasteboard(name: NSPasteboard.Name("sift-quit-\(UUID().uuidString)"))
+        let count = SecretClipboard.write("SECRET-KEY", to: board)
+        SecretClipboard.remember(count)
+        #expect(SecretClipboard.clearRemembered(on: board))
+        #expect(board.string(forType: .string) == nil)
+    }
+
+    @Test("A newer copy is left alone")
+    func newer() {
+        let board = NSPasteboard(name: NSPasteboard.Name("sift-quit-\(UUID().uuidString)"))
+        let count = SecretClipboard.write("SECRET-KEY", to: board)
+        SecretClipboard.remember(count)
+        _ = SecretClipboard.write("something else", to: board)
+        #expect(!SecretClipboard.clearRemembered(on: board))
+        #expect(board.string(forType: .string) == "something else")
     }
 }

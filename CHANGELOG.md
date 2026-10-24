@@ -52,6 +52,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A Sparkle update with no https download link used the feed URL, so Download opened the appcast. Download is offered only when there is a real enclosure link.
 - A scan put every app with a version on Checking, including apps with no update source, until the whole run ended. Only apps that will actually be checked show Checking.
 - The README said a licence key is read only after Touch ID. The check also accepts the account password, and the README now says so.
+- Quitting within a minute of copying a licence key left it on the clipboard. Quit clears it too, if it is still the thing that was copied.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

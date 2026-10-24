@@ -39,6 +39,12 @@ final class SiftAppDelegate: NSObject, NSApplicationDelegate {
         return .terminateCancel
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        MainActor.assumeIsolated {
+            SecretClipboard.clearOnQuit()
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppAppearance.apply(UserDefaults.standard.string(forKey: "appearancePreference") ?? "system")
         // Before any analysis runs: cloud API keys leave the preferences plist.
