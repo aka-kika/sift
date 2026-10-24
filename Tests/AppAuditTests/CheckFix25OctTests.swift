@@ -279,3 +279,40 @@ struct HomebrewUpgradeReportTests {
         #expect(!HomebrewService.caskOwnsBundle(token: "ghostty", bundlePath: "/Users/me/Downloads/Ghostty.app", caskroomRoots: [root.path]))
     }
 }
+
+@Suite("A stuck brew is stopped after a deadline")
+struct BrewDeadlineTests {
+    @Test("A tool past its deadline is stopped and reported as timed out")
+    func stopsAStuckTool() {
+        let started = Date()
+        let result = TimedProcess.run(executable: "/bin/sleep", arguments: ["30"], mergeStandardError: true, timeout: 0.5)
+        #expect(result.timedOut)
+        #expect(result.exitStatus == nil)
+        #expect(Date().timeIntervalSince(started) < 10)
+    }
+
+    @Test("A tool that finishes in time keeps its output and exit status")
+    func finishes() {
+        let result = TimedProcess.run(executable: "/bin/sh", arguments: ["-c", "echo out; echo err >&2; exit 3"],
+                                      mergeStandardError: false, timeout: 10)
+        #expect(!result.timedOut)
+        #expect(result.exitStatus == 3)
+        #expect(String(data: result.output, encoding: .utf8) == "out\n")
+    }
+
+    @Test("A large output does not block the tool")
+    func largeOutput() {
+        let result = TimedProcess.run(executable: "/bin/sh", arguments: ["-c", "head -c 300000 /dev/zero"],
+                                      mergeStandardError: true, timeout: 10)
+        #expect(result.exitStatus == 0)
+        #expect(result.output.count == 300_000)
+    }
+
+    @Test("A timed-out brew is a failure that says so")
+    func outcome() {
+        let outcome = HomebrewService.BrewOutcome(exitStatus: nil, output: "", timedOut: true)
+        #expect(!outcome.succeeded)
+        #expect(outcome.message.contains("did not finish in time"))
+        #expect(HomebrewService.deadline(for: ["outdated", "--cask"]) < HomebrewService.deadline(for: ["upgrade", "--cask", "x"]))
+    }
+}

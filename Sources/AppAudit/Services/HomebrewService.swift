@@ -56,9 +56,12 @@ struct HomebrewService: Sendable {
     struct BrewOutcome: Sendable {
         let exitStatus: Int32?
         let output: String
-        var succeeded: Bool { exitStatus == 0 }
+        /// brew ran past its deadline and Sift stopped it.
+        var timedOut = false
+        var succeeded: Bool { exitStatus == 0 && !timedOut }
         /// Something to show the user when it failed.
         var message: String {
+            if timedOut { return "brew did not finish in time, so Sift stopped it. Run the same command in Terminal to see where it waits." }
             if exitStatus == nil { return "Homebrew is not installed or could not be run." }
             let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.isEmpty ? "brew exited with status \(exitStatus ?? -1)." : trimmed
@@ -198,51 +201,35 @@ struct HomebrewService: Sendable {
 
     private static let checkCommands: Set<String> = ["list", "outdated"]
 
-    /// `mergeStandardError: false` discards stderr for callers that parse
-    /// stdout; an unread second pipe would fill at 64 KB and block brew.
-    private func runBrewChecked(arguments: [String], mergeStandardError: Bool = true) -> BrewOutcome {
-        guard let brewPath = Self.brewExecutablePath() else { return BrewOutcome(exitStatus: nil, output: "") }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: brewPath)
-        process.arguments = arguments
-        process.environment = Self.environment(for: arguments, base: ProcessInfo.processInfo.environment)
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = mergeStandardError ? pipe : FileHandle.nullDevice
-        do {
-            try process.run()
-            // Drain before waiting: a chatty brew would otherwise fill the pipe and hang.
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            return BrewOutcome(exitStatus: process.terminationStatus, output: String(data: data, encoding: .utf8) ?? "")
-        } catch {
-            return BrewOutcome(exitStatus: nil, output: error.localizedDescription)
+    /// How long one brew command may run. A stuck brew (a lock, a network
+    /// wait) would otherwise keep the Homebrew work open, and quit waits on it.
+    /// The checks are quick; an upgrade may download a large app.
+    static func deadline(for arguments: [String]) -> TimeInterval {
+        switch arguments.first {
+        case "upgrade": return 30 * 60
+        case "uninstall": return 10 * 60
+        default: return 2 * 60
         }
     }
 
+    /// `mergeStandardError: false` discards stderr for callers that parse stdout.
+    private func runBrewChecked(arguments: [String], mergeStandardError: Bool = true) -> BrewOutcome {
+        guard let brewPath = Self.brewExecutablePath() else { return BrewOutcome(exitStatus: nil, output: "") }
+        let result = TimedProcess.run(
+            executable: brewPath,
+            arguments: arguments,
+            environment: Self.environment(for: arguments, base: ProcessInfo.processInfo.environment),
+            mergeStandardError: mergeStandardError,
+            timeout: Self.deadline(for: arguments)
+        )
+        return BrewOutcome(exitStatus: result.exitStatus,
+                           output: String(data: result.output, encoding: .utf8) ?? "",
+                           timedOut: result.timedOut)
+    }
+
+    /// Callers parse stdout (JSON, cask lists), so stderr is discarded.
     private func runBrew(arguments: [String]) -> String {
-        guard let brewPath = Self.brewExecutablePath() else { return "" }
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: brewPath)
-        process.arguments = arguments
-        process.environment = Self.environment(for: arguments, base: ProcessInfo.processInfo.environment)
-
-        // Callers parse stdout (JSON, cask lists), so stderr is discarded rather
-        // than piped: an unread pipe fills at 64 KB and brew blocks forever on it.
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            // Drain before waiting, for the same reason.
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            return String(data: data, encoding: .utf8) ?? ""
-        } catch {
-            return ""
-        }
+        runBrewChecked(arguments: arguments, mergeStandardError: false).output
     }
 
     private static func brewExecutablePath() -> String? {
@@ -269,5 +256,85 @@ private struct HomebrewOutdatedCask: Decodable {
     enum CodingKeys: String, CodingKey {
         case name
         case currentVersion = "current_version"
+    }
+}
+
+/// Runs a tool with a deadline. Output is read as it arrives, so a chatty
+/// tool never fills the pipe, and a tool past its deadline is stopped
+/// (terminate, then kill) instead of waited on forever.
+enum TimedProcess {
+    struct Result: Sendable {
+        let exitStatus: Int32?
+        let output: Data
+        let timedOut: Bool
+    }
+
+    static func run(executable: String,
+                    arguments: [String],
+                    environment: [String: String]? = nil,
+                    mergeStandardError: Bool,
+                    timeout: TimeInterval) -> Result {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        if let environment { process.environment = environment }
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = mergeStandardError ? pipe : FileHandle.nullDevice
+
+        let collected = CollectedOutput()
+        let finished = DispatchSemaphore(value: 0)
+        let reachedEnd = DispatchSemaphore(value: 0)
+        pipe.fileHandleForReading.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            if chunk.isEmpty {
+                handle.readabilityHandler = nil
+                reachedEnd.signal()
+            } else {
+                collected.append(chunk)
+            }
+        }
+        process.terminationHandler = { _ in finished.signal() }
+
+        do {
+            try process.run()
+        } catch {
+            pipe.fileHandleForReading.readabilityHandler = nil
+            return Result(exitStatus: nil, output: Data(error.localizedDescription.utf8), timedOut: false)
+        }
+
+        var timedOut = false
+        if finished.wait(timeout: .now() + timeout) == .timedOut {
+            timedOut = true
+            process.terminate()
+            if finished.wait(timeout: .now() + 5) == .timedOut {
+                kill(process.processIdentifier, SIGKILL)
+                _ = finished.wait(timeout: .now() + 5)
+            }
+        }
+        // The last output arrives before the pipe's end. A helper the tool
+        // left running can hold the pipe open, so that end is not waited on long.
+        _ = reachedEnd.wait(timeout: .now() + 2)
+        pipe.fileHandleForReading.readabilityHandler = nil
+
+        let status: Int32? = (timedOut || process.isRunning) ? nil : process.terminationStatus
+        return Result(exitStatus: status, output: collected.data, timedOut: timedOut)
+    }
+}
+
+private final class CollectedOutput: @unchecked Sendable {
+    private let lock = NSLock()
+    private var buffer = Data()
+
+    func append(_ chunk: Data) {
+        lock.lock()
+        buffer.append(chunk)
+        lock.unlock()
+    }
+
+    var data: Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return buffer
     }
 }
