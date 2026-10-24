@@ -172,7 +172,16 @@ actor OllamaService: AnalysisService {
         var current: Field?
         for line in stripThinking(from: response).components(separatedBy: .newlines) {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty { continue }
+            if trimmed.isEmpty {
+                // BEST_USE is the last field. Once it has text, a blank line
+                // ends the answer: what follows is the model talking.
+                if current == .bestUse, !(bestUse ?? "").isEmpty { current = nil }
+                continue
+            }
+            if Self.isSignOff(trimmed) {
+                current = nil
+                continue
+            }
             if let v = normalizedLabel(line, "EXPLANATION") {
                 explanation = v
                 current = .explanation
@@ -202,6 +211,14 @@ actor OllamaService: AnalysisService {
               let r = reason, !r.isEmpty,
               let b = bestUse else { return nil }
         return (e, s, r, b)
+    }
+
+    /// Closing chatter a model adds after the answer ("Let me know if…").
+    /// It is never part of a field.
+    static func isSignOff(_ line: String) -> Bool {
+        let lowered = line.lowercased()
+        let openers = ["let me know", "i hope this", "hope this helps", "feel free to", "if you have any", "if you'd like", "if you need", "happy to help"]
+        return openers.contains { lowered.hasPrefix($0) }
     }
 
     /// Remove any inline `<think>…</think>` reasoning some models emit before the

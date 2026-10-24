@@ -150,3 +150,47 @@ struct UnsavedLicenseKeyDraftTests {
         #expect(kept?.restored(for: "com.example.one", hasSavedKey: true) == nil)
     }
 }
+
+@Suite("Closing chatter stays out of Best use")
+struct AnalysisSignOffTests {
+    @Test("A sign-off after a blank line is not appended")
+    func afterBlankLine() async {
+        let response = """
+        EXPLANATION: A text editor.
+        SCORE: 4
+        REASON: Fits a writing workflow.
+        BEST_USE: Drafting notes.
+
+        Let me know if you want more detail.
+        """
+        let parsed = await OllamaService().parseAnalysis(from: response)
+        #expect(parsed?.bestUse == "Drafting notes.")
+    }
+
+    @Test("A sign-off straight after the answer is not appended")
+    func sameBlock() async {
+        let response = """
+        EXPLANATION: A text editor.
+        SCORE: 4
+        REASON: Fits a writing workflow.
+        BEST_USE: Drafting notes.
+        I hope this helps!
+        """
+        let parsed = await OllamaService().parseAnalysis(from: response)
+        #expect(parsed?.bestUse == "Drafting notes.")
+    }
+
+    @Test("A Best use on the line under its label is still read")
+    func labelOnItsOwnLine() async {
+        let response = """
+        EXPLANATION: A text editor.
+        SCORE: 4
+        REASON: Fits a writing workflow.
+        BEST_USE:
+
+        Drafting notes.
+        """
+        let parsed = await OllamaService().parseAnalysis(from: response)
+        #expect(parsed?.bestUse == "Drafting notes.")
+    }
+}
