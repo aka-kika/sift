@@ -494,3 +494,18 @@ struct AppNameFallbackTests {
         #expect(AppScanner.appName(from: plist, path: "/Applications/Wrapper.app") == "Helper")
     }
 }
+
+@Suite("Reserved Library folders are never a name match")
+struct ReservedFolderNameTests {
+    @Test("CloudDocs, MobileSync and AppAudit stay even if an app has that name")
+    func reserved() {
+        #expect(!LeftoverMatcher.matchesDisplayName("CloudDocs", appName: "CloudDocs"))
+        #expect(!LeftoverMatcher.matchesDisplayName("MobileSync", appName: "MobileSync"))
+        #expect(!LeftoverMatcher.matchesDisplayName("AppAudit", appName: "AppAudit"))
+    }
+
+    @Test("A normal app name still matches")
+    func normal() {
+        #expect(LeftoverMatcher.matchesDisplayName("Bloom", appName: "Bloom"))
+    }
+}

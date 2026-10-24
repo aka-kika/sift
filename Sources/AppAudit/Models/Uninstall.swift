@@ -126,9 +126,14 @@ enum LeftoverMatcher {
         category == .applicationSupport || category == .logs
     }
 
-    /// Case-insensitive equality, refusing tiny generic names.
+    /// Folders macOS or Sift own. A name-only match must not claim these
+    /// even when an app happens to be called the same thing.
+    static let reservedFolderNames: Set<String> = ["clouddocs", "mobilesync", "appaudit"]
+
+    /// Case-insensitive equality, refusing tiny generic names and reserved folders.
     static func matchesDisplayName(_ name: String, appName: String) -> Bool {
         guard appName.count > 3 else { return false }
+        if reservedFolderNames.contains(name.lowercased()) { return false }
         return name.compare(appName, options: .caseInsensitive) == .orderedSame
     }
 
