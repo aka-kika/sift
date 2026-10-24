@@ -82,3 +82,28 @@ struct BrewOutdatedStdoutTests {
         #expect(HomebrewService.outdatedAnswer(exitStatus: nil, standardOutput: Data()) == .failed)
     }
 }
+
+@Suite("A Homebrew build after the comma only breaks a tie")
+struct CaskBuildVersionTests {
+    @Test("1.3.0,999 is current for an installed 1.3.0 build 999")
+    func sameBuild() {
+        #expect(!UpdateChecker.isCaskVersion("1.3.0,999", newerThanVersion: "1.3.0", build: "999"))
+    }
+
+    @Test("1.3.0,999 is current when the app states no build")
+    func noBuild() {
+        #expect(!UpdateChecker.isCaskVersion("1.3.0,999", newerThanVersion: "1.3.0", build: nil))
+    }
+
+    @Test("A newer build under the same version is an update")
+    func newerBuild() {
+        #expect(UpdateChecker.isCaskVersion("1.3.0,999", newerThanVersion: "1.3.0", build: "998"))
+    }
+
+    @Test("A newer version is an update whatever the build")
+    func newerVersion() {
+        #expect(UpdateChecker.isCaskVersion("1.4.0,1", newerThanVersion: "1.3.0", build: "999"))
+        #expect(UpdateChecker.isCaskVersion("1.4.0", newerThanVersion: "1.3.0", build: nil))
+        #expect(!UpdateChecker.isCaskVersion("1.3.0", newerThanVersion: "1.3.0", build: nil))
+    }
+}

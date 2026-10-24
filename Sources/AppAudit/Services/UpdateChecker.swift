@@ -95,7 +95,7 @@ actor UpdateChecker {
 
         let brew = caskStatus(token: app.homebrewCaskToken)
         if case .outdated(let latestVersion) = brew,
-           Self.isVersion(latestVersion, newerThan: app.version) {
+           Self.isCaskVersion(latestVersion, newerThanVersion: app.version, build: app.build) {
             if acknowledgedVersion == latestVersion {
                 return .upToDate(source: .homebrew)
             }
@@ -320,6 +320,17 @@ actor UpdateChecker {
               let candidateBuild = candidate.build, let installedBuild,
               !installedVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         return isVersion(candidateBuild, newerThan: installedBuild)
+    }
+
+    /// Homebrew writes `1.3.0,999`: the version, then the vendor's build. The
+    /// part after the comma is a build, so it only breaks a tie with the app's
+    /// own build. An app that updated itself to that build is current, though
+    /// brew's record still says 1.3.0,998.
+    static func isCaskVersion(_ caskVersion: String, newerThanVersion installedVersion: String, build installedBuild: String?) -> Bool {
+        let parts = caskVersion.split(separator: ",", maxSplits: 1).map(String.init)
+        guard let marketing = parts.first else { return false }
+        let release = UpdateMetadata(version: marketing, url: nil, build: parts.count > 1 ? parts[1] : nil)
+        return isRelease(release, newerThanVersion: installedVersion, build: installedBuild)
     }
 
     /// Only a result for this very bundle ID counts: the lookup can return a

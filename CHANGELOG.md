@@ -33,7 +33,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A very short bundle ID such as com.apple or com.google could pre-check other apps' Library files. A bundle ID now needs three parts, and com.apple never matches.
 - Any permission-denied leftover was handed to Finder, which can open an unexplained prompt. Finder is asked only for the app bundle, including an app with a dot in its name such as zoom.us.app.
 - A Launch Agent was moved to the Trash while it was still loaded, so the helper kept running until logout. Sift runs `launchctl bootout` first.
-- A Homebrew version like `1.3.0,999` compared as older than `1.3.0`, so a build-only cask update was hidden. The comma is a separator.
+- A Homebrew version like `1.3.0,999` compared as older than `1.3.0`, so a build-only cask update was hidden. The comma is a separator, and the build after it is compared with the app's own build, so an app already on that build is not offered it again.
 - Cmd-R always ran a full rescan, while the guide said it refreshes updates in the Updates sort. It now does what the sidebar button does.
 - The README called licence keys device-bound. A login-keychain item does not honor that flag. The README, guide, FEATURES and privacy note now say so.
 - RELEASE.md named a different signing identity than release.sh, and SECURITY.md still listed 1.10.x as supported. Both now match the 1.12.4 release.
