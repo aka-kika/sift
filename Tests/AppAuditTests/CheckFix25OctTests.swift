@@ -351,3 +351,34 @@ struct LockedWithoutAnalysisTests {
         #expect(!LockedWithoutAnalysis.applies(aiState: .loaded(explanation: "x", score: 3, reason: "y", bestUse: ""), isLocked: true))
     }
 }
+
+@Suite("A public name pointing at this Mac or the local network is not fetched")
+struct LinkHostResolutionTests {
+    @Test("A name that resolves to loopback or a private address is refused")
+    func privateAddress() async {
+        #expect(!(await LinkEvidence.resolvesToPublicAddresses("evil.example.com") { _ in ["127.0.0.1"] }))
+        #expect(!(await LinkEvidence.resolvesToPublicAddresses("evil.example.com") { _ in ["93.184.216.34", "192.168.1.10"] }))
+        #expect(!(await LinkEvidence.resolvesToPublicAddresses("evil.example.com") { _ in ["::1"] }))
+    }
+
+    @Test("A name that resolves only to public addresses passes")
+    func publicAddress() async {
+        #expect(await LinkEvidence.resolvesToPublicAddresses("example.com") { _ in ["93.184.216.34", "2606:2800:220:1::1"] })
+    }
+
+    @Test("A name that does not resolve is not fetched")
+    func noAnswer() async {
+        #expect(!(await LinkEvidence.resolvesToPublicAddresses("nothing.example.com") { _ in [] }))
+    }
+
+    @Test("A local name never reaches the resolver")
+    func localName() async {
+        #expect(!(await LinkEvidence.resolvesToPublicAddresses("nas.local") { _ in ["93.184.216.34"] }))
+    }
+
+    @Test("The system resolver answers for localhost with loopback")
+    func realResolver() async {
+        let addresses = await LinkEvidence.resolvedAddresses("localhost")
+        #expect(addresses.contains { $0 == "127.0.0.1" || $0 == "::1" })
+    }
+}

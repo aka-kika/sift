@@ -76,9 +76,62 @@ enum LinkEvidence {
         return isPublicHost(host)
     }
 
+    /// The name's addresses, each judged like an IP literal. A public name
+    /// that points at 127.0.0.1 or the local network is refused, and so is a
+    /// name that does not resolve. `resolve` is swapped out in tests.
+    static func resolvesToPublicAddresses(_ host: String,
+                                          resolve: @Sendable (String) async -> [String] = resolvedAddresses) async -> Bool {
+        guard isPublicHost(host) else { return false }
+        let bare = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+        var v4 = in_addr()
+        var v6 = in6_addr()
+        // An IP literal was already judged.
+        if inet_aton(bare, &v4) != 0 || inet_pton(AF_INET6, bare, &v6) == 1 { return true }
+        let addresses = await resolve(bare)
+        return !addresses.isEmpty && addresses.allSatisfy(isPublicHost)
+    }
+
+    /// The name's IPv4 and IPv6 addresses, from the system resolver, off the
+    /// calling thread.
+    @Sendable
+    static func resolvedAddresses(_ host: String) async -> [String] {
+        await Task.detached {
+            var hints = addrinfo()
+            hints.ai_socktype = SOCK_STREAM
+            var list: UnsafeMutablePointer<addrinfo>?
+            guard getaddrinfo(host, nil, &hints, &list) == 0, let first = list else { return [] }
+            defer { freeaddrinfo(list) }
+            var out: [String] = []
+            var entry: UnsafeMutablePointer<addrinfo>? = first
+            while let current = entry {
+                var buffer = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
+                if current.pointee.ai_family == AF_INET {
+                    var address = current.pointee.ai_addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee.sin_addr }
+                    inet_ntop(AF_INET, &address, &buffer, socklen_t(buffer.count))
+                } else if current.pointee.ai_family == AF_INET6 {
+                    var address = current.pointee.ai_addr.withMemoryRebound(to: sockaddr_in6.self, capacity: 1) { $0.pointee.sin6_addr }
+                    inet_ntop(AF_INET6, &address, &buffer, socklen_t(buffer.count))
+                }
+                let text = String(cString: buffer)
+                if !text.isEmpty { out.append(text) }
+                entry = current.pointee.ai_next
+            }
+            return out
+        }.value
+    }
+
+    /// A link, a redirect, or a feed may be fetched: the scheme fits, the
+    /// name is public, and so are the addresses it points at.
+    static func mayFetch(_ url: URL, httpsOnly: Bool) async -> Bool {
+        guard let scheme = url.scheme?.lowercased(),
+              httpsOnly ? scheme == "https" : (scheme == "http" || scheme == "https"),
+              let host = url.host(percentEncoded: false) else { return false }
+        return await resolvesToPublicAddresses(host)
+    }
+
     /// False for localhost, local-network names, and IP literals that are
-    /// loopback, private, link-local, unique-local or unspecified. Names are not
-    /// resolved here, so a public name pointing at a private address still passes.
+    /// loopback, private, link-local, unique-local or unspecified. Names are
+    /// resolved separately, by `resolvesToPublicAddresses`.
     static func isPublicHost(_ rawHost: String) -> Bool {
         var host = rawHost.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
         while host.hasSuffix(".") { host.removeLast() }
@@ -143,7 +196,7 @@ private final class LinkEvidenceRedirectGuard: NSObject, URLSessionTaskDelegate 
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest) async -> URLRequest? {
-        guard let url = request.url, LinkEvidence.isAllowedTarget(url) else { return nil }
+        guard let url = request.url, await LinkEvidence.mayFetch(url, httpsOnly: false) else { return nil }
         return request
     }
 }
@@ -158,7 +211,8 @@ actor LinkEvidenceService {
         guard let urlString = AppLinkInput.normalized(urlString) else { return nil }
         if let cached = cache[urlString] { return cached }
 
-        guard let url = LinkEvidence.fetchableURL(from: urlString) else {
+        guard let url = LinkEvidence.fetchableURL(from: urlString),
+              await LinkEvidence.mayFetch(url, httpsOnly: false) else {
             cache[urlString] = nil as String?
             return nil
         }

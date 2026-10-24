@@ -66,7 +66,7 @@ refresh button checks only when you click it.
 - **Find similar apps** has to show the model your other installed apps (name, category, short description) to pick from. With a cloud provider, Sift asks before every such request; with local Ollama nothing leaves the Mac.
 - **Update checks** contact the Mac App Store lookup endpoint and, for apps that publish one, their Sparkle feed or GitHub releases, over https only. Each request names only the app being checked. Homebrew checks run the local `brew` binary with Homebrew's auto-update turned off, so a check never runs `brew update`; Homebrew reaches the network only when you click an upgrade. You can turn the checks off in Settings → General → Updates.
 - **Sift's own updates** (since 1.9.0) — Sparkle fetches `sift.akakika.com/appcast.xml` once a day and downloads the DMG only when you accept an update. The feed is a static file; nothing about you or your Mac is sent with the request.
-- **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says. Links to this Mac or your local network are never fetched, redirects to them are refused, and the query and fragment are removed before fetching and before the link goes into a prompt.
+- **Link evidence** fetches the public page of an app link you saved, to ground the analysis in what the maker actually says. Links to this Mac or your local network are never fetched, including a public name that points there (Sift looks up the address first), redirects to them are refused, and the query and fragment are removed before fetching and before the link goes into a prompt.
 - **About tab links** open in your browser when you click them; nothing is requested in the background.
 
 ## Third-party services
