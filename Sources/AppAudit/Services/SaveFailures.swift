@@ -28,11 +28,11 @@ final class SaveFailures {
 extension ModelContext {
     /// `save()` that says so when it fails, instead of `try?`.
     @MainActor
-    func saveReportingFailure(to failures: SaveFailures = .shared) {
+    func saveReportingFailure(to failures: SaveFailures? = nil) {
         do {
             try save()
         } catch {
-            failures.report(error)
+            (failures ?? .shared).report(error)
         }
     }
 }
