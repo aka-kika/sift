@@ -63,6 +63,12 @@ enum TrashService {
     /// The row for an item Finder did not finish in time.
     static let timeoutReason = "Finder did not finish within \(Int(finderTimeout)) seconds, so Sift stopped waiting. If you approve a Finder prompt later, the item may still reach the Trash."
 
+    /// Finder is only for the app bundle. A permission-denied leftover used to
+    /// open Finder too, which can put up a prompt the user cannot place.
+    static func shouldAskFinder(url: URL, error: NSError) -> Bool {
+        isPermissionDenied(error) && url.pathExtension == "app"
+    }
+
     /// Returns nil when the item reached the Trash.
     @MainActor
     static func trash(_ url: URL) async -> Failure? {
@@ -74,7 +80,7 @@ enum TrashService {
             return nil
         } catch {
             let nsError = error as NSError
-            guard isPermissionDenied(nsError) else {
+            guard shouldAskFinder(url: url, error: nsError) else {
                 return Failure(path: url.path, reason: nsError.localizedDescription)
             }
             switch await finderDelete(url) {

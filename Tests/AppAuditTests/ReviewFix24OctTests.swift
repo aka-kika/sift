@@ -330,3 +330,24 @@ struct ShortBundleIDTests {
         #expect(LeftoverMatcher.matches(name: "com.example.app.plist", bundleID: "com.example.app"))
     }
 }
+
+@Suite("Finder is only for the app bundle")
+struct FinderOnlyForAppBundleTests {
+    private var denied: NSError {
+        NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)
+    }
+
+    @Test("A root-owned app bundle may go to Finder")
+    func app() {
+        let url = URL(fileURLWithPath: "/Applications/Example.app")
+        #expect(TrashService.shouldAskFinder(url: url, error: denied))
+    }
+
+    @Test("A leftover does not")
+    func leftover() {
+        let url = URL(fileURLWithPath: "/Users/me/Library/Caches/com.example.app")
+        #expect(!TrashService.shouldAskFinder(url: url, error: denied))
+        let other = NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError)
+        #expect(!TrashService.shouldAskFinder(url: URL(fileURLWithPath: "/Applications/Example.app"), error: other))
+    }
+}
