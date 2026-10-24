@@ -441,3 +441,18 @@ struct ModelPickerTests {
         #expect(ModelFetchOwner.stillCurrent(fetchedFor: .gemini, current: .gemini))
     }
 }
+
+@Suite("The Notes sheet saves on Save only")
+struct NotesDraftTests {
+    @Test("An emptied note is stored as no note")
+    func emptied() {
+        #expect(NotesDraft.stored("   \n") == nil)
+        #expect(NotesDraft.stored("I use it daily") == "I use it daily")
+    }
+
+    @Test("Saving the same text again starts no re-analysis")
+    func unchanged() {
+        #expect(!NotesChange.changed(previous: "I use it daily", current: NotesDraft.stored("I use it daily")))
+        #expect(NotesChange.changed(previous: nil, current: NotesDraft.stored("New note")))
+    }
+}

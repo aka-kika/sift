@@ -27,8 +27,6 @@ struct AppDetailView: View {
     @State private var draftLicenseEmail = ""
     @State private var draftLicenseType: LicenseType? = nil
     @State private var notesSheetPresented = false
-    @State private var notesSessionBundleID: String? = nil
-    @State private var notesSessionInitialNotes: String? = nil
     @State private var similarResults: [SimilarApp]? = nil
     @State private var findingSimilar = false
     @State private var confirmingCloudSimilar = false
@@ -111,22 +109,9 @@ struct AppDetailView: View {
             }
         }
         .sheet(isPresented: $notesSheetPresented) {
-            NotesSheet(
-                appName: app.name,
-                text: Binding(
-                    get: { record?.notes ?? "" },
-                    set: { ensureRecord().notes = $0.isEmpty ? nil : $0; saveRecord() }
-                )
-            ) {
+            NotesSheet(appName: app.name, initialText: record?.notes ?? "") { saved in
                 notesSheetPresented = false
-            }
-        }
-        .onChange(of: notesSheetPresented) { _, presented in
-            if presented {
-                notesSessionBundleID = app.bundleID
-                notesSessionInitialNotes = record?.notes
-            } else {
-                endNotesSession()
+                if let saved { saveNotes(saved) }
             }
         }
         .alert("Update with Homebrew?", isPresented: $confirmingHomebrewUpdate) {
@@ -891,9 +876,6 @@ struct AppDetailView: View {
             cardIcon(hasNote ? "square.and.pencil" : "note.text", tint: hasNote ? .yellow : .secondary)
         }
         .help(notesHelp)
-        .onDisappear {
-            endNotesSession()
-        }
     }
 
     private var notesHelp: String {
@@ -904,12 +886,13 @@ struct AppDetailView: View {
         return "Add notes — your words feed the next analysis"
     }
 
-    private func endNotesSession() {
-        guard let bundleID = notesSessionBundleID else { return }
-        viewModel.reanalyzeAfterNotesChange(bundleID: bundleID,
-                                            previousNotes: notesSessionInitialNotes)
-        notesSessionBundleID = nil
-        notesSessionInitialNotes = nil
+    /// Save only: the sheet edits a draft, so Cancel and Escape change nothing
+    /// and start no re-analysis.
+    private func saveNotes(_ text: String) {
+        let previous = record?.notes
+        ensureRecord().notes = NotesDraft.stored(text)
+        saveRecord()
+        viewModel.reanalyzeAfterNotesChange(bundleID: app.bundleID, previousNotes: previous)
     }
 
     /// The money cube's state, derived once for the cube, its strip label, and its menu.
@@ -1532,8 +1515,11 @@ struct AppDetailView: View {
 
 struct NotesSheet: View {
     let appName: String
-    @Binding var text: String
-    let onClose: () -> Void
+    let initialText: String
+    /// The text to save, or nil for Cancel.
+    let onFinish: (String?) -> Void
+
+    @State private var draft = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1542,18 +1528,19 @@ struct NotesSheet: View {
             Text("Your words feed the next analysis — say how you actually use this app.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            NotesEditor(text: $text)
+            NotesEditor(text: $draft)
                 .frame(minHeight: 140)
             HStack {
                 Button("Clear") {
-                    text = ""
-                    onClose()
+                    onFinish("")
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
                 .help("Remove the note and close")
                 Spacer()
-                Button("Save") { onClose() }
+                Button("Cancel") { onFinish(nil) }
+                    .keyboardShortcut(.cancelAction)
+                Button("Save") { onFinish(draft) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.borderedProminent)
                     .help("Save and re-analyze with this note (⌘↩)")
@@ -1561,7 +1548,15 @@ struct NotesSheet: View {
         }
         .padding(20)
         .frame(width: 440)
-        .onExitCommand { onClose() }
+        .onAppear { draft = initialText }
+        .onExitCommand { onFinish(nil) }
+    }
+}
+
+/// What the Notes sheet stores: an emptied note is no note.
+enum NotesDraft {
+    static func stored(_ text: String) -> String? {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : text
     }
 }
 
