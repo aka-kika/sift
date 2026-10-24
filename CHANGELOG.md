@@ -47,6 +47,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A revealed licence key stayed in memory after the panel closed. Closing the panel forgets it. The Touch ID prompt, which closes the panel for a moment, does not.
 - A cloud API key was sent to any base URL, including plain http. A key now goes out only over https, or to a host on this Mac.
 - The API key field showed the saved key and wrote the Keychain on every key press, so one Backspace could store a cut-off key. The field starts empty and saves when you press Return or leave it.
+- When `brew outdated` failed or brew was missing, a cask app read Up to date. A failed check now shows as unavailable. An empty outdated list still means current.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

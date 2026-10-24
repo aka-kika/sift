@@ -606,3 +606,22 @@ struct APIKeyTransportTests {
         #expect(!APIKeyTransport.maySendKey(to: "ftp://localhost/x"))
     }
 }
+
+@Suite("A failed brew check is not Up to date")
+struct BrewCheckFailedTests {
+    @Test("No answer from brew is unavailable")
+    func failed() {
+        #expect(UpdateChecker.caskStatus(token: "ghostty", answer: .failed) == .unavailable)
+    }
+
+    @Test("An empty outdated list means the cask is current")
+    func current() {
+        #expect(UpdateChecker.caskStatus(token: "ghostty", answer: .list([])) == .notOutdated)
+    }
+
+    @Test("A listed cask is the outdated version")
+    func outdated() {
+        let answer = HomebrewOutdatedAnswer.list([HomebrewCaskInfo(token: "ghostty", latestVersion: "1.2.0")])
+        #expect(UpdateChecker.caskStatus(token: "ghostty", answer: answer) == .outdated("1.2.0"))
+    }
+}

@@ -65,7 +65,7 @@ actor UpdateChecker {
 
     private let client: any UpdateMetadataClient
     private let homebrew = HomebrewService()
-    private var outdatedCasksCache: [HomebrewCaskInfo]?
+    private var outdatedCasksCache: HomebrewOutdatedAnswer?
 
     init(client: any UpdateMetadataClient = LiveUpdateMetadataClient()) {
         self.client = client
@@ -93,8 +93,8 @@ actor UpdateChecker {
             return .upToDate(source: .appStore)
         }
 
-        if let homebrewMetadata = fetchHomebrewMetadata(caskToken: app.homebrewCaskToken),
-           let latestVersion = homebrewMetadata.latestVersion,
+        let brew = caskStatus(token: app.homebrewCaskToken)
+        if case .outdated(let latestVersion) = brew,
            Self.isVersion(latestVersion, newerThan: app.version) {
             if acknowledgedVersion == latestVersion {
                 return .upToDate(source: .homebrew)
@@ -150,6 +150,8 @@ actor UpdateChecker {
         // app that also has a Sparkle feed or a GitHub link therefore takes that
         // verdict — deliberate, since many casks lag the vendor's own feed.
         if app.homebrewCaskToken != nil {
+            // Brew did not answer. "Up to date" would be a guess.
+            if case .unavailable = brew { return .unavailable }
             return .upToDate(source: .homebrew)
         }
 
@@ -190,12 +192,34 @@ actor UpdateChecker {
         }
     }
 
-    private func fetchHomebrewMetadata(caskToken: String?) -> HomebrewCaskInfo? {
-        guard let caskToken else { return nil }
+    /// What `brew outdated` said about one cask.
+    enum CaskStatus: Equatable {
+        case outdated(String)
+        case notOutdated
+        case unavailable
+    }
+
+    /// `notOutdated` only when brew answered and this cask was not in the list.
+    static func caskStatus(token: String?, answer: HomebrewOutdatedAnswer) -> CaskStatus {
+        guard token != nil else { return .notOutdated }
+        switch answer {
+        case .failed:
+            return .unavailable
+        case .list(let casks):
+            guard let token else { return .notOutdated }
+            if let version = casks.first(where: { $0.token == token })?.latestVersion, !version.isEmpty {
+                return .outdated(version)
+            }
+            return .notOutdated
+        }
+    }
+
+    private func caskStatus(token: String?) -> CaskStatus {
+        guard token != nil else { return .notOutdated }
         if outdatedCasksCache == nil {
             outdatedCasksCache = homebrew.outdatedCasks()
         }
-        return outdatedCasksCache?.first { $0.token == caskToken }
+        return Self.caskStatus(token: token, answer: outdatedCasksCache ?? .failed)
     }
 
     /// Feeds and download links count only over https: an http feed can be

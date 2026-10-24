@@ -5,6 +5,13 @@ struct HomebrewCaskInfo: Equatable, Sendable {
     let latestVersion: String?
 }
 
+/// `failed` means brew did not answer (missing, or a non-zero exit). That is
+/// not the same as an empty outdated list, which means every cask is current.
+enum HomebrewOutdatedAnswer: Equatable, Sendable {
+    case list([HomebrewCaskInfo])
+    case failed
+}
+
 struct HomebrewService: Sendable {
     func installedCasks() -> [String] {
         runBrew(arguments: ["list", "--cask"])
@@ -13,10 +20,10 @@ struct HomebrewService: Sendable {
             .filter { !$0.isEmpty }
     }
 
-    func outdatedCasks() -> [HomebrewCaskInfo] {
-        let output = runBrew(arguments: ["outdated", "--cask", "--json=v2"])
-        guard let data = output.data(using: .utf8) else { return [] }
-        return Self.parseOutdatedCasks(from: data)
+    func outdatedCasks() -> HomebrewOutdatedAnswer {
+        let outcome = runBrewChecked(arguments: ["outdated", "--cask", "--json=v2"])
+        guard outcome.succeeded, let data = outcome.output.data(using: .utf8) else { return .failed }
+        return .list(Self.parseOutdatedCasks(from: data))
     }
 
     func upgradeCask(_ token: String) -> String {
