@@ -135,11 +135,11 @@ struct HTTPSOnlyUpdateTests {
             #expect(meta?.url == nil)
         }
 
-        // The Download button then points at the https feed itself, never the bad link.
+        // No https file: Download is not offered. The feed itself is XML, not the update.
         let feed = "https://example.com/appcast.xml"
         let client = RecordingUpdateClient([feed: appcast(url: "http://example.com/a.zip")])
         let state = await UpdateChecker(client: client).check(app: feedApp(feed: feed))
-        #expect(state == .updateAvailable(latestVersion: "2.0", source: .sparkle, actionURL: feed))
+        #expect(state == .updateAvailable(latestVersion: "2.0", source: .sparkle, actionURL: nil))
     }
 
     @Test("A bare enclosure fallback drops a non-https link too")
