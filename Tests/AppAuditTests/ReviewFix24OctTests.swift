@@ -705,3 +705,14 @@ struct ClipboardQuitTests {
         #expect(board.string(forType: .string) == "something else")
     }
 }
+
+@Suite("A denied Finder prompt names Automation")
+struct FinderAutomationTests {
+    @Test("errAEEventNotPermitted is the Automation refusal")
+    func denied() {
+        let error = NSError(domain: NSOSStatusErrorDomain, code: Int(errAEEventNotPermitted))
+        #expect(TrashService.isAutomationDenied(error))
+        #expect(TrashService.automationReason.contains("Automation"))
+        #expect(!TrashService.isAutomationDenied(NSError(domain: NSOSStatusErrorDomain, code: Int(errAETimeout))))
+    }
+}

@@ -32,7 +32,15 @@ enum TrashService {
     enum FinderOutcome: Equatable {
         case moved
         case refused
+        case notPermitted
         case timedOut
+    }
+
+    /// What the row says when Automation is off, so the fix is the one in the guide.
+    static let automationReason = "Sift is not allowed to control Finder. Turn it on in System Settings, Privacy & Security, Automation."
+
+    static func isAutomationDenied(_ error: NSError) -> Bool {
+        error.code == Int(errAEEventNotPermitted)
     }
 
     /// The Apple Event `tell application "Finder" to delete POSIX file …`
@@ -96,6 +104,7 @@ enum TrashService {
             switch await finderDelete(url) {
             case .moved: return nil
             case .timedOut: return Failure(path: url.path, reason: timeoutReason)
+            case .notPermitted: return Failure(path: url.path, reason: automationReason)
             case .refused: return Failure(path: url.path, reason: reason(for: nsError))
             }
         }
@@ -108,21 +117,24 @@ enum TrashService {
     static func finderDelete(_ url: URL, timeout: TimeInterval = finderTimeout) async -> FinderOutcome {
         // The event carries its own timeout; the outer deadline is a backstop
         // for a send that blocks before the event leaves (a consent prompt).
-        let answered = await waitAtMost(timeout + 5) { () -> Bool in
+        let answered = await waitAtMost(timeout + 5) { () -> FinderOutcome in
             do {
                 _ = try finderDeleteEvent(for: url).sendEvent(
                     options: [.waitForReply, .canInteract, .canSwitchLayer],
                     timeout: timeout
                 )
-                return true
+                return .refused
             } catch {
-                return (error as NSError).code != Int(errAETimeout)
+                let nsError = error as NSError
+                if isAutomationDenied(nsError) { return .notPermitted }
+                if nsError.code == Int(errAETimeout) { return .timedOut }
+                return .refused
             }
         }
         // Finder can reply and still leave the item in place, so trust the
         // disk rather than the reply.
         if !FileManager.default.fileExists(atPath: url.path) { return .moved }
-        return answered == true ? .refused : .timedOut
+        return answered ?? .timedOut
     }
 
     /// Runs `work` on a background thread and stops waiting after `seconds`,
