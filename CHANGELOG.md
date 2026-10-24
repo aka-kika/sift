@@ -31,7 +31,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - The guide's crash fix said to delete the whole store, which would drop notes and the vault. It now says to move the store to the Desktop. Sift already sets a damaged store aside on its own.
 - A subscribed app later marked Lifetime, Free or My App kept the subscription face, and Remove was greyed out with the rest of that section. Those marks now outrank the subscription, and Remove subscription stays available.
 - A very short bundle ID such as com.apple or com.google could pre-check other apps' Library files. A bundle ID now needs three parts, and com.apple never matches.
-- Any permission-denied leftover was handed to Finder, which can open an unexplained prompt. Finder is asked only for the app bundle.
+- Any permission-denied leftover was handed to Finder, which can open an unexplained prompt. Finder is asked only for the app bundle, including an app with a dot in its name such as zoom.us.app.
 - A Launch Agent was moved to the Trash while it was still loaded, so the helper kept running until logout. Sift runs `launchctl bootout` first.
 - A Homebrew version like `1.3.0,999` compared as older than `1.3.0`, so a build-only cask update was hidden. The comma is a separator.
 - Cmd-R always ran a full rescan, while the guide said it refreshes updates in the Updates sort. It now does what the sidebar button does.

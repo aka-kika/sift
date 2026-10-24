@@ -340,18 +340,14 @@ struct FinderOnlyForAppBundleTests {
 
     @Test("A root-owned app bundle may go to Finder")
     func app() {
-        let url = URL(fileURLWithPath: "/Applications/Example.app")
-        #expect(TrashService.shouldAskFinder(url: url, error: denied))
+        #expect(TrashService.shouldAskFinder(isAppBundle: true, error: denied))
     }
 
-    @Test("A leftover does not, even when its folder name ends in .app")
+    @Test("A leftover does not, and neither does any other error")
     func leftover() {
-        let url = URL(fileURLWithPath: "/Users/me/Library/Caches/com.example.app")
-        #expect(TrashService.isAppBundlePath("/Applications/Example.app"))
-        #expect(!TrashService.isAppBundlePath(url.path))
-        #expect(!TrashService.shouldAskFinder(url: url, error: denied))
+        #expect(!TrashService.shouldAskFinder(isAppBundle: false, error: denied))
         let other = NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError)
-        #expect(!TrashService.shouldAskFinder(url: URL(fileURLWithPath: "/Applications/Example.app"), error: other))
+        #expect(!TrashService.shouldAskFinder(isAppBundle: true, error: other))
     }
 }
 

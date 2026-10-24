@@ -71,25 +71,17 @@ enum TrashService {
     /// The row for an item Finder did not finish in time.
     static let timeoutReason = "Finder did not finish within \(Int(finderTimeout)) seconds, so Sift stopped waiting. If you approve a Finder prompt later, the item may still reach the Trash."
 
-    /// An application bundle, not a Library folder whose name is a bundle ID.
-    /// `Example.app` is a bundle. `com.example.app` is a leftover folder: its
-    /// path extension is also `app`.
-    static func isAppBundlePath(_ path: String) -> Bool {
-        let last = URL(fileURLWithPath: path).lastPathComponent
-        guard last.lowercased().hasSuffix(".app"), last.count > 4 else { return false }
-        let base = String(last.dropLast(4))
-        return !base.isEmpty && !base.contains(".")
-    }
-
     /// Finder is only for the app bundle. A permission-denied leftover used to
     /// open Finder too, which can put up a prompt the user cannot place.
-    static func shouldAskFinder(url: URL, error: NSError) -> Bool {
-        isPermissionDenied(error) && isAppBundlePath(url.path)
+    /// The scanner knows which row is the bundle; a name test missed apps
+    /// with a dot in the name, such as zoom.us.app or Xcode 26.1.app.
+    static func shouldAskFinder(isAppBundle: Bool, error: NSError) -> Bool {
+        isPermissionDenied(error) && isAppBundle
     }
 
     /// Returns nil when the item reached the Trash.
     @MainActor
-    static func trash(_ url: URL) async -> Failure? {
+    static func trash(_ url: URL, isAppBundle: Bool) async -> Failure? {
         do {
             try await Task.detached {
                 var resulting: NSURL?
@@ -98,7 +90,7 @@ enum TrashService {
             return nil
         } catch {
             let nsError = error as NSError
-            guard shouldAskFinder(url: url, error: nsError) else {
+            guard shouldAskFinder(isAppBundle: isAppBundle, error: nsError) else {
                 return Failure(path: url.path, reason: nsError.localizedDescription)
             }
             switch await finderDelete(url) {

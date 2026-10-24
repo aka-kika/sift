@@ -194,7 +194,7 @@ enum UninstallSweep {
     static func run(_ targets: [LeftoverItem],
                     progress: (LeftoverItem) -> Void = { _ in },
                     beforeTrash: (LeftoverItem) async -> Void = { _ in },
-                    trash: (URL) async -> TrashService.Failure?) async -> Outcome {
+                    trash: (LeftoverItem) async -> TrashService.Failure?) async -> Outcome {
         var outcome = Outcome()
         let queue = ordered(targets)
         for (index, item) in queue.enumerated() {
@@ -202,7 +202,7 @@ enum UninstallSweep {
             if LaunchAgentUnload.needsUnload(item.category) {
                 await beforeTrash(item)
             }
-            if let failure = await trash(item.url) {
+            if let failure = await trash(item) {
                 outcome.failures.append(failure)
                 if item.isAppBundle {
                     outcome.stoppedAtBundle = true

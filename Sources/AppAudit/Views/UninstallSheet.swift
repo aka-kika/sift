@@ -368,7 +368,7 @@ struct UninstallSheet: View {
             targets,
             progress: { phase = .working(current: $0.url.lastPathComponent) },
             beforeTrash: { await LaunchAgentUnload.bootout(plistPath: $0.url.path) },
-            trash: { await TrashService.trash($0) }
+            trash: { await TrashService.trash($0.url, isAppBundle: $0.isAppBundle) }
         )
         phase = .done(failures: outcome.failures,
                       removedBundle: outcome.removedBundle || brewOutput != nil,

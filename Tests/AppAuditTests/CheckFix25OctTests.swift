@@ -37,3 +37,25 @@ struct QueuedReanalysisTests {
         #expect(viewModel.queuedReanalysis.isEmpty)
     }
 }
+
+@Suite("An app with a dot in its name can still go to Finder")
+struct DottedAppBundleTests {
+    @Test("The sweep hands zoom.us.app over as the app bundle")
+    func dottedNameIsTheBundle() async {
+        let zoom = URL(fileURLWithPath: "/Applications/zoom.us.app")
+        let cache = URL(fileURLWithPath: "/Users/me/Library/Caches/us.zoom.xos")
+        let items = [
+            LeftoverItem(id: cache.path, url: cache, category: .caches, sizeBytes: 1, reason: "cache"),
+            LeftoverItem(id: zoom.path, url: zoom, category: .application, sizeBytes: 1, reason: "bundle", isAppBundle: true),
+        ]
+        var handed: [(String, Bool)] = []
+        _ = await UninstallSweep.run(items) { item in
+            handed.append((item.url.lastPathComponent, item.isAppBundle))
+            return nil
+        }
+        #expect(handed.map(\.0) == ["zoom.us.app", "us.zoom.xos"])
+        #expect(handed.map(\.1) == [true, false])
+        let denied = NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)
+        #expect(TrashService.shouldAskFinder(isAppBundle: handed[0].1, error: denied))
+    }
+}

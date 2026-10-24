@@ -168,9 +168,9 @@ struct UninstallSweepTests {
     @Test("A bundle that stays put keeps every piece of data")
     func stopsWhenBundleFails() async {
         var tried: [String] = []
-        let outcome = await UninstallSweep.run(targets) { url in
-            tried.append(url.path)
-            return url.pathExtension == "app" ? TrashService.Failure(path: url.path, reason: "locked") : nil
+        let outcome = await UninstallSweep.run(targets) { item in
+            tried.append(item.url.path)
+            return item.isAppBundle ? TrashService.Failure(path: item.url.path, reason: "locked") : nil
         }
         #expect(tried == ["/Applications/Reed.app"])
         #expect(outcome.stoppedAtBundle)
@@ -182,8 +182,8 @@ struct UninstallSweepTests {
     @Test("A moved bundle lets the data follow")
     func continuesWhenBundleMoves() async {
         var tried: [String] = []
-        let outcome = await UninstallSweep.run(targets) { url in
-            tried.append(url.path)
+        let outcome = await UninstallSweep.run(targets) { item in
+            tried.append(item.url.path)
             return nil
         }
         #expect(tried.count == 3)
@@ -193,8 +193,8 @@ struct UninstallSweepTests {
 
     @Test("A stuck data folder does not stop the rest")
     func dataFailureContinues() async {
-        let outcome = await UninstallSweep.run(targets) { url in
-            url.path.contains("Application Support") ? TrashService.Failure(path: url.path, reason: "busy") : nil
+        let outcome = await UninstallSweep.run(targets) { item in
+            item.url.path.contains("Application Support") ? TrashService.Failure(path: item.url.path, reason: "busy") : nil
         }
         #expect(outcome.removedBundle)
         #expect(!outcome.stoppedAtBundle)
