@@ -106,3 +106,16 @@ enum PricingMarks {
     }
 }
 
+
+/// An app locked before it had any analysis has nothing for the lock to
+/// keep. It used to show Waiting to analyze forever while the lock blocked
+/// Re-analyze; the detail view says why and offers Unlock and Analyze.
+enum LockedWithoutAnalysis {
+    static func applies(aiState: AppInfo.AIState, isLocked: Bool) -> Bool {
+        guard isLocked, case .pending = aiState else { return false }
+        return true
+    }
+
+    static let title = "Locked before analysis"
+    static let message = "This app was locked before Sift analyzed it, so there is nothing to keep yet. Unlock it to analyze."
+}

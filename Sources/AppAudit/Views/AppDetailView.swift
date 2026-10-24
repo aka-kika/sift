@@ -516,8 +516,23 @@ struct AppDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
         case .pending:
-            ProgressView("Waiting to analyze…")
-                .frame(maxWidth: .infinity, alignment: .center)
+            if LockedWithoutAnalysis.applies(aiState: app.aiState, isLocked: app.isAnalysisLocked) {
+                ContentUnavailableView {
+                    Label(LockedWithoutAnalysis.title, systemImage: "lock")
+                } description: {
+                    Text(LockedWithoutAnalysis.message)
+                } actions: {
+                    Button("Unlock and Analyze") {
+                        toggleAnalysisLock()
+                        Task { await viewModel.reanalyze(bundleID: app.bundleID) }
+                    }
+                    .disabled(AppListViewModel.ScanCommands.isBusy(viewModel.scanState))
+                    .help(AppListViewModel.ScanCommands.busyReason)
+                }
+            } else {
+                ProgressView("Waiting to analyze…")
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
 
         case .loading:
             VStack(spacing: 8) {

@@ -337,3 +337,17 @@ struct QuitWaitTests {
         #expect(!quit)
     }
 }
+
+@Suite("An app locked before analysis says why")
+struct LockedWithoutAnalysisTests {
+    @Test("Locked and never analyzed shows the lock note, not Waiting")
+    func lockedPending() {
+        #expect(LockedWithoutAnalysis.applies(aiState: .pending, isLocked: true))
+    }
+
+    @Test("An unlocked wait, or a locked analysis, is unchanged")
+    func others() {
+        #expect(!LockedWithoutAnalysis.applies(aiState: .pending, isLocked: false))
+        #expect(!LockedWithoutAnalysis.applies(aiState: .loaded(explanation: "x", score: 3, reason: "y", bestUse: ""), isLocked: true))
+    }
+}
