@@ -161,7 +161,7 @@ actor UpdateChecker {
 
         do {
             let data = try await client.data(for: lookupURL)
-            return try Self.parseAppStoreMetadata(from: data, preferredBundleID: bundleID)
+            return try Self.parseAppStoreMetadata(from: data, preferredBundleID: bundleID, systemVersion: Self.currentSystemVersion)
         } catch {
             return nil
         }
@@ -300,7 +300,8 @@ actor UpdateChecker {
     /// related app, and its version or store page would be the wrong answer.
     static func parseAppStoreMetadata(
         from data: Data,
-        preferredBundleID: String
+        preferredBundleID: String,
+        systemVersion: String = currentSystemVersion
     ) throws -> UpdateMetadata? {
         let response = try JSONDecoder().decode(AppStoreLookupResponse.self, from: data)
         let result = response.results.first(where: {
@@ -310,11 +311,23 @@ actor UpdateChecker {
         guard let result, let version = result.version, !version.isEmpty else {
             return nil
         }
+        // The store still lists a release this Mac cannot run. The README
+        // says those are skipped.
+        guard runsOnThisMac(minimumOS: result.minimumOsVersion, systemVersion: systemVersion) else {
+            return nil
+        }
 
         // The macappstore: link is built here from a number, so it is safe to open.
         let url = result.trackID.map { "macappstore://itunes.apple.com/app/id\($0)" }
             ?? httpsURL(result.trackViewURL)?.absoluteString
         return UpdateMetadata(version: version, url: url)
+    }
+
+    /// False when the store's `minimumOsVersion` is newer than this Mac.
+    /// No minimum: the release is offered.
+    static func runsOnThisMac(minimumOS: String?, systemVersion: String) -> Bool {
+        guard let minimum = minimumOS?.trimmingCharacters(in: .whitespacesAndNewlines), !minimum.isEmpty else { return true }
+        return !VersionComparator.isNewer(minimum, than: systemVersion)
     }
 
     /// This Mac's macOS version, as `26.1.0`.
@@ -485,11 +498,13 @@ private struct AppStoreLookupResult: Decodable {
     let trackID: Int?
     let version: String?
     let trackViewURL: String?
+    let minimumOsVersion: String?
 
     enum CodingKeys: String, CodingKey {
         case bundleID = "bundleId"
         case trackID = "trackId"
         case version
         case trackViewURL = "trackViewUrl"
+        case minimumOsVersion
     }
 }

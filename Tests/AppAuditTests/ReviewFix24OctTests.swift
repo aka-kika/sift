@@ -251,3 +251,26 @@ struct SparkleBuildOnlyTests {
         #expect(item.displayVersion(installedVersion: "1.2.3") != "2045")
     }
 }
+
+@Suite("App Store skips a release this Mac cannot run")
+struct AppStoreMinimumOSTests {
+    private func json(minimum: String) -> Data {
+        Data("""
+        {"results":[{"bundleId":"com.example.Bloom","version":"9.0","trackId":1,"minimumOsVersion":"\(minimum)"}]}
+        """.utf8)
+    }
+
+    @Test("A release that needs a newer macOS is not offered")
+    func tooNew() throws {
+        let meta = try UpdateChecker.parseAppStoreMetadata(from: json(minimum: "99.0"), preferredBundleID: "com.example.Bloom", systemVersion: "15.0.0")
+        #expect(meta == nil)
+        #expect(!UpdateChecker.runsOnThisMac(minimumOS: "99.0", systemVersion: "15.0.0"))
+    }
+
+    @Test("A release this Mac can run is still offered")
+    func runnable() throws {
+        let meta = try UpdateChecker.parseAppStoreMetadata(from: json(minimum: "14.0"), preferredBundleID: "com.example.Bloom", systemVersion: "15.0.0")
+        #expect(meta?.version == "9.0")
+        #expect(UpdateChecker.runsOnThisMac(minimumOS: nil, systemVersion: "15.0.0"))
+    }
+}
