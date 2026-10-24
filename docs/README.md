@@ -121,7 +121,7 @@ the hover line.
 **Clicking** opens one popover with **Key** and **Subscription** tabs:
 
 - **Key** — the licence key (hidden until you reveal it with Touch ID), the registered email, and a **Type** picker: Not set, Lifetime, One-time, Annual, Other.
-- **Subscription** — amount, currency, monthly/yearly, renewal date, billing email.
+- **Subscription** — amount, currency, monthly/yearly, an optional renewal date, billing email.
 - App Store installs get a seal banner **above** the tabs and keep every field, so a store purchase can be marked Lifetime and a mis-detected install can still take a key.
 - **Save works without a key** — a licence type saves on its own, and can be corrected or cleared back to Not set at any time.
 - A lifetime or one-time licence greys the Subscription tab; nothing can be a subscription and a permanent purchase at once.
