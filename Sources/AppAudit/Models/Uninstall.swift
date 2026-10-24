@@ -78,8 +78,16 @@ enum LeftoverMatcher {
     /// `otherBundleIDs` are the other installed apps. A name that belongs to one
     /// of them is never claimed — `com.google.Chrome.canary.plist` is Canary's,
     /// not stable Chrome's, even though it starts with `com.google.Chrome.`.
+    /// A bundle ID can claim Library files only when it has at least three
+    /// parts (`com.vendor.app`). `com.apple` and `com.google` would otherwise
+    /// pre-check other apps' files. `com.apple` itself never matches.
+    static func isSpecificBundleID(_ bundleID: String) -> Bool {
+        if bundleID == "com.apple" { return false }
+        return bundleID.split(separator: ".").filter { !$0.isEmpty }.count >= 3
+    }
+
     static func matches(name: String, bundleID: String, otherBundleIDs: [String] = []) -> Bool {
-        guard !bundleID.isEmpty else { return false }
+        guard isSpecificBundleID(bundleID) else { return false }
         let bare = (name as NSString).deletingPathExtension
         let own = name == bundleID || bare == bundleID || name.hasPrefix(bundleID + ".")
         guard own else { return false }

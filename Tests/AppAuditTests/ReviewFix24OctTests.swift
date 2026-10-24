@@ -313,3 +313,20 @@ struct SubscriptionOutrankedTests {
         #expect(remove.lowerBound > disabled.upperBound)
     }
 }
+
+@Suite("Short bundle IDs do not claim other apps' files")
+struct ShortBundleIDTests {
+    @Test("Two-part IDs, including com.apple and com.google, match nothing")
+    func short() {
+        #expect(!LeftoverMatcher.isSpecificBundleID("com.apple"))
+        #expect(!LeftoverMatcher.isSpecificBundleID("com.google"))
+        #expect(!LeftoverMatcher.matches(name: "com.apple.Safari.plist", bundleID: "com.apple"))
+        #expect(!LeftoverMatcher.matches(name: "com.google.Chrome", bundleID: "com.google"))
+    }
+
+    @Test("A normal three-part ID still matches its own files")
+    func normal() {
+        #expect(LeftoverMatcher.isSpecificBundleID("com.example.app"))
+        #expect(LeftoverMatcher.matches(name: "com.example.app.plist", bundleID: "com.example.app"))
+    }
+}
