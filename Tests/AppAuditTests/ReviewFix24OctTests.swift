@@ -672,3 +672,12 @@ struct UpdateCheckingMarkTests {
         #expect(!AppListViewModel.marksChecking(version: "", hasOwnChannel: true, hasGitHubLink: false))
     }
 }
+
+@Suite("The README names the password as well as Touch ID")
+struct TouchIDWordingTests {
+    @Test("Reading a key is Touch ID or the account password")
+    func readme() throws {
+        let text = try String(contentsOf: repoRoot.appending(path: "README.md"), encoding: .utf8)
+        #expect(text.contains("Touch ID or your password"))
+    }
+}

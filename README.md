@@ -88,7 +88,7 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 
 ### Money, in one place
 - One **License cube** per app whose face tells you the state at a glance: subscription, App Store, lifetime, one-time, annual, free
-- Licence keys in the **macOS login keychain**, not marked for iCloud. The login keychain does not honor a this-device-only flag, so a key is not locked to this Mac. Sift reads one only after **Touch ID**
+- Licence keys in the **macOS login keychain**, not marked for iCloud. The login keychain does not honor a this-device-only flag, so a key is not locked to this Mac. Sift reads one only after **Touch ID or your password**
 - Subscriptions with amount, currency and cycle. A renewal date is set only when you pick one, and its countdown turns orange as it approaches
 - **License Vault** (`⇧⌘L`) — everything you've bought, including subscriptions, split into installed and no-longer-installed, so a key or a subscription never disappears with the app
 
