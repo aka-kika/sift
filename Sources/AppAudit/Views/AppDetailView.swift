@@ -356,8 +356,10 @@ struct AppDetailView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(app.isAnalysisLocked)
-        .help("Re-analyze")
+        .disabled(app.isAnalysisLocked || AppListViewModel.ScanCommands.isBusy(viewModel.scanState))
+        .help(AppListViewModel.ScanCommands.isBusy(viewModel.scanState)
+              ? AppListViewModel.ScanCommands.busyReason
+              : "Re-analyze")
     }
 
     /// Marks this app as one you build. It also gates the Docs cube — only a
@@ -526,6 +528,8 @@ struct AppDetailView: View {
                 Button("Retry") {
                     Task { await viewModel.reanalyze(bundleID: app.bundleID) }
                 }
+                .disabled(AppListViewModel.ScanCommands.isBusy(viewModel.scanState))
+                .help(AppListViewModel.ScanCommands.busyReason)
             }
         }
     }

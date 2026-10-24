@@ -23,6 +23,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Mark Subscribed stored today as the renewal date when the date was never picked, so the cube said the subscription renews today. The date stays empty until you set one.
 - A cloud analysis sent the full app path, so an app in ~/Applications included the Mac account name. The path is sent with ~.
 - A rescan replaced the sidebar list with a spinner. The list stays once apps are loaded; the spinner is only for the first scan.
+- Rescan, Cmd-R and Re-analyze looked tappable while an analysis was running, then did nothing. They stay disabled until it finishes, and the help text says why.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

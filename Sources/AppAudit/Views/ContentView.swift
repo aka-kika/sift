@@ -99,6 +99,8 @@ struct ContentView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(pastelize(.orange, colorScheme))
+            .disabled(AppListViewModel.ScanCommands.isBusy(viewModel.scanState))
+            .help(AppListViewModel.ScanCommands.busyReason)
             Button("Dismiss") {
                 viewModel.dismissModelChangeBanner()
             }

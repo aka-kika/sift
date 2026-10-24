@@ -105,7 +105,10 @@ struct AppRow: View {
             } label: {
                 Label("Re-analyze", systemImage: "arrow.clockwise")
             }
-            .disabled(app.isAnalysisLocked)
+            .disabled(app.isAnalysisLocked || AppListViewModel.ScanCommands.isBusy(viewModel.scanState))
+            .help(AppListViewModel.ScanCommands.isBusy(viewModel.scanState)
+                  ? AppListViewModel.ScanCommands.busyReason
+                  : "Re-analyze")
 
             Button {
                 toggleAnalysisLock()

@@ -130,12 +130,15 @@ struct AppAuditApp: App {
                     Task { await viewModel.runFullScan() }
                 }
                 .keyboardShortcut("R", modifiers: .command)
+                .disabled(AppListViewModel.ScanCommands.isBusy(viewModel.scanState))
+                .help(AppListViewModel.ScanCommands.busyReason)
 
                 Button("Re-analyze All Apps") {
                     Task { await viewModel.reanalyzeAll(scope: .allUnlocked) }
                 }
                 .keyboardShortcut("R", modifiers: [.command, .shift])
-                .disabled(viewModel.apps.isEmpty)
+                .disabled(viewModel.apps.isEmpty || AppListViewModel.ScanCommands.isBusy(viewModel.scanState))
+                .help(AppListViewModel.ScanCommands.busyReason)
 
                 Button("Export to CSV…") {
                     viewModel.exportCSVToFile()

@@ -77,6 +77,9 @@ struct AppListView: View {
                     Label(refreshButtonTitle, systemImage: "arrow.clockwise")
                 }
                 .disabled(isRefreshButtonDisabled)
+                .help(AppListViewModel.ScanCommands.isBusy(viewModel.scanState)
+                      ? AppListViewModel.ScanCommands.busyReason
+                      : refreshButtonTitle)
             }
         }
         .sheet(isPresented: $vm.showingVault) {
@@ -92,7 +95,7 @@ struct AppListView: View {
     }
 
     private var isRefreshButtonDisabled: Bool {
-        viewModel.scanState == .scanning ||
+        AppListViewModel.ScanCommands.isBusy(viewModel.scanState) ||
             viewModel.isRefreshingUpdates ||
             (viewModel.sortOrder == .updates && viewModel.apps.isEmpty)
     }

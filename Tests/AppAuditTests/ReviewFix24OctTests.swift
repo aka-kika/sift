@@ -173,3 +173,20 @@ struct SidebarDuringScanTests {
         #expect(!SidebarDuringScan.showsSpinner(hasApps: false, phase: .ready))
     }
 }
+
+@Suite("Rescan waits while an analysis is running")
+struct ScanCommandsBusyTests {
+    @Test("Scanning and analyzing block another rescan")
+    func busy() {
+        #expect(AppListViewModel.ScanCommands.isBusy(.scanning))
+        #expect(AppListViewModel.ScanCommands.isBusy(.enriching(completed: 1, total: 4)))
+        #expect(!AppListViewModel.ScanCommands.busyReason.isEmpty)
+    }
+
+    @Test("An idle or finished scan can be started")
+    func free() {
+        #expect(!AppListViewModel.ScanCommands.isBusy(.idle))
+        #expect(!AppListViewModel.ScanCommands.isBusy(.done))
+        #expect(!AppListViewModel.ScanCommands.isBusy(.error("x")))
+    }
+}

@@ -54,6 +54,19 @@ final class AppListViewModel {
 
     }
 
+    /// Rescan and Re-analyze while a scan or analysis is already running.
+    /// Those actions used to look tappable and then do nothing.
+    enum ScanCommands {
+        static let busyReason = "Sift is still analyzing. Wait until it finishes."
+
+        static func isBusy(_ state: ScanState) -> Bool {
+            switch state {
+            case .scanning, .enriching: return true
+            case .idle, .done, .error: return false
+            }
+        }
+    }
+
     enum SortOrder: String, CaseIterable {
         case relevance = "Relevance"
         case updates = "Updates"
@@ -232,6 +245,7 @@ final class AppListViewModel {
     private var updateScanToken = UUID()
 
     func runFullScan() async {
+        guard !ScanCommands.isBusy(scanState) else { return }
         guard scanState == .idle || scanState == .done else { return }
         // The old list stays until the new one is ready: an interrupted or slow
         // scan never leaves an empty sidebar.
@@ -663,6 +677,7 @@ final class AppListViewModel {
     }
 
     func reanalyze(bundleID: String, appURL overrideAppURL: String? = nil) async {
+        guard !ScanCommands.isBusy(scanState) else { return }
         await selectInstalledOllamaModelIfNeeded(provider: AnalysisProviderKind.current())
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
@@ -742,6 +757,7 @@ final class AppListViewModel {
     /// `.modelChangedUnlocked` targets only apps whose cached analysis came from a
     /// different model; `.allUnlocked` targets every unlocked app.
     func reanalyzeAll(scope: ReanalyzeScope) async {
+        guard !ScanCommands.isBusy(scanState) else { return }
         guard scanState == .done || scanState == .idle else { return }
 
         workflowProfile = .current(digest: WorkflowDigest.build(from: apps, includeAppNames: AnalysisProviderKind.current().runsOnThisMac))
