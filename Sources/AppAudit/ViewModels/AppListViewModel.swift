@@ -59,6 +59,18 @@ final class AppListViewModel {
     enum ScanCommands {
         static let busyReason = "Sift is still analyzing. Wait until it finishes."
 
+        enum Shortcut: Equatable { case rescan, refreshUpdates }
+
+        /// Cmd-R matches the sidebar button: in the Updates sort it refreshes
+        /// update checks, and otherwise it rescans.
+        static func shortcut(sortIsUpdates: Bool) -> Shortcut {
+            sortIsUpdates ? .refreshUpdates : .rescan
+        }
+
+        static func shortcutTitle(sortIsUpdates: Bool) -> String {
+            shortcut(sortIsUpdates: sortIsUpdates) == .refreshUpdates ? "Refresh Updates" : "Rescan Apps"
+        }
+
         static func isBusy(_ state: ScanState) -> Bool {
             switch state {
             case .scanning, .enriching: return true
@@ -200,6 +212,14 @@ final class AppListViewModel {
     /// for updates and links. On unless turned off in Settings → General.
     nonisolated static func checksUpdatesOnScan(defaults: UserDefaults = .standard) -> Bool {
         defaults.object(forKey: checkUpdatesOnScanKey) as? Bool ?? true
+    }
+
+    func performScanShortcut() async {
+        if ScanCommands.shortcut(sortIsUpdates: sortOrder == .updates) == .refreshUpdates {
+            await refreshUpdateStatuses()
+        } else {
+            await runFullScan()
+        }
     }
 
     func refreshUpdateStatuses() async {

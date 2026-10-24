@@ -126,8 +126,8 @@ struct AppAuditApp: App {
                 .disabled(!UpdateService.shared.isAvailable)
             }
             CommandGroup(after: .newItem) {
-                Button("Rescan Apps") {
-                    Task { await viewModel.runFullScan() }
+                Button(AppListViewModel.ScanCommands.shortcutTitle(sortIsUpdates: viewModel.sortOrder == .updates)) {
+                    Task { await viewModel.performScanShortcut() }
                 }
                 .keyboardShortcut("R", modifiers: .command)
                 .disabled(AppListViewModel.ScanCommands.isBusy(viewModel.scanState))

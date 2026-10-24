@@ -34,6 +34,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Any permission-denied leftover was handed to Finder, which can open an unexplained prompt. Finder is asked only for the app bundle.
 - A Launch Agent was moved to the Trash while it was still loaded, so the helper kept running until logout. Sift runs `launchctl bootout` first.
 - A Homebrew version like `1.3.0,999` compared as older than `1.3.0`, so a build-only cask update was hidden. The comma is a separator.
+- Cmd-R always ran a full rescan, while the guide said it refreshes updates in the Updates sort. It now does what the sidebar button does.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

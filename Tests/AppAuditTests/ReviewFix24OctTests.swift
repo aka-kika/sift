@@ -394,3 +394,17 @@ struct HomebrewCommaVersionTests {
         #expect(VersionComparator.compare("1.3.0,999", "1.3.0,999") == .orderedSame)
     }
 }
+
+@Suite("Cmd-R matches the Updates sort")
+struct ScanShortcutTests {
+    @Test("The Updates sort refreshes updates")
+    func updates() {
+        #expect(AppListViewModel.ScanCommands.shortcut(sortIsUpdates: true) == .refreshUpdates)
+        #expect(AppListViewModel.ScanCommands.shortcutTitle(sortIsUpdates: true) == "Refresh Updates")
+    }
+
+    @Test("Every other sort rescans")
+    func rescan() {
+        #expect(AppListViewModel.ScanCommands.shortcut(sortIsUpdates: false) == .rescan)
+    }
+}

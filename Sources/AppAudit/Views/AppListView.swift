@@ -66,13 +66,7 @@ struct AppListView: View {
             }
             ToolbarItem(placement: .automatic) {
                 Button {
-                    Task {
-                        if viewModel.sortOrder == .updates {
-                            await viewModel.refreshUpdateStatuses()
-                        } else {
-                            await viewModel.runFullScan()
-                        }
-                    }
+                    Task { await viewModel.performScanShortcut() }
                 } label: {
                     Label(refreshButtonTitle, systemImage: "arrow.clockwise")
                 }
