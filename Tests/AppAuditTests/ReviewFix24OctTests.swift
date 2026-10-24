@@ -119,3 +119,24 @@ struct VaultSubscriptionTests {
         #expect(source.contains("$0.hasSubscription"))
     }
 }
+
+@Suite("Subscription renewal stays empty until picked")
+struct SubscriptionRenewalDraftTests {
+    @Test("An untouched draft stores no date")
+    func untouched() {
+        #expect(SubscriptionMath.renewalToStore(draft: nil) == nil)
+    }
+
+    @Test("A date the user picked is the one stored")
+    func picked() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        #expect(SubscriptionMath.renewalToStore(draft: date) == date)
+    }
+
+    @Test("Opening the panel does not invent today")
+    func noDefaultToday() throws {
+        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/AppDetailView.swift"), encoding: .utf8)
+        #expect(!source.contains("subscriptionRenewalDate ?? Date()"))
+        #expect(source.contains("SubscriptionMath.renewalToStore(draft: draftSubRenewal)"))
+    }
+}

@@ -31,7 +31,7 @@ struct AppDetailView: View {
     @State private var draftSubPrice = ""
     @State private var draftSubCurrency = ""
     @State private var draftSubCycle: BillingCycle = .monthly
-    @State private var draftSubRenewal = Date()
+    @State private var draftSubRenewal: Date? = nil
     @State private var draftSubEmail = ""
     @State private var confirmingHomebrewUpdate = false
     @State private var runningHomebrewUpdate = false
@@ -969,7 +969,7 @@ struct AppDetailView: View {
         draftSubCurrency = record?.subscriptionCurrency
             ?? (Locale.current.currency?.identifier ?? "USD")
         draftSubCycle = BillingCycle(rawValue: record?.subscriptionCycle ?? "") ?? .monthly
-        draftSubRenewal = record?.subscriptionRenewalDate ?? Date()
+        draftSubRenewal = record?.subscriptionRenewalDate
         draftSubEmail = record?.subscriptionEmail
             ?? record?.licenseEmail
             ?? UserDefaults.standard.string(forKey: "defaultLicenseEmail") ?? ""
@@ -1245,7 +1245,7 @@ struct AppDetailView: View {
         ensured.subscriptionPrice = Double(draftSubPrice.replacingOccurrences(of: ",", with: "."))
         ensured.subscriptionCurrency = draftSubCurrency.isEmpty ? nil : draftSubCurrency
         ensured.subscriptionCycle = draftSubCycle.rawValue
-        ensured.subscriptionRenewalDate = draftSubRenewal
+        ensured.subscriptionRenewalDate = SubscriptionMath.renewalToStore(draft: draftSubRenewal)
         let email = draftSubEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         ensured.subscriptionEmail = email.isEmpty ? nil : email
         ensured.hasSubscription = true

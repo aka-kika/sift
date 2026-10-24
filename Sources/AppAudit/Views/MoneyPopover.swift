@@ -33,7 +33,7 @@ struct MoneyPopover: View {
     @Binding var draftSubPrice: String
     @Binding var draftSubCurrency: String
     @Binding var draftSubCycle: BillingCycle
-    @Binding var draftSubRenewal: Date
+    @Binding var draftSubRenewal: Date?
     @Binding var draftSubEmail: String
 
     let onToggleFree: () -> Void
@@ -326,8 +326,20 @@ struct MoneyPopover: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            DatePicker("Renews", selection: $draftSubRenewal, displayedComponents: .date)
+            if draftSubRenewal == nil {
+                Button("Set renewal date") { draftSubRenewal = Date() }
+                    .font(.callout)
+                    .buttonStyle(.borderless)
+            } else {
+                DatePicker("Renews", selection: Binding(
+                    get: { draftSubRenewal ?? Date() },
+                    set: { draftSubRenewal = $0 }
+                ), displayedComponents: .date)
                 .font(.callout)
+                Button("Clear renewal date") { draftSubRenewal = nil }
+                    .font(.caption)
+                    .buttonStyle(.borderless)
+            }
 
             quietField("Billing email (optional)", text: $draftSubEmail)
 

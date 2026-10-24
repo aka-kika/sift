@@ -33,6 +33,12 @@ enum BillingCycle: String, CaseIterable, Identifiable {
 /// Pure subscription date/billing math. No UI, no I/O — every function takes
 /// `now`/`calendar` so it is deterministic and unit-testable.
 enum SubscriptionMath {
+    /// What Mark Subscribed stores. An untouched field is nil: today is not
+    /// invented, or the cube would say the subscription renews today.
+    static func renewalToStore(draft: Date?) -> Date? {
+        draft
+    }
+
 
     /// If `stored` is before today, advance it by `cycle` until it lands on or
     /// after today; otherwise return it unchanged. Display-only — callers do not

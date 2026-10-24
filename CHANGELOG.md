@@ -20,6 +20,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - With update checks off, a scan still fetched each saved app link page, against the promise that a scan makes no network requests. That fetch is skipped while the switch is off.
 - A Keychain error at launch (locked or denied) was treated as no key, so the vault hid those purchases. The flag is cleared only when the item is not found.
 - A subscription with no key and no Paid mark never appeared in the License Vault, so a monthly app vanished from "everything you've bought" after uninstall. Subscriptions are listed now.
+- Mark Subscribed stored today as the renewal date when the date was never picked, so the cube said the subscription renews today. The date stays empty until you set one.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.
