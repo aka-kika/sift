@@ -50,7 +50,7 @@ enum AppAnalysisPrompt {
         Name: \(app.name)
         Bundle ID: \(app.bundleID)
         Version: \(app.version.isEmpty ? "Unknown" : app.version)
-        Path: \(app.path)\(categoryHint)\(descriptionHint)\(runtimeHint)\(linkContext)
+        Path: \(Self.promptPath(app.path))\(categoryHint)\(descriptionHint)\(runtimeHint)\(linkContext)
 
         Developer workflow context:
         \(profile.promptDescription)\(notesBlock)\(docsBlock)
@@ -73,6 +73,13 @@ enum AppAnalysisPrompt {
         2 = Rarely useful; unlikely to serve this workflow
         1 = No overlap; safe to uninstall\(styleBlock)
         """
+    }
+
+    /// The path a prompt may carry. A home-folder path is written with `~`,
+    /// so an app in ~/Applications does not send the Mac account name to a
+    /// cloud model.
+    static func promptPath(_ path: String) -> String {
+        (path as NSString).abbreviatingWithTildeInPath
     }
 
     /// The user's global analysis style notes from Settings (Profile tab),

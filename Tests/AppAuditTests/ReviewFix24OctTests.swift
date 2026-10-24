@@ -140,3 +140,18 @@ struct SubscriptionRenewalDraftTests {
         #expect(source.contains("SubscriptionMath.renewalToStore(draft: draftSubRenewal)"))
     }
 }
+
+@Suite("Cloud prompts hide the account name in paths")
+struct PromptPathTests {
+    @Test("A path under the home folder is written with a tilde")
+    func home() {
+        let path = NSHomeDirectory() + "/Applications/Example.app"
+        #expect(AppAnalysisPrompt.promptPath(path) == "~/Applications/Example.app")
+        #expect(!AppAnalysisPrompt.promptPath(path).contains(NSUserName()))
+    }
+
+    @Test("A path outside the home folder stays as it is")
+    func applications() {
+        #expect(AppAnalysisPrompt.promptPath("/Applications/Example.app") == "/Applications/Example.app")
+    }
+}
