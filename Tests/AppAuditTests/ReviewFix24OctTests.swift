@@ -380,3 +380,17 @@ struct LaunchAgentUnloadTests {
         #expect(events == ["unload", "trash"])
     }
 }
+
+@Suite("Homebrew's comma is a version separator")
+struct HomebrewCommaVersionTests {
+    @Test("1.3.0,999 is newer than 1.3.0")
+    func newer() {
+        #expect(VersionComparator.isNewer("1.3.0,999", than: "1.3.0"))
+        #expect(!VersionComparator.isNewer("1.3.0", than: "1.3.0,999"))
+    }
+
+    @Test("The same version and build still match")
+    func same() {
+        #expect(VersionComparator.compare("1.3.0,999", "1.3.0,999") == .orderedSame)
+    }
+}

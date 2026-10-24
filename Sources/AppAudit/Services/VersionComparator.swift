@@ -78,7 +78,9 @@ enum VersionComparator {
             current = ""
         }
         for character in version {
-            if ".-_+ ()".contains(character) {
+            // Homebrew writes a build as `1.3.0,999`. The comma separates the
+            // build; it is not part of a smaller version.
+            if ".,-_+ ()".contains(character) {
                 flush()
                 currentIsDigit = nil
                 continue
