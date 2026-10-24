@@ -478,7 +478,8 @@ final class AppListViewModel {
         let store = LicenseKeyStore.shared
         var changed = false
         for record in cache.allRecords() {
-            let has = store.hasKey(bundleID: record.bundleID)
+            let has = LicenseKeyStore.flag(current: record.hasLicenseKey,
+                                            presence: store.keyPresence(bundleID: record.bundleID))
             if record.hasLicenseKey != has {
                 record.hasLicenseKey = has
                 changed = true

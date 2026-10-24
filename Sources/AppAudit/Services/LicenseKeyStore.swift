@@ -1,17 +1,34 @@
 import Foundation
 import Security
 
+/// What an attribute-only Keychain lookup actually answered.
+/// `unknown` is a locked or denied keychain: that is not the same as no item.
+enum SecretPresence: Equatable, Sendable {
+    case present
+    case absent
+    case unknown
+}
+
 protocol SecretStoreBackend: Sendable {
     /// Reads the secret itself. License keys call this only after Touch ID.
     func read(account: String) -> String?
     /// Whether an item exists, from its attributes alone: the secret is never
     /// read, so this is safe at launch and at render time.
     func exists(account: String) -> Bool
+    /// Same lookup as `exists`, but a Keychain error stays `unknown` instead
+    /// of looking like a missing item. Default treats a bool backend as sure.
+    func presence(account: String) -> SecretPresence
     /// Returns whether the value is now stored. A denied ACL prompt or a locked
     /// keychain must not read as success — callers delete plaintext on that basis.
     @discardableResult
     func write(_ value: String, account: String) -> Bool
     func delete(account: String)
+}
+
+extension SecretStoreBackend {
+    func presence(account: String) -> SecretPresence {
+        exists(account: account) ? .present : .absent
+    }
 }
 
 /// Items live in the login (file-based) keychain, without a SecAccessControl.
@@ -53,6 +70,10 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
     }
 
     func exists(account: String) -> Bool {
+        presence(account: account) == .present
+    }
+
+    func presence(account: String) -> SecretPresence {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -60,7 +81,18 @@ final class KeychainSecretStoreBackend: SecretStoreBackend, @unchecked Sendable 
             kSecReturnAttributes as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
-        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        return Self.presence(for: status)
+    }
+
+    /// Only `errSecItemNotFound` means there is no key. A locked keychain
+    /// (`errSecInteractionNotAllowed`) or a denied lookup must not clear it.
+    static func presence(for status: OSStatus) -> SecretPresence {
+        switch status {
+        case errSecSuccess: return .present
+        case errSecItemNotFound: return .absent
+        default: return .unknown
+        }
     }
 
     @discardableResult
@@ -148,7 +180,22 @@ final class LicenseKeyStore: @unchecked Sendable {
     /// vault can call it without Touch ID. `save` never stores a blank key, so
     /// an existing item is a real one.
     func hasKey(bundleID: String) -> Bool {
-        backend.exists(account: bundleID)
+        keyPresence(bundleID: bundleID) == .present
+    }
+
+    /// Launch sync uses this. `unknown` means leave the saved flag alone.
+    func keyPresence(bundleID: String) -> SecretPresence {
+        backend.presence(account: bundleID)
+    }
+
+    /// The flag to store after a launch lookup. An error keeps whatever the
+    /// record already says, so a locked keychain cannot hide a purchase.
+    static func flag(current: Bool, presence: SecretPresence) -> Bool {
+        switch presence {
+        case .present: return true
+        case .absent: return false
+        case .unknown: return current
+        }
     }
 
     /// Moves a legacy plaintext value into secure storage if no key exists yet.

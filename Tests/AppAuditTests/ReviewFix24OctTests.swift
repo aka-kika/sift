@@ -77,3 +77,26 @@ struct ScanNetworkTests {
         #expect(source.contains("ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan())"))
     }
 }
+
+@Suite("Keychain errors do not clear licence flags")
+struct LicenseFlagOnKeychainErrorTests {
+    @Test("Item not found is the only answer that clears the flag")
+    func absent() {
+        #expect(LicenseKeyStore.flag(current: true, presence: .absent) == false)
+        #expect(KeychainSecretStoreBackend.presence(for: errSecItemNotFound) == .absent)
+    }
+
+    @Test("A locked or denied keychain leaves the flag as it was")
+    func unknown() {
+        #expect(LicenseKeyStore.flag(current: true, presence: .unknown) == true)
+        #expect(LicenseKeyStore.flag(current: false, presence: .unknown) == false)
+        #expect(KeychainSecretStoreBackend.presence(for: errSecInteractionNotAllowed) == .unknown)
+        #expect(KeychainSecretStoreBackend.presence(for: errSecAuthFailed) == .unknown)
+    }
+
+    @Test("A found item sets the flag")
+    func present() {
+        #expect(LicenseKeyStore.flag(current: false, presence: .present) == true)
+        #expect(KeychainSecretStoreBackend.presence(for: errSecSuccess) == .present)
+    }
+}
