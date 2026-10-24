@@ -116,7 +116,9 @@ actor UpdateChecker {
                 return .updateAvailable(
                     latestVersion: latestVersion,
                     source: .sparkle,
-                    actionURL: sparkleMetadata.url ?? app.sparkleFeedURL
+                    // No enclosure link: do not offer the feed URL. Download would
+                    // open the appcast XML.
+                    actionURL: sparkleMetadata.url
                 )
             }
             return .upToDate(source: .sparkle)

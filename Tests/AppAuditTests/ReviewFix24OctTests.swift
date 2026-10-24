@@ -641,3 +641,19 @@ struct AnalysisVersionTests {
         #expect(CacheService.versionNote(analyzedVersion: nil, appVersion: "1.3") == nil)
     }
 }
+
+@Suite("Download is not the Sparkle feed")
+struct SparkleDownloadLinkTests {
+    @Test("An item with no https enclosure has no download link")
+    func noEnclosure() throws {
+        let xml = """
+        <rss><channel><item>
+          <sparkle:shortVersionString>2.0</sparkle:shortVersionString>
+          <sparkle:version>20</sparkle:version>
+        </item></channel></rss>
+        """
+        let meta = try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8))
+        #expect(meta?.version == "2.0")
+        #expect(meta?.url == nil)
+    }
+}
