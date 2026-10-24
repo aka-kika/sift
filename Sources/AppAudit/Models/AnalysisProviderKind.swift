@@ -96,6 +96,14 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
         return models.first { !$0.lowercased().contains("embed") } ?? models.first
     }
 
+    /// The model list entry that names `stored`. Ollama lists "llama3.2" as
+    /// "llama3.2:latest"; the picker would show nothing for the bare name.
+    static func pickerSelection(stored: String, models: [String]) -> String {
+        if models.contains(stored) { return stored }
+        if !stored.contains(":"), models.contains(stored + ":latest") { return stored + ":latest" }
+        return stored
+    }
+
     /// True only when prompts stay on this Mac: Ollama pointed at a local
     /// server. Ollama can also reach ollama.com cloud models, and every other
     /// provider is a cloud API.
@@ -113,5 +121,13 @@ enum AnalysisProviderKind: String, CaseIterable, Identifiable, Sendable {
     static func current(userDefaults: UserDefaults = .standard) -> AnalysisProviderKind {
         let rawValue = userDefaults.string(forKey: storageKey) ?? Self.ollama.rawValue
         return AnalysisProviderKind(rawValue: rawValue) ?? .ollama
+    }
+}
+
+/// A model list belongs to the engine it was fetched for. Switching engine
+/// while it loads used to save the old engine's model under the new one.
+enum ModelFetchOwner {
+    static func stillCurrent(fetchedFor: AnalysisProviderKind, current: AnalysisProviderKind) -> Bool {
+        fetchedFor == current
     }
 }

@@ -426,3 +426,18 @@ struct SaveFailuresTests {
         #expect(failures.message == nil)
     }
 }
+
+@Suite("The model picker matches Ollama's :latest and the engine it was fetched for")
+struct ModelPickerTests {
+    @Test("llama3.2 selects llama3.2:latest in the list")
+    func latest() {
+        #expect(AnalysisProviderKind.pickerSelection(stored: "llama3.2", models: ["mistral:latest", "llama3.2:latest"]) == "llama3.2:latest")
+        #expect(AnalysisProviderKind.pickerSelection(stored: "qwen3:8b", models: ["qwen3:8b"]) == "qwen3:8b")
+    }
+
+    @Test("A list fetched for another engine is dropped")
+    func engineChanged() {
+        #expect(!ModelFetchOwner.stillCurrent(fetchedFor: .ollama, current: .gemini))
+        #expect(ModelFetchOwner.stillCurrent(fetchedFor: .gemini, current: .gemini))
+    }
+}

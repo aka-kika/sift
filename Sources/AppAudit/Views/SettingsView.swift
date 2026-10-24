@@ -247,7 +247,10 @@ struct AnalysisSettingsTab: View {
                 Text("Model")
                     .frame(width: 64, alignment: .leading)
                 Spacer()
-                Picker("", selection: model) {
+                Picker("", selection: Binding(
+                    get: { AnalysisProviderKind.pickerSelection(stored: model.wrappedValue, models: availableModels) },
+                    set: { model.wrappedValue = $0 }
+                )) {
                     ForEach(availableModels, id: \.self) { name in
                         Text(name).tag(name)
                     }
@@ -276,13 +279,17 @@ struct AnalysisSettingsTab: View {
     private func fetchModels() async {
         apiKeyField.commit()
         fetchState = .loading
-        let result = await AnalysisServices.make(provider).fetchModels()
+        let fetchedFor = provider
+        let result = await AnalysisServices.make(fetchedFor).fetchModels()
+        // The engine changed while the list loaded: this list is the old
+        // engine's, and the new engine's own fetch fills the picker.
+        guard ModelFetchOwner.stillCurrent(fetchedFor: fetchedFor, current: provider) else { return }
         switch result {
         case .models(let models):
             availableModels = models
             // Auto-select the first model only if the effective choice isn't available.
-            if let replacement = provider.modelToSelect(from: models) {
-                UserDefaults.standard.set(replacement, forKey: provider.modelDefaultsKey)
+            if let replacement = fetchedFor.modelToSelect(from: models) {
+                UserDefaults.standard.set(replacement, forKey: fetchedFor.modelDefaultsKey)
             }
             fetchState = .loaded
         case .failure(let message):
