@@ -84,7 +84,7 @@ bash Scripts/build_sift2.sh   # installs /Applications/Sift2.app
 
 - The sidebar fills with your installed apps and analysis begins ("Analyzing n/N" in the toolbar).
 - Selecting an app shows What is this?, a 1–5 score, and a facts row (on disk, last used, source, analyzed).
-- `swift test` reports **431 tests in 144 suites passed** as of 1.12.5.
+- `swift test` reports **434 tests in 145 suites passed** as of 1.12.5.
 
 ---
 

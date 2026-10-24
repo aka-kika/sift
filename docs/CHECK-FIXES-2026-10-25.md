@@ -41,7 +41,7 @@ Branch `check-fixes-2026-10-25`, from `review-fixes-2026-10-24` at `c4e0c36`. On
 ## Tests
 
 - b988b27: the vault test fetches from an in-memory store with the vault's own predicate (`VaultMembership.predicate`, now used by the `@Query`). Source-text tests and README-wording tests are removed; SECURITY.md is checked against `version.env`.
-- `swift test`: 431 tests in 144 suites pass.
+- `swift test`: 434 tests in 145 suites pass.
 
 ## Test VM (vm1, macOS 26.6.2)
 
