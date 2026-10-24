@@ -92,7 +92,11 @@ enum AppCopyFinder {
         return paths
     }
 
-    private static func canonical(_ path: String) -> String {
-        URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath().path
+    /// The path as written, not the file it points at. A symlink in
+    /// /Applications that points at the real app is another copy: resolving
+    /// it made the sweep think this was the only copy and trash the real
+    /// app's data.
+    static func canonical(_ path: String) -> String {
+        URL(fileURLWithPath: path).standardizedFileURL.path
     }
 }

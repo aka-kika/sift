@@ -525,3 +525,19 @@ struct SparkleBetaFallbackTests {
         #expect(try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8)) == nil)
     }
 }
+
+@Suite("A symlink is another copy")
+struct SymlinkCopyTests {
+    @Test("The link and the real app stay different paths")
+    func distinct() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "SiftSym-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let real = root.appending(path: "Real.app")
+        let link = root.appending(path: "Link.app")
+        try FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        let result = AppCopyFinder.classify(found: [real.path, link.path], thisPath: link.path)
+        #expect(result == .others([AppCopyFinder.canonical(real.path)]))
+    }
+}
