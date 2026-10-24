@@ -2,13 +2,22 @@
 
 Branch `review-fixes-2026-10-24`, from `main` at `02f76be`. Backup branch `backup/main-2026-10-24` points at that same commit. Nothing was pushed, merged, tagged, released, or installed. Sift was not opened on this Mac.
 
-`swift test` at the end: 374 tests in 121 suites, all passed.
+`swift test` at the end, after the eight MiniMax items as well: 386 tests in 128 suites, all passed.
 
 ## Commits
 
 `git log --oneline main..HEAD`
 
 ```
+81dcc49 test: a Sparkle update with no https file has no download link
+e74007c fix: name the Automation setting when Finder refuses the move
+7100e23 fix: clear a copied licence key when Sift quits
+d2c4279 docs: say a licence key is read after Touch ID or the account password
+3cf3b64 fix: show Checking only for apps that have an update source
+1e66fb2 fix: offer Download only when a Sparkle item has a real file link
+27d08aa fix: note which app version an analysis was written for
+6658902 fix: do not call a cask up to date when brew did not answer
+7ff5264 fix: save a cloud API key when the field is left, not on every key
 4fac072 fix: send a cloud API key only over https, or to this Mac
 58ee10d fix: forget a revealed licence key when the panel closes
 6afce62 fix: show What's New when an existing library has never seen the sheet
@@ -48,7 +57,7 @@ Two of those are follow-ups on an item already closed: `f6f15da` corrects the Fi
 
 ## Closed
 
-31 of the original 41. Runway "done today" matches that.
+31 of the original 41, then the 8 MiniMax items added at 00:20 (adbd, 4b7e, 36eb, 84ce, b3ae, 49f5, 9a6f, 1000). `81dcc49` is the test that had still expected Download to open the feed.
 
 ## Left on purpose
 
@@ -68,19 +77,6 @@ These were not finished. They are still real fixes, not product calls.
 - **3353** Notes save on every key. Escape keeps the edit and starts a re-analysis.
 - **b7b6** Brew commands have no time limit.
 
-## New items that appeared during the session
-
-These were not in the 41. They are still open. Not done here.
-
-- **adbd** The cloud API key field writes to the Keychain on every key press.
-- **4b7e** A failed or missing brew check can read as Up to date.
-- **36eb** A saved analysis is kept after the app's version changes, with no hint.
-- **84ce** A Sparkle item with no https enclosure falls back to the feed URL.
-- **b3ae** Every app with a version shows Checking, including apps with no update source.
-- **49f5** README says Touch ID only. The check also takes the account password.
-- **9a6f** Quitting within a minute of copying a key can leave it on the clipboard.
-- **1000** A denied Finder Automation prompt does not name the Automation setting.
-
 ## What needs a VM check
 
 Nothing here was clicked in the app. A test VM should walk:
@@ -95,6 +91,9 @@ Nothing here was clicked in the app. A test VM should walk:
 - Microsoft Edge Canary shows in the list.
 - Cmd-R in the Updates sort refreshes updates. In any other sort it rescans.
 - What's New appears for a library that already has records and has never stored a last-seen version.
+- Settings: the API key field starts empty, says a key is saved, and writes only on Return or when you leave the field.
+- Quit within a minute of copying a key clears it. A copy you made after that stays.
+- A denied Finder Automation prompt names Privacy & Security, Automation.
 
 ## Not done
 
