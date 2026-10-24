@@ -1,4 +1,5 @@
 import Foundation
+import SystemConfiguration
 
 /// Result of a single analysis request from any provider.
 enum AnalysisResult: Sendable {
@@ -15,22 +16,30 @@ extension AnalysisResult {
 }
 
 /// A cloud API key may leave this Mac only over https. A host on this Mac
-/// (localhost, loopback, .local) may use http. Anything else keeps the key.
+/// (localhost, loopback, this Mac's own .local name) may use http. Any other
+/// .local name is another machine on the network, so it keeps the key.
 enum APIKeyTransport {
     static let refusal = "The API address must be https, unless it is on this Mac. The key was not sent."
 
-    static func maySendKey(to urlString: String) -> Bool {
+    static func maySendKey(to urlString: String, localHostName: String? = currentLocalHostName) -> Bool {
         guard let url = URL(string: urlString),
               let scheme = url.scheme?.lowercased(),
               let host = url.host(percentEncoded: false)?.lowercased() else { return false }
-        if isThisMac(host) { return scheme == "http" || scheme == "https" }
+        if isThisMac(host, localHostName: localHostName) { return scheme == "http" || scheme == "https" }
         return scheme == "https"
     }
 
-    static func isThisMac(_ host: String) -> Bool {
+    static func isThisMac(_ host: String, localHostName: String? = currentLocalHostName) -> Bool {
         var name = host
         while name.hasSuffix(".") { name.removeLast() }
-        return name == "localhost" || name == "127.0.0.1" || name == "::1" || name.hasSuffix(".local")
+        if name == "localhost" || name == "127.0.0.1" || name == "::1" { return true }
+        guard let own = localHostName?.lowercased(), !own.isEmpty else { return false }
+        return name == own + ".local"
+    }
+
+    /// This Mac's Bonjour name, without `.local` (Sharing, Local hostname).
+    static var currentLocalHostName: String? {
+        SCDynamicStoreCopyLocalHostName(nil) as String?
     }
 }
 

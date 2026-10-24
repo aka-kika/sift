@@ -599,7 +599,7 @@ struct APIKeyTransportTests {
     func local() {
         #expect(APIKeyTransport.maySendKey(to: "http://localhost:11434"))
         #expect(APIKeyTransport.maySendKey(to: "http://127.0.0.1:11434"))
-        #expect(APIKeyTransport.maySendKey(to: "http://mac.local:11434"))
+        #expect(APIKeyTransport.maySendKey(to: "http://kikas-mac.local:11434", localHostName: "Kikas-Mac"))
         #expect(!APIKeyTransport.maySendKey(to: "ftp://localhost/x"))
     }
 }

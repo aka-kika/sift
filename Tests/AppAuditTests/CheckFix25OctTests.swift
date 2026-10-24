@@ -107,3 +107,19 @@ struct CaskBuildVersionTests {
         #expect(!UpdateChecker.isCaskVersion("1.3.0", newerThanVersion: "1.3.0", build: nil))
     }
 }
+
+@Suite("Another machine's .local name is not this Mac")
+struct LocalNameIsNotThisMacTests {
+    @Test("http to another .local host keeps the key")
+    func otherMachine() {
+        #expect(!APIKeyTransport.maySendKey(to: "http://the-zen.local:11434/v1", localHostName: "Kikas-MacBook-Pro"))
+        #expect(!APIKeyTransport.maySendKey(to: "http://nas.local/v1", localHostName: nil))
+        #expect(APIKeyTransport.maySendKey(to: "https://the-zen.local:11434/v1", localHostName: "Kikas-MacBook-Pro"))
+    }
+
+    @Test("This Mac's own .local name may use http")
+    func ownName() {
+        #expect(APIKeyTransport.isThisMac("kikas-macbook-pro.local.", localHostName: "Kikas-MacBook-Pro"))
+        #expect(APIKeyTransport.maySendKey(to: "http://Kikas-MacBook-Pro.local:11434", localHostName: "Kikas-MacBook-Pro"))
+    }
+}
