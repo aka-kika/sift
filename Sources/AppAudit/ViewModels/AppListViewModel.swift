@@ -284,7 +284,7 @@ final class AppListViewModel {
         // Off in Settings → General: a scan stays on this Mac. The refresh
         // button in the sidebar still checks when clicked.
         if Self.checksUpdatesOnScan() {
-            for index in apps.indices where !apps[index].version.isEmpty {
+            for index in apps.indices where isUpdateCandidate(apps[index]) {
                 apps[index].updateState = .checking
             }
 
@@ -928,11 +928,15 @@ final class AppListViewModel {
 
     /// An app is worth an update check when it has a channel of its own or the
     /// user saved a GitHub repo link for it — that repo's releases then answer.
+    /// A version alone is not a channel: those apps must not sit on Checking.
+    nonisolated static func marksChecking(version: String, hasOwnChannel: Bool, hasGitHubLink: Bool) -> Bool {
+        !version.isEmpty && (hasOwnChannel || hasGitHubLink)
+    }
+
     private func isUpdateCandidate(_ app: AppInfo) -> Bool {
-        guard !app.version.isEmpty else { return false }
-        if app.canCheckForUpdates { return true }
         let appURL = cacheService?.load(bundleID: app.bundleID)?.appURL
-        return UpdateChecker.gitHubLatestReleaseURL(forAppURL: appURL) != nil
+        let github = UpdateChecker.gitHubLatestReleaseURL(forAppURL: appURL) != nil
+        return Self.marksChecking(version: app.version, hasOwnChannel: app.canCheckForUpdates, hasGitHubLink: github)
     }
 
     private func refreshUpdates(for scannedApps: [AppInfo], token: UUID) async {

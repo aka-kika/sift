@@ -50,6 +50,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - When `brew outdated` failed or brew was missing, a cask app read Up to date. A failed check now shows as unavailable. An empty outdated list still means current.
 - A saved analysis kept no note of the app version it was written for, so an update left a stale note with no hint. New analyses store that version, and a newer install says so and points at Re-analyze.
 - A Sparkle update with no https download link used the feed URL, so Download opened the appcast. Download is offered only when there is a real enclosure link.
+- A scan put every app with a version on Checking, including apps with no update source, until the whole run ended. Only apps that will actually be checked show Checking.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

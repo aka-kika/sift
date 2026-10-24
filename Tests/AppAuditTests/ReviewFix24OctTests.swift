@@ -657,3 +657,18 @@ struct SparkleDownloadLinkTests {
         #expect(meta?.url == nil)
     }
 }
+
+@Suite("Checking is only for apps that can be checked")
+struct UpdateCheckingMarkTests {
+    @Test("A version alone does not mean Checking")
+    func versionOnly() {
+        #expect(!AppListViewModel.marksChecking(version: "1.0", hasOwnChannel: false, hasGitHubLink: false))
+    }
+
+    @Test("A store, Sparkle, Homebrew or GitHub app with a version does")
+    func channel() {
+        #expect(AppListViewModel.marksChecking(version: "1.0", hasOwnChannel: true, hasGitHubLink: false))
+        #expect(AppListViewModel.marksChecking(version: "1.0", hasOwnChannel: false, hasGitHubLink: true))
+        #expect(!AppListViewModel.marksChecking(version: "", hasOwnChannel: true, hasGitHubLink: false))
+    }
+}
