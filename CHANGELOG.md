@@ -67,6 +67,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A failed save (full disk, read-only store) looked saved and was gone after relaunch. The window now shows a small banner that says the change could not be saved.
 - Switching engine in Settings while models loaded could save the old engine's model under the new one, and an Ollama model saved as llama3.2 left the picker blank when Ollama listed llama3.2:latest. A list for another engine is dropped, and the picker matches :latest.
 - The Notes sheet saved on every key, and Escape kept the edit and started a re-analysis. The sheet now edits a draft: Save keeps it, Cancel and Escape leave the note as it was.
+- When Finder finished moving an app after Sift's 30-second wait (a slow password prompt), the uninstall still said it could not be moved. The result screen now looks again while it is open and when Done is pressed, and shows the app as moved once it has left its place.
 
 ### Changed
 - Cleanup (no change in what the app does): three uncalled functions removed, two copied helpers replaced by the shared ones, a misplaced doc comment, empty MARKs, a dead `#if os(macOS)` and two unused imports tidied; FEATURES, the guide, PROJECT, roadmap and RELEASE brought to 1.12.4.

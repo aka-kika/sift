@@ -25,7 +25,7 @@ struct UninstallSheet: View {
         case scanning
         case list
         case working(current: String)
-        case done(failures: [TrashService.Failure], removedBundle: Bool, stoppedAtBundle: Bool)
+        case done(UninstallSweep.Outcome)
     }
 
     @State private var phase: Phase = .scanning
@@ -77,8 +77,8 @@ struct UninstallSheet: View {
                         .truncationMode(.middle)
                 }
                 .frame(minHeight: 80)
-            case .done(let failures, let removedBundle, let stoppedAtBundle):
-                doneView(failures: failures, removedBundle: removedBundle, stoppedAtBundle: stoppedAtBundle)
+            case .done(let outcome):
+                doneView(outcome)
             }
         }
         .padding(16)
@@ -246,9 +246,17 @@ struct UninstallSheet: View {
         }
     }
 
-    private func doneView(failures: [TrashService.Failure], removedBundle: Bool, stoppedAtBundle: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if stoppedAtBundle {
+    private func doneView(_ outcome: UninstallSweep.Outcome) -> some View {
+        let failures = outcome.failures
+        return VStack(alignment: .leading, spacing: 10) {
+            if outcome.bundleArrivedLate {
+                Label("\(app.name) reached the Trash after Sift stopped waiting for Finder. Its settings and data were left in place.",
+                      systemImage: "info.circle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if outcome.stoppedAtBundle {
                 Label("\(app.name) could not be moved to the Trash, so its settings and data were left alone. Nothing was moved.",
                       systemImage: "exclamationmark.triangle.fill")
                     .font(.callout)
@@ -288,10 +296,36 @@ struct UninstallSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Done") { onFinished(removedBundle) }
+                Button("Done") { finish(outcome) }
                     .keyboardShortcut(.defaultAction)
             }
         }
+        // While Finder may still finish a timed-out move, look again now and then.
+        .task(id: outcome) {
+            while UninstallSweep.hasPendingFinderMove(outcome), !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                let fresh = recheck(outcome)
+                if fresh != outcome {
+                    phase = .done(fresh)
+                    return
+                }
+            }
+        }
+    }
+
+    private func recheck(_ outcome: UninstallSweep.Outcome) -> UninstallSweep.Outcome {
+        UninstallSweep.recheck(outcome) { FileManager.default.fileExists(atPath: $0) }
+    }
+
+    /// Done looks once more before closing: a move Finder finished after the
+    /// wait is shown as moved, and the sheet stays open to say so.
+    private func finish(_ outcome: UninstallSweep.Outcome) {
+        let fresh = recheck(outcome)
+        if fresh != outcome {
+            phase = .done(fresh)
+            return
+        }
+        onFinished(outcome.removedBundle || brewOutput != nil)
     }
 
     // MARK: - Actions
@@ -409,9 +443,7 @@ struct UninstallSheet: View {
             beforeTrash: { await LaunchAgentUnload.bootout(plistPath: $0.url.path) },
             trash: { await TrashService.trash($0.url, isAppBundle: $0.isAppBundle) }
         )
-        phase = .done(failures: outcome.failures,
-                      removedBundle: outcome.removedBundle || brewOutput != nil,
-                      stoppedAtBundle: outcome.stoppedAtBundle)
+        phase = .done(outcome)
     }
 
     // MARK: - Formatting

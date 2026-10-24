@@ -14,6 +14,8 @@ enum TrashService {
     struct Failure: Equatable {
         let path: String
         let reason: String
+        /// Sift stopped waiting for Finder; the move may still finish.
+        var timedOut = false
     }
 
     /// Cocoa's permission errors — the shape a root-owned bundle produces.
@@ -95,7 +97,7 @@ enum TrashService {
             }
             switch await finderDelete(url) {
             case .moved: return nil
-            case .timedOut: return Failure(path: url.path, reason: timeoutReason)
+            case .timedOut: return Failure(path: url.path, reason: timeoutReason, timedOut: true)
             case .notPermitted: return Failure(path: url.path, reason: automationReason)
             case .refused: return Failure(path: url.path, reason: reason(for: nsError))
             }

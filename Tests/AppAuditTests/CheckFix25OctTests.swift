@@ -456,3 +456,46 @@ struct NotesDraftTests {
         #expect(NotesChange.changed(previous: nil, current: NotesDraft.stored("New note")))
     }
 }
+
+@Suite("A Finder move that finishes after the wait reads as moved")
+@MainActor
+struct LateFinderMoveTests {
+    private let bundle = LeftoverItem(id: "/Applications/dot.test.app", url: URL(fileURLWithPath: "/Applications/dot.test.app"),
+                                      category: .application, sizeBytes: 1, reason: "bundle", isAppBundle: true)
+    private let cache = LeftoverItem(id: "/Users/me/Library/Caches/com.example.dottest",
+                                     url: URL(fileURLWithPath: "/Users/me/Library/Caches/com.example.dottest"),
+                                     category: .caches, sizeBytes: 1, reason: "cache")
+
+    private func timedOutSweep() async -> UninstallSweep.Outcome {
+        await UninstallSweep.run([bundle, cache]) { item in
+            TrashService.Failure(path: item.url.path, reason: TrashService.timeoutReason, timedOut: true)
+        }
+    }
+
+    @Test("A timed-out bundle that later left its place is moved")
+    func arrivedLate() async {
+        let outcome = await timedOutSweep()
+        #expect(outcome.stoppedAtBundle)
+        let fresh = UninstallSweep.recheck(outcome) { _ in false }
+        #expect(fresh.failures.isEmpty)
+        #expect(fresh.removedBundle)
+        #expect(!fresh.stoppedAtBundle)
+        #expect(fresh.bundleArrivedLate)
+        #expect(!UninstallSweep.hasPendingFinderMove(fresh))
+    }
+
+    @Test("A timed-out bundle still in place keeps its row and message")
+    func stillThere() async {
+        let outcome = await timedOutSweep()
+        #expect(UninstallSweep.recheck(outcome) { _ in true } == outcome)
+        #expect(UninstallSweep.hasPendingFinderMove(outcome))
+    }
+
+    @Test("A refusal that was not a timeout is never cleared")
+    func refusedStays() async {
+        let outcome = await UninstallSweep.run([bundle]) { item in
+            TrashService.Failure(path: item.url.path, reason: "refused")
+        }
+        #expect(UninstallSweep.recheck(outcome) { _ in false } == outcome)
+    }
+}

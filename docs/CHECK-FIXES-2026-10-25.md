@@ -47,4 +47,4 @@ Branch `check-fixes-2026-10-25`, from `review-fixes-2026-10-24` at `c4e0c36`. On
 
 - Homebrew: Itsycal made to look outdated; the sidebar showed Brew 0.15.15, Run Update upgraded it for real and said "Homebrew finished".
 - Uninstall: data-only question shown with Kika's wording; Return and Escape cancel and the data stays; Delete Data Only moves only the data. A root-owned `dot.test.app` went to the Trash through Finder.
-- Seen, not changed: when the Automation prompt and Finder's password prompt together take longer than 30 seconds, Sift reports the app as not moved, although Finder moves it once the password is given. The row says this may happen. A longer wait, or a re-check when Done is clicked, is a choice for Kika.
+- Slow Finder prompt (Kika's option B): a move Finder finishes after the 30 s wait now reads as moved. The result screen re-checks every 2 s while open and again on Done. Checked in the VM: password entered after 45 s, the screen switched to "reached the Trash after Sift stopped waiting" and Done removed the row.

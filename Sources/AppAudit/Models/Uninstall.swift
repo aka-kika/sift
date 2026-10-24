@@ -195,6 +195,31 @@ enum UninstallSweep {
         var stoppedAtBundle = false
         /// Checked items never attempted because the sweep stopped.
         var skipped = 0
+        /// The bundle the sweep stopped at, so a late Finder move can be told apart.
+        var stoppedBundlePath: String? = nil
+        /// Finder moved the bundle after Sift stopped waiting; the data stayed.
+        var bundleArrivedLate = false
+    }
+
+    /// Finder can finish a move after the 30 s wait (a slow password prompt).
+    /// A timed-out item that is no longer at its path did leave: it is
+    /// dropped from the failures, and a late bundle counts as removed.
+    /// Anything still in place keeps its row and message.
+    static func recheck(_ outcome: Outcome, stillThere: (String) -> Bool) -> Outcome {
+        var result = outcome
+        result.failures = outcome.failures.filter { !$0.timedOut || stillThere($0.path) }
+        if let bundle = outcome.stoppedBundlePath,
+           outcome.stoppedAtBundle,
+           !result.failures.contains(where: { $0.path == bundle }) {
+            result.removedBundle = true
+            result.stoppedAtBundle = false
+            result.bundleArrivedLate = true
+        }
+        return result
+    }
+
+    static func hasPendingFinderMove(_ outcome: Outcome) -> Bool {
+        outcome.failures.contains(where: \.timedOut)
     }
 
     /// What starts checked: everything, except shared data when another copy
@@ -245,6 +270,7 @@ enum UninstallSweep {
                 outcome.failures.append(failure)
                 if item.isAppBundle {
                     outcome.stoppedAtBundle = true
+                    outcome.stoppedBundlePath = item.url.path
                     outcome.skipped = queue.count - index - 1
                     break
                 }
