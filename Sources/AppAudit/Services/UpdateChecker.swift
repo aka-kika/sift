@@ -50,11 +50,13 @@ actor UpdateChecker {
         /// What the update button shows: the build joins the version only when
         /// the version alone would read as "no change". A feed that names only
         /// a build keeps the installed version in the label, so it does not
-        /// read as "Update to 2045".
+        /// read as "Update to 2045". A dotted build such as 1.5.2 is the
+        /// version itself, so it is shown alone, not as "1.5.1 (1.5.2)".
         func displayVersion(installedVersion: String) -> String {
             let marketing = version.trimmingCharacters(in: .whitespacesAndNewlines)
             if marketing.isEmpty {
                 guard let build, !build.isEmpty else { return installedVersion }
+                if build.contains(".") { return build }
                 let installed = installedVersion.trimmingCharacters(in: .whitespacesAndNewlines)
                 return installed.isEmpty ? build : "\(installed) (\(build))"
             }

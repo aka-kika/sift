@@ -209,3 +209,18 @@ struct LaunchAgentProcessTests {
         #expect(started)
     }
 }
+
+@Suite("A dotted Sparkle build reads as the version")
+struct SparkleDottedBuildLabelTests {
+    @Test("A build-only item 1.5.2 reads Update to 1.5.2, not 1.5.1 (1.5.2)")
+    func dotted() {
+        let item = UpdateChecker.UpdateMetadata(version: "", url: nil, build: "1.5.2")
+        #expect(item.displayVersion(installedVersion: "1.5.1") == "1.5.2")
+    }
+
+    @Test("A plain build number keeps the installed version beside it")
+    func plainNumber() {
+        let item = UpdateChecker.UpdateMetadata(version: "", url: nil, build: "2045")
+        #expect(item.displayVersion(installedVersion: "1.2.3") == "1.2.3 (2045)")
+    }
+}

@@ -26,7 +26,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Rescan, Cmd-R and Re-analyze looked tappable while an analysis was running, then did nothing. They stay disabled until it finishes, and the help text says why. A link, note or docs folder saved meanwhile is analyzed once it finishes.
 - After brew uninstall with nothing else checked, Move to Trash was grey and Cancel was the only way out, so the removed app stayed in the sidebar. The sheet offers Done and reports the app as removed. The brew button stays disabled while brew runs.
 - Microsoft Edge Canary was hidden as if it were an Apple system app. It shows in the list now.
-- A Sparkle item that named only a build number was compared with the marketing version, so it could offer a fake "Update to 2045". That build is compared with the app's build, and the label keeps the installed version.
+- A Sparkle item that named only a build number was compared with the marketing version, so it could offer a fake "Update to 2045". That build is compared with the app's build, and the label keeps the installed version. A dotted build such as 1.5.2 is shown as the version, not as "1.5.1 (1.5.2)".
 - An App Store release that needs a newer macOS was still offered. The lookup's minimumOsVersion is read, and a release this Mac cannot run is skipped.
 - The guide's crash fix said to delete the whole store, which would drop notes and the vault. It now says to move the store to the Desktop. Sift already sets a damaged store aside on its own.
 - A subscribed app later marked Lifetime, Free or My App kept the subscription face, and Remove was greyed out with the rest of that section. Those marks now outrank the subscription, and Remove subscription stays available.
