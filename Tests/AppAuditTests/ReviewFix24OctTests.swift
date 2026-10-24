@@ -343,9 +343,11 @@ struct FinderOnlyForAppBundleTests {
         #expect(TrashService.shouldAskFinder(url: url, error: denied))
     }
 
-    @Test("A leftover does not")
+    @Test("A leftover does not, even when its folder name ends in .app")
     func leftover() {
         let url = URL(fileURLWithPath: "/Users/me/Library/Caches/com.example.app")
+        #expect(TrashService.isAppBundlePath("/Applications/Example.app"))
+        #expect(!TrashService.isAppBundlePath(url.path))
         #expect(!TrashService.shouldAskFinder(url: url, error: denied))
         let other = NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError)
         #expect(!TrashService.shouldAskFinder(url: URL(fileURLWithPath: "/Applications/Example.app"), error: other))
