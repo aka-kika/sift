@@ -59,3 +59,26 @@ struct DottedAppBundleTests {
         #expect(TrashService.shouldAskFinder(isAppBundle: handed[0].1, error: denied))
     }
 }
+
+@Suite("A brew warning does not turn every cask Up to date")
+struct BrewOutdatedStdoutTests {
+    private let json = Data(#"{"formulae":[],"casks":[{"name":"ghostty","installed_versions":["1.1.0"],"current_version":"1.2.0"}]}"#.utf8)
+
+    @Test("Clean JSON on stdout lists the outdated casks")
+    func clean() {
+        #expect(HomebrewService.outdatedAnswer(exitStatus: 0, standardOutput: json)
+                == .list([HomebrewCaskInfo(token: "ghostty", latestVersion: "1.2.0")]))
+    }
+
+    @Test("Output that is not JSON is a failed check, not an empty list")
+    func garbled() {
+        let mixed = Data("Warning: Calling brew from a Rosetta shell\n".utf8) + json
+        #expect(HomebrewService.outdatedAnswer(exitStatus: 0, standardOutput: mixed) == .failed)
+    }
+
+    @Test("A non-zero exit is a failed check")
+    func nonZero() {
+        #expect(HomebrewService.outdatedAnswer(exitStatus: 1, standardOutput: json) == .failed)
+        #expect(HomebrewService.outdatedAnswer(exitStatus: nil, standardOutput: Data()) == .failed)
+    }
+}

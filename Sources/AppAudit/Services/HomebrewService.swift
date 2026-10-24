@@ -20,10 +20,18 @@ struct HomebrewService: Sendable {
             .filter { !$0.isEmpty }
     }
 
+    /// Reads stdout alone: brew prints warnings on stderr, and one warning in
+    /// the same pipe broke the JSON, so every cask read Up to date.
     func outdatedCasks() -> HomebrewOutdatedAnswer {
-        let outcome = runBrewChecked(arguments: ["outdated", "--cask", "--json=v2"])
-        guard outcome.succeeded, let data = outcome.output.data(using: .utf8) else { return .failed }
-        return .list(Self.parseOutdatedCasks(from: data))
+        let outcome = runBrewChecked(arguments: ["outdated", "--cask", "--json=v2"], mergeStandardError: false)
+        return Self.outdatedAnswer(exitStatus: outcome.exitStatus, standardOutput: Data(outcome.output.utf8))
+    }
+
+    /// A non-zero exit or JSON that does not decode is a failed check, never
+    /// an empty list.
+    static func outdatedAnswer(exitStatus: Int32?, standardOutput: Data) -> HomebrewOutdatedAnswer {
+        guard exitStatus == 0, let casks = decodeOutdatedCasks(from: standardOutput) else { return .failed }
+        return .list(casks)
     }
 
     func upgradeCask(_ token: String) -> String {
@@ -69,8 +77,12 @@ struct HomebrewService: Sendable {
     }
 
     static func parseOutdatedCasks(from data: Data) -> [HomebrewCaskInfo] {
+        decodeOutdatedCasks(from: data) ?? []
+    }
+
+    static func decodeOutdatedCasks(from data: Data) -> [HomebrewCaskInfo]? {
         guard let response = try? JSONDecoder().decode(HomebrewOutdatedResponse.self, from: data) else {
-            return []
+            return nil
         }
 
         return response.casks.map {
@@ -172,7 +184,9 @@ struct HomebrewService: Sendable {
 
     private static let checkCommands: Set<String> = ["list", "outdated"]
 
-    private func runBrewChecked(arguments: [String]) -> BrewOutcome {
+    /// `mergeStandardError: false` discards stderr for callers that parse
+    /// stdout; an unread second pipe would fill at 64 KB and block brew.
+    private func runBrewChecked(arguments: [String], mergeStandardError: Bool = true) -> BrewOutcome {
         guard let brewPath = Self.brewExecutablePath() else { return BrewOutcome(exitStatus: nil, output: "") }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: brewPath)
@@ -180,7 +194,7 @@ struct HomebrewService: Sendable {
         process.environment = Self.environment(for: arguments, base: ProcessInfo.processInfo.environment)
         let pipe = Pipe()
         process.standardOutput = pipe
-        process.standardError = pipe
+        process.standardError = mergeStandardError ? pipe : FileHandle.nullDevice
         do {
             try process.run()
             // Drain before waiting: a chatty brew would otherwise fill the pipe and hang.

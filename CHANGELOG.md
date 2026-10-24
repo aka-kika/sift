@@ -47,7 +47,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - A revealed licence key stayed in memory after the panel closed. Closing the panel forgets it. The Touch ID prompt, which closes the panel for a moment, does not.
 - A cloud API key was sent to any base URL, including plain http. A key now goes out only over https, or to a host on this Mac.
 - The API key field showed the saved key and wrote the Keychain on every key press, so one Backspace could store a cut-off key. The field starts empty and saves when you press Return or leave it.
-- When `brew outdated` failed or brew was missing, a cask app read Up to date. A failed check now shows as unavailable. An empty outdated list still means current.
+- When `brew outdated` failed or brew was missing, a cask app read Up to date. A failed check now shows as unavailable. An empty outdated list still means current. A brew warning no longer garbles the answer: Sift reads brew's output without its warnings, and an answer it cannot read counts as failed.
 - A saved analysis kept no note of the app version it was written for, so an update left a stale note with no hint. New analyses store that version, and a newer install says so and points at Re-analyze.
 - A Sparkle update with no https download link used the feed URL, so Download opened the appcast. Download is offered only when there is a real enclosure link.
 - A scan put every app with a version on Checking, including apps with no update source, until the whole run ended. Only apps that will actually be checked show Checking.
