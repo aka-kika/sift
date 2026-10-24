@@ -473,3 +473,24 @@ struct AnalysisLabelTests {
         #expect(parsed?.bestUse == "Open it for essays.")
     }
 }
+
+@Suite("An app with no name keys still has a name")
+struct AppNameFallbackTests {
+    @Test("An empty CFBundleName falls through")
+    func empty() {
+        let plist: NSDictionary = ["CFBundleName": "  ", "CFBundleDisplayName": "Shown"]
+        #expect(AppScanner.appName(from: plist, path: "/Applications/Shown.app") == "Shown")
+    }
+
+    @Test("No name keys use the file name")
+    func file() {
+        let plist = NSDictionary()
+        #expect(AppScanner.appName(from: plist, path: "/Applications/Tool.app") == "Tool")
+    }
+
+    @Test("The executable is used before the file name")
+    func executable() {
+        let plist: NSDictionary = ["CFBundleExecutable": "Helper"]
+        #expect(AppScanner.appName(from: plist, path: "/Applications/Wrapper.app") == "Helper")
+    }
+}

@@ -6,6 +6,21 @@ actor AppScanner {
 
     private let skipPaths = ["/System/", "/Library/Frameworks/", "/private/"]
 
+    /// A blank CFBundleName is not a name. Fall back to the display name,
+    /// the executable, then the file name, so the app is not dropped.
+    static func appName(from plist: NSDictionary, path: String) -> String? {
+        func nonempty(_ key: String) -> String? {
+            guard let value = plist[key] as? String else { return nil }
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        if let name = nonempty("CFBundleName") ?? nonempty("CFBundleDisplayName") ?? nonempty("CFBundleExecutable") {
+            return name
+        }
+        let file = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+        return file.isEmpty ? nil : file
+    }
+
     /// Hidden with Apple's own apps unless that toggle is on. Microsoft Edge
     /// Canary is not one of them.
     static func isHiddenAsSystemApp(_ bundleID: String) -> Bool {
@@ -75,8 +90,9 @@ actor AppScanner {
     private func makeAppInfo(from path: String, includeApple: Bool, installedCasks: [String], runningBundleIDs: Set<String> = []) -> AppInfo? {
         let plistPath = (path as NSString).appendingPathComponent("Contents/Info.plist")
         guard let plist = NSDictionary(contentsOfFile: plistPath),
-              let name = plist["CFBundleName"] as? String ?? plist["CFBundleDisplayName"] as? String,
-              let bundleID = plist["CFBundleIdentifier"] as? String else { return nil }
+              let name = Self.appName(from: plist, path: path),
+              let bundleID = plist["CFBundleIdentifier"] as? String,
+              !bundleID.isEmpty else { return nil }
 
         // Filter Apple system apps unless toggled
         if !includeApple && Self.isHiddenAsSystemApp(bundleID) { return nil }
