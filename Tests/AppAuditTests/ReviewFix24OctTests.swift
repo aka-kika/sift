@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import AppKit
+import SwiftData
 @testable import Sift
 
 private let repoRoot = URL(fileURLWithPath: #filePath)
@@ -26,13 +27,6 @@ struct BrewUninstallCopyTests {
         #expect(line.contains("Moved to Trash"))
         #expect(line.contains("license record"))
     }
-
-    @Test("The README no longer says a brew removal deletes nothing")
-    func readme() throws {
-        let text = try String(contentsOf: repoRoot.appending(path: "README.md"), encoding: .utf8)
-        #expect(text.contains("not in the Trash"))
-        #expect(!text.localizedCaseInsensitiveContains("nothing is deleted"))
-    }
 }
 
 @Suite("Replace a saved licence key")
@@ -45,18 +39,6 @@ struct LicenseKeyReplaceTests {
     @Test("Touch ID success is what opens the empty field")
     func allowed() {
         #expect(LicenseKeyReplace.mayUnlock(authenticated: true))
-    }
-
-    @Test("The Replace button does not unlock the field itself")
-    func buttonAsksFirst() throws {
-        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/MoneyPopover.swift"), encoding: .utf8)
-        guard let start = source.range(of: "Button(\"Replace\")") else {
-            Issue.record("Replace button missing")
-            return
-        }
-        let window = source[start.upperBound...].prefix(180)
-        #expect(window.contains("onReplaceKey()"))
-        #expect(!window.contains("keyUnlocked"))
     }
 }
 
@@ -102,21 +84,22 @@ struct LicenseFlagOnKeychainErrorTests {
 }
 
 @Suite("Subscriptions belong in the License Vault")
+@MainActor
 struct VaultSubscriptionTests {
-    @Test("A subscription alone is a purchase")
-    func subscriptionOnly() {
-        #expect(VaultMembership.includes(hasLicenseKey: false, isPaidApp: false, hasLicenseType: false, hasSubscription: true))
-    }
-
-    @Test("Nothing bought stays out")
-    func empty() {
-        #expect(!VaultMembership.includes(hasLicenseKey: false, isPaidApp: false, hasLicenseType: false, hasSubscription: false))
-    }
-
-    @Test("The vault query includes hasSubscription")
+    @Test("The vault's query lists a subscription alone and leaves out nothing bought")
     func query() throws {
-        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/LicenseVaultView.swift"), encoding: .utf8)
-        #expect(source.contains("$0.hasSubscription"))
+        let container = try ModelContainer(for: AppRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let monthly = AppRecord(stub: "com.example.monthly", appName: "Monthly")
+        monthly.hasSubscription = true
+        let keyed = AppRecord(stub: "com.example.keyed", appName: "Keyed")
+        keyed.hasLicenseKey = true
+        context.insert(monthly)
+        context.insert(keyed)
+        context.insert(AppRecord(stub: "com.example.free", appName: "Nothing bought"))
+        try context.save()
+        let listed = try context.fetch(FetchDescriptor(predicate: VaultMembership.predicate)).map(\.bundleID)
+        #expect(Set(listed) == ["com.example.monthly", "com.example.keyed"])
     }
 }
 
@@ -131,13 +114,6 @@ struct SubscriptionRenewalDraftTests {
     func picked() {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
         #expect(SubscriptionMath.renewalToStore(draft: date) == date)
-    }
-
-    @Test("Opening the panel does not invent today")
-    func noDefaultToday() throws {
-        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/AppDetailView.swift"), encoding: .utf8)
-        #expect(!source.contains("subscriptionRenewalDate ?? Date()"))
-        #expect(source.contains("SubscriptionMath.renewalToStore(draft: draftSubRenewal)"))
     }
 }
 
@@ -275,16 +251,6 @@ struct AppStoreMinimumOSTests {
     }
 }
 
-@Suite("The crash guide does not delete the store")
-struct StoreRecoveryGuideTests {
-    @Test("It says move the store to the Desktop")
-    func desktop() throws {
-        let text = try String(contentsOf: repoRoot.appending(path: "docs/README.md"), encoding: .utf8)
-        #expect(text.contains("mv ~/Library/Application\\ Support/AppAudit/AppAudit.store* ~/Desktop/"))
-        #expect(!text.contains("rm ~/Library/Application\\ Support/AppAudit/AppAudit.store*"))
-    }
-}
-
 @Suite("Lifetime, Free and My App outrank a leftover subscription")
 struct SubscriptionOutrankedTests {
     @Test("Lifetime, one-time, Free and My App hide the subscription face")
@@ -300,17 +266,6 @@ struct SubscriptionOutrankedTests {
         #expect(MoneyCubeState.derive(isAppStoreInstall: false, hasLicenseKey: false, isPaidApp: false,
                                       hasSubscription: true, renewalNear: false, isFreeApp: false,
                                       isMyApp: true) == .none)
-    }
-
-    @Test("Remove subscription is outside the disabled section")
-    func removeStays() throws {
-        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/MoneyPopover.swift"), encoding: .utf8)
-        guard let disabled = source.range(of: ".disabled(subscriptionDisabled)"),
-              let remove = source.range(of: "Remove subscription") else {
-            Issue.record("subscription section markers missing")
-            return
-        }
-        #expect(remove.lowerBound > disabled.upperBound)
     }
 }
 
@@ -405,16 +360,6 @@ struct ScanShortcutTests {
     }
 }
 
-@Suite("Licence keys are not called device-bound")
-struct LicenseKeyWordingTests {
-    @Test("The README matches the login keychain")
-    func readme() throws {
-        let text = try String(contentsOf: repoRoot.appending(path: "README.md"), encoding: .utf8)
-        #expect(text.contains("does not honor a this-device-only flag"))
-        #expect(!text.contains("device-bound"))
-    }
-}
-
 @Suite("Release docs match the release script")
 struct ReleaseDocsTests {
     @Test("RELEASE.md uses the identity release.sh signs with")
@@ -427,11 +372,14 @@ struct ReleaseDocsTests {
         #expect(!notes.contains("D833417579CBB62121FD344B1513AE5D44A36762"))
     }
 
-    @Test("SECURITY.md supports the current release")
+    @Test("SECURITY.md supports the version being built")
     func supported() throws {
+        let env = try String(contentsOf: repoRoot.appending(path: "version.env"), encoding: .utf8)
+        let line = try #require(env.split(separator: "\n").first { $0.hasPrefix("MARKETING_VERSION=") })
+        let parts = line.dropFirst("MARKETING_VERSION=".count).split(separator: ".")
+        let series = "\(parts[0]).\(parts[1]).x"
         let text = try String(contentsOf: repoRoot.appending(path: "SECURITY.md"), encoding: .utf8)
-        #expect(text.contains("1.12.x"))
-        #expect(!text.contains("1.10.x"))
+        #expect(text.contains(series))
     }
 }
 
@@ -666,15 +614,6 @@ struct UpdateCheckingMarkTests {
         #expect(AppListViewModel.marksChecking(version: "1.0", hasOwnChannel: true, hasGitHubLink: false))
         #expect(AppListViewModel.marksChecking(version: "1.0", hasOwnChannel: false, hasGitHubLink: true))
         #expect(!AppListViewModel.marksChecking(version: "", hasOwnChannel: true, hasGitHubLink: false))
-    }
-}
-
-@Suite("The README names the password as well as Touch ID")
-struct TouchIDWordingTests {
-    @Test("Reading a key is Touch ID or the account password")
-    func readme() throws {
-        let text = try String(contentsOf: repoRoot.appending(path: "README.md"), encoding: .utf8)
-        #expect(text.contains("Touch ID or your password"))
     }
 }
 

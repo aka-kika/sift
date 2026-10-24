@@ -17,8 +17,7 @@ struct LicenseVaultView: View {
     /// A recorded license type counts as a purchase on its own — that is the
     /// only trace a keyless App Store buy ever leaves, and losing it here
     /// would defeat the point of installing an app just to vault its license.
-    @Query(filter: #Predicate<AppRecord> { $0.hasLicenseKey || $0.isPaidApp || $0.licenseType != nil || $0.hasSubscription },
-           sort: \AppRecord.appName)
+    @Query(filter: VaultMembership.predicate, sort: \AppRecord.appName)
     private var ownedRecords: [AppRecord]
 
     @State private var copiedBundleID: String? = nil

@@ -1,10 +1,13 @@
+import SwiftData
 import Foundation
 
 /// Which records belong in the License Vault. A subscription is a purchase
 /// even when there is no key, Paid mark or licence type.
 enum VaultMembership {
-    static func includes(hasLicenseKey: Bool, isPaidApp: Bool, hasLicenseType: Bool, hasSubscription: Bool) -> Bool {
-        hasLicenseKey || isPaidApp || hasLicenseType || hasSubscription
+    /// The License Vault's own query: a key, a Paid mark, a licence type or a
+    /// subscription puts an app in it.
+    static let predicate = #Predicate<AppRecord> {
+        $0.hasLicenseKey || $0.isPaidApp || $0.licenseType != nil || $0.hasSubscription
     }
 }
 
