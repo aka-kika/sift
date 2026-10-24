@@ -1,5 +1,14 @@
 import Foundation
 
+/// What a scan may fetch. With update checks off, Settings and privacy.md
+/// promise a scan makes no network requests, so the saved app link page stays
+/// unread too. The sidebar refresh still checks updates when the user clicks it.
+enum ScanNetwork {
+    static func fetchesSavedLinkPage(checksUpdatesOnScan: Bool) -> Bool {
+        checksUpdatesOnScan
+    }
+}
+
 /// Extracts lightweight, factual evidence (page title + description) from raw
 /// HTML, so the analysis prompt can ground "what is this app" in what the app's
 /// own website says — instead of guessing from the domain name.

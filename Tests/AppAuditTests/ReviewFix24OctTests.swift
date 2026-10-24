@@ -58,3 +58,22 @@ struct LicenseKeyReplaceTests {
         #expect(!window.contains("keyUnlocked"))
     }
 }
+
+@Suite("No link fetch when update checks are off")
+struct ScanNetworkTests {
+    @Test("The switch off means the saved link page is not fetched")
+    func off() {
+        #expect(!ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: false))
+    }
+
+    @Test("The switch on still fetches the saved link page")
+    func on() {
+        #expect(ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: true))
+    }
+
+    @Test("Analysis uses that decision before it fetches")
+    func wired() throws {
+        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/ViewModels/AppListViewModel.swift"), encoding: .utf8)
+        #expect(source.contains("ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan())"))
+    }
+}

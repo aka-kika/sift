@@ -415,7 +415,9 @@ final class AppListViewModel {
         userNotes: String? = nil,
         docsEvidence: String? = nil
     ) async -> (String, AppInfo.AIState) {
-        let linkEvidence = await linkEvidenceService.evidence(for: appURL)
+        let linkEvidence = ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan())
+            ? await linkEvidenceService.evidence(for: appURL)
+            : nil
         let result = await service(for: provider).analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
 
         switch result {
