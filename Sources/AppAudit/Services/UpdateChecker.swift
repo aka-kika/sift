@@ -364,6 +364,11 @@ actor UpdateChecker {
         if let newestItem = newestMetadata(in: itemVersions) {
             return .release(newestItem)
         }
+        // Every item was on a channel (beta, nightly). The looser scan below
+        // cannot see that, and would offer the beta.
+        if !runnableItems.isEmpty && runnableItems.allSatisfy(isOnUpdateChannel) {
+            return nil
+        }
         // The looser scans below cannot see which item an enclosure belongs to,
         // so they would bring a skipped release back.
         guard runnableItems.count == items.count else { return .nothingThisMacCanRun }
@@ -451,11 +456,15 @@ actor UpdateChecker {
         return !VersionComparator.isNewer(minimum, than: systemVersion)
     }
 
-    private static func parseSparkleItem(_ item: String) -> UpdateMetadata? {
-        if let channel = firstCapturedValue(for: #"<sparkle:channel>\s*([^<]+?)\s*</sparkle:channel>"#, in: item),
-           !channel.isEmpty {
-            return nil
+    private static func isOnUpdateChannel(_ item: String) -> Bool {
+        guard let channel = firstCapturedValue(for: #"<sparkle:channel>\s*([^<]+?)\s*</sparkle:channel>"#, in: item) else {
+            return false
         }
+        return !channel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private static func parseSparkleItem(_ item: String) -> UpdateMetadata? {
+        if isOnUpdateChannel(item) { return nil }
         let enclosure = enclosureTags(in: item).first
         let shortVersion =
             enclosure.flatMap { firstCapturedValue(for: #"sparkle:shortVersionString="([^"]+)""#, in: $0) } ??

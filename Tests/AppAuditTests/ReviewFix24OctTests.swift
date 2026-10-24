@@ -509,3 +509,19 @@ struct ReservedFolderNameTests {
         #expect(LeftoverMatcher.matchesDisplayName("Bloom", appName: "Bloom"))
     }
 }
+
+@Suite("A feed of only betas is not an update")
+struct SparkleBetaFallbackTests {
+    @Test("The fallback does not offer a beta when every item is on a channel")
+    func allBeta() throws {
+        let xml = """
+        <rss><channel>
+        <item>
+          <sparkle:channel>beta</sparkle:channel>
+          <enclosure url="https://example.com/App-2.0b1.zip" sparkle:shortVersionString="2.0" sparkle:version="300"/>
+        </item>
+        </channel></rss>
+        """
+        #expect(try UpdateChecker.parseSparkleMetadata(from: Data(xml.utf8)) == nil)
+    }
+}
