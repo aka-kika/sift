@@ -44,7 +44,7 @@ Next up (1.13): real in-place updates for Sparkle apps, and an analysis that wor
 - Uninstalling a symlink of an app counted as the only copy, so the real app's data was checked. Copy paths are compared without resolving symlinks.
 - After unmarking My App, the attached project excerpt was still sent with each analysis. It is sent only while the app is marked My App. The excerpt stays stored.
 - What's New treated a missing last-seen key as a first install, so an upgrade that predated the sheet never saw it. An existing library now gets the sheet.
-- A revealed licence key stayed in memory after the panel closed. Closing the panel forgets it. The Touch ID prompt, which closes the panel for a moment, does not.
+- A revealed licence key stayed in memory after the panel closed. Closing the panel forgets it. The Touch ID prompt for Reveal, Copy or Replace, which closes the panel for a moment, does not. A first key typed but not saved comes back when the panel reopens for that app.
 - A cloud API key was sent to any base URL, including plain http. A key now goes out only over https, or to this Mac itself (localhost, or this Mac's own .local name). Another machine's .local name needs https too.
 - The API key field showed the saved key and wrote the Keychain on every key press, so one Backspace could store a cut-off key. The field starts empty and saves when you press Return, leave it, or close Settings. Remove Key deletes a saved key.
 - When `brew outdated` failed or brew was missing, a cask app read Up to date. A failed check now shows as unavailable. An empty outdated list still means current. A brew warning no longer garbles the answer: Sift reads brew's output without its warnings, and an answer it cannot read counts as failed.

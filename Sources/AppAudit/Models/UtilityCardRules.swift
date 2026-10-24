@@ -66,6 +66,24 @@ enum RevealedLicenseKey {
     }
 }
 
+/// A first key typed for an app with no saved key, kept when the panel closes
+/// before Save so a click outside does not lose it. It comes back for that
+/// same app only. A revealed or replacing key is never kept.
+struct UnsavedLicenseKeyDraft: Equatable {
+    let bundleID: String
+    let key: String
+
+    static func keep(draft: String, hasSavedKey: Bool, bundleID: String) -> UnsavedLicenseKeyDraft? {
+        guard !hasSavedKey, !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return UnsavedLicenseKeyDraft(bundleID: bundleID, key: draft)
+    }
+
+    func restored(for bundleID: String, hasSavedKey: Bool) -> String? {
+        guard bundleID == self.bundleID, !hasSavedKey else { return nil }
+        return key
+    }
+}
+
 /// Replace on a saved licence key. Touch ID has to succeed before the field
 /// opens empty; otherwise Save could overwrite the key from an unlocked Mac.
 enum LicenseKeyReplace {

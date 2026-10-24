@@ -123,3 +123,30 @@ struct LocalNameIsNotThisMacTests {
         #expect(APIKeyTransport.maySendKey(to: "http://Kikas-MacBook-Pro.local:11434", localHostName: "Kikas-MacBook-Pro"))
     }
 }
+
+@Suite("A first licence key typed before a click outside comes back")
+struct UnsavedLicenseKeyDraftTests {
+    @Test("A typed first key is kept for the same app")
+    func keptForSameApp() {
+        let kept = UnsavedLicenseKeyDraft.keep(draft: "ABCD-1234", hasSavedKey: false, bundleID: "com.example.one")
+        #expect(kept?.restored(for: "com.example.one", hasSavedKey: false) == "ABCD-1234")
+    }
+
+    @Test("It never comes back for another app")
+    func notForAnotherApp() {
+        let kept = UnsavedLicenseKeyDraft.keep(draft: "ABCD-1234", hasSavedKey: false, bundleID: "com.example.one")
+        #expect(kept?.restored(for: "com.example.two", hasSavedKey: false) == nil)
+    }
+
+    @Test("A revealed or replacing key is not kept, nor an empty field")
+    func notKept() {
+        #expect(UnsavedLicenseKeyDraft.keep(draft: "SAVED-KEY", hasSavedKey: true, bundleID: "com.example.one") == nil)
+        #expect(UnsavedLicenseKeyDraft.keep(draft: "  ", hasSavedKey: false, bundleID: "com.example.one") == nil)
+    }
+
+    @Test("Once a key is saved, the old draft does not come back")
+    func savedMeanwhile() {
+        let kept = UnsavedLicenseKeyDraft.keep(draft: "ABCD-1234", hasSavedKey: false, bundleID: "com.example.one")
+        #expect(kept?.restored(for: "com.example.one", hasSavedKey: true) == nil)
+    }
+}

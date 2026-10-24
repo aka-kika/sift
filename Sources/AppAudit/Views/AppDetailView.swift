@@ -18,6 +18,8 @@ struct AppDetailView: View {
     @State private var moneyPopoverPresented = false
     /// Touch ID closes the popover and reopens it. Don't forget the key in that gap.
     @State private var holdingKeyForPrompt = false
+    /// A first key typed but not saved when the panel closed.
+    @State private var unsavedLicenseKey: UnsavedLicenseKeyDraft?
     @State private var moneyPopoverStartsOnSubscription = false
     @State private var draftLicenseKey = ""
     @State private var licenseKeyUnlocked = false
@@ -954,6 +956,7 @@ struct AppDetailView: View {
         }
         .onChange(of: moneyPopoverPresented) { _, open in
             if RevealedLicenseKey.shouldForget(popoverOpen: open, waitingForTouchID: holdingKeyForPrompt) {
+                unsavedLicenseKey = UnsavedLicenseKeyDraft.keep(draft: draftLicenseKey, hasSavedKey: hasSavedKey, bundleID: app.bundleID)
                 forgetRevealedLicenseKey()
             }
         }
@@ -977,8 +980,10 @@ struct AppDetailView: View {
     /// Populate every draft from the record so the popover opens current.
     private func prepareMoneyDrafts() {
         // Never prefilled: a saved key stays in the Keychain until the panel
-        // unlocks it with Touch ID.
-        draftLicenseKey = ""
+        // unlocks it with Touch ID. A first key typed before a click outside
+        // comes back.
+        draftLicenseKey = unsavedLicenseKey?.restored(for: app.bundleID, hasSavedKey: hasSavedKey) ?? ""
+        unsavedLicenseKey = nil
         licenseKeyUnlocked = false
         licenseKeyRevealed = false
         draftLicenseEmail = record?.licenseEmail
@@ -1123,21 +1128,34 @@ struct AppDetailView: View {
         record?.hasLicenseKey == true || !(record?.licenseKey ?? "").isEmpty
     }
 
-    private func copyLicenseKey() {
+    /// The Touch ID prompt takes focus and closes the License popover. While
+    /// it is up, the panel's key stays; once it is answered, the popover is
+    /// shown again or, if it stayed closed (a cancelled prompt), the key is
+    /// forgotten as on any close.
+    private func withTouchIDPrompt(_ work: @escaping @MainActor () async -> Void) {
+        holdingKeyForPrompt = true
         Task { @MainActor in
-            guard await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)"),
-                  let key = readLicenseKey() else { return }
-            SecretClipboard.copy(key)
+            await work()
+            holdingKeyForPrompt = false
+            if RevealedLicenseKey.shouldForget(popoverOpen: moneyPopoverPresented, waitingForTouchID: false) {
+                forgetRevealedLicenseKey()
+            }
         }
     }
 
-    /// The Touch ID prompt takes focus and closes the License popover, so
-    /// after a successful unlock the popover is shown again, unlocked, with
+    private func copyLicenseKey() {
+        withTouchIDPrompt {
+            guard await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)"),
+                  let key = readLicenseKey() else { return }
+            SecretClipboard.copy(key)
+            moneyPopoverPresented = true
+        }
+    }
+
+    /// After a successful unlock the popover is shown again, unlocked, with
     /// the email and type drafts as they were.
     private func revealLicenseKey() {
-        holdingKeyForPrompt = true
-        Task { @MainActor in
-            defer { holdingKeyForPrompt = false }
+        withTouchIDPrompt {
             guard await LicenseKeyGuard.authenticate(reason: "reveal the license key for \(app.name)"),
                   let key = readLicenseKey() else { return }
             draftLicenseKey = key
@@ -1147,18 +1165,16 @@ struct AppDetailView: View {
         }
     }
 
-    /// Touch ID first, then an empty field. A cancelled prompt leaves the saved
-    /// key locked, so Save cannot overwrite it. The saved key is not read.
     private func forgetRevealedLicenseKey() {
         draftLicenseKey = ""
         licenseKeyUnlocked = false
         licenseKeyRevealed = false
     }
 
+    /// Touch ID first, then an empty field. A cancelled prompt leaves the saved
+    /// key locked, so Save cannot overwrite it. The saved key is not read.
     private func replaceLicenseKey() {
-        holdingKeyForPrompt = true
-        Task { @MainActor in
-            defer { holdingKeyForPrompt = false }
+        withTouchIDPrompt {
             let ok = await LicenseKeyGuard.authenticate(reason: "replace the license key for \(app.name)")
             guard LicenseKeyReplace.mayUnlock(authenticated: ok) else { return }
             draftLicenseKey = ""
