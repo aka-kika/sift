@@ -176,19 +176,26 @@ struct APIKeyStoreTests {
 @Suite("Settings API key field")
 @MainActor
 struct APIKeyFieldTests {
-    @Test("The field loads per provider and saves each edit to the Keychain")
+    @Test("The field starts empty and saves only when committed")
     func loadsAndSaves() {
         let backend = MemorySecretStoreBackend()
         backend.write("gem-1", account: AnalysisProviderKind.gemini.apiKeyAccount)
         let field = APIKeyField(store: APIKeyStore(backend: backend, defaults: scratchDefaults()))
 
         field.load(.gemini)
-        #expect(field.text == "gem-1")
+        #expect(field.text.isEmpty)
+        #expect(field.hasStoredKey)
+        field.update("cut")
+        #expect(backend.read(account: AnalysisProviderKind.gemini.apiKeyAccount) == "gem-1")
 
         field.load(.openAI)
         #expect(field.text == "")
+        #expect(!field.hasStoredKey)
         field.update("sk-new")
+        #expect(backend.read(account: AnalysisProviderKind.openAI.apiKeyAccount) == nil)
+        field.commit()
         #expect(!field.saveFailed)
+        #expect(field.text.isEmpty)
         #expect(backend.read(account: AnalysisProviderKind.openAI.apiKeyAccount) == "sk-new")
         #expect(backend.read(account: AnalysisProviderKind.gemini.apiKeyAccount) == "gem-1")
     }
@@ -198,6 +205,8 @@ struct APIKeyFieldTests {
         let field = APIKeyField(store: APIKeyStore(backend: DroppingSecretStoreBackend(), defaults: scratchDefaults()))
         field.load(.anthropic)
         field.update("sk-ant")
+        field.commit()
         #expect(field.saveFailed)
+        #expect(field.text == "sk-ant")
     }
 }

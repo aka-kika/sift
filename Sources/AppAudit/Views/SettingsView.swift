@@ -53,6 +53,7 @@ struct AnalysisSettingsTab: View {
     /// The API key lives in the Keychain, never in preferences: one field,
     /// reloaded for whichever provider is selected.
     @State private var apiKeyField = APIKeyField()
+    @FocusState private var apiKeyFocused: Bool
 
     @State private var availableModels: [String] = []
     @State private var fetchState: FetchState = .idle
@@ -110,7 +111,11 @@ struct AnalysisSettingsTab: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .controlSize(.small)
+        .onChange(of: apiKeyFocused) { _, focused in
+            if !focused { apiKeyField.commit() }
+        }
         .task(id: providerRaw) {
+            apiKeyField.commit()
             apiKeyField.load(provider)
             availableModels = []
             fetchState = .idle
@@ -134,11 +139,10 @@ struct AnalysisSettingsTab: View {
         HStack {
             Text("API Key")
                 .frame(width: 64, alignment: .leading)
-            SecureField("Optional — for ollama.com cloud models", text: apiKeyBinding)
-                .textFieldStyle(.roundedBorder)
-                .controlSize(.small)
+            apiKeySecureField("Optional — for ollama.com cloud models")
         }
         apiKeySaveError
+        apiKeySavedNote
 
         SettingsFooter("Leave blank for a local Ollama server. Add an ollama.com key (and set the Base URL to https://ollama.com) to use cloud models.")
 
@@ -153,12 +157,11 @@ struct AnalysisSettingsTab: View {
         HStack {
             Text("API Key")
                 .frame(width: 64, alignment: .leading)
-            SecureField("Paste API key", text: apiKeyBinding)
-                .textFieldStyle(.roundedBorder)
-                .controlSize(.small)
+            apiKeySecureField("Paste API key")
             fetchButton
         }
         apiKeySaveError
+        apiKeySavedNote
 
         SettingsFooter(hint)
 
@@ -170,6 +173,23 @@ struct AnalysisSettingsTab: View {
 
     private var apiKeyBinding: Binding<String> {
         Binding(get: { apiKeyField.text }, set: { apiKeyField.update($0) })
+    }
+
+    private func apiKeySecureField(_ prompt: String) -> some View {
+        SecureField(prompt, text: apiKeyBinding)
+            .textFieldStyle(.roundedBorder)
+            .controlSize(.small)
+            .focused($apiKeyFocused)
+            .onSubmit { apiKeyField.commit() }
+    }
+
+    @ViewBuilder
+    private var apiKeySavedNote: some View {
+        if apiKeyField.hasStoredKey && apiKeyField.text.isEmpty {
+            Text("A key is saved. It stays hidden. Type a new one and press Return to replace it.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     @ViewBuilder
@@ -247,6 +267,7 @@ struct AnalysisSettingsTab: View {
     }
 
     private func fetchModels() async {
+        apiKeyField.commit()
         fetchState = .loading
         let result = await AnalysisServices.make(provider).fetchModels()
         switch result {

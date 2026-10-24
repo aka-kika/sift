@@ -68,31 +68,49 @@ final class APIKeyStore: @unchecked Sendable {
     }
 }
 
-/// The API key field in Settings, backed by the Keychain instead of
-/// `@AppStorage`. Every edit is written straight away, so "Test connection"
-/// uses what is in the field; a refused write shows under the field.
+/// The API key field in Settings. The stored key is never shown. Typing
+/// changes a draft only; the Keychain is written when the field is left or
+/// Return is pressed, so one Backspace cannot save a cut-off key.
 @MainActor
 @Observable
 final class APIKeyField {
     private(set) var text = ""
     private(set) var saveFailed = false
+    private(set) var hasStoredKey = false
     private(set) var kind: AnalysisProviderKind = .ollama
+    private var edited = false
     private let store: APIKeyStore
 
     init(store: APIKeyStore = .shared) {
         self.store = store
     }
 
-    /// Shows the stored key for this provider.
+    /// The field starts empty. `hasStoredKey` is how the screen says a key
+    /// is already saved, without putting that key in the field.
     func load(_ kind: AnalysisProviderKind) {
         self.kind = kind
-        text = store.key(for: kind)
+        text = ""
+        edited = false
+        hasStoredKey = !store.key(for: kind).isEmpty
         saveFailed = false
     }
 
+    /// The draft. Does not touch the Keychain.
     func update(_ newValue: String) {
         guard newValue != text else { return }
         text = newValue
-        saveFailed = !store.setKey(newValue, for: kind)
+        edited = true
+        saveFailed = false
+    }
+
+    /// Write the draft. An untouched empty field does not remove a saved key.
+    func commit() {
+        guard edited else { return }
+        let ok = store.setKey(text, for: kind)
+        saveFailed = !ok
+        guard ok else { return }
+        edited = false
+        hasStoredKey = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        text = ""
     }
 }
