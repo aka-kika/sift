@@ -57,7 +57,7 @@ updating, and which licenses and subscriptions you're paying for.
 
 - Store purchased **license keys** per app in the macOS **Keychain** (device-bound; not iCloud-synced).
 - A one-time launch sweep migrates any legacy plaintext key into the Keychain.
-- **Touch ID protected** — every key copy or reveal asks for Touch ID (or your password) via the system sheet.
+- **Touch ID protected** — every key copy, reveal, replace or remove asks for Touch ID (or your password) via the system sheet.
 - **License Vault** (File → License Vault… or ⇧⌘L) lists **all** your
   license keys in one place, sectioned into **Installed** and **No longer installed** — keys
   survive uninstalls and move back when you reinstall an app.

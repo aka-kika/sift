@@ -931,6 +931,7 @@ struct AppDetailView: View {
                 onToggleFree: { toggleFree() },
                 onSaveLicense: { keyEditable in saveLicenseFromDrafts(keyEditable: keyEditable) },
                 onRevealKey: { revealLicenseKey() },
+                onReplaceKey: { replaceLicenseKey() },
                 onCopyKey: { copyLicenseKey() },
                 onRemoveKey: { removeLicenseKey() },
                 onSaveSubscription: { saveSubscriptionFromDrafts() },
@@ -1121,6 +1122,19 @@ struct AppDetailView: View {
             draftLicenseKey = key
             licenseKeyUnlocked = true
             licenseKeyRevealed = true
+            moneyPopoverPresented = true
+        }
+    }
+
+    /// Touch ID first, then an empty field. A cancelled prompt leaves the saved
+    /// key locked, so Save cannot overwrite it. The saved key is not read.
+    private func replaceLicenseKey() {
+        Task { @MainActor in
+            let ok = await LicenseKeyGuard.authenticate(reason: "replace the license key for \(app.name)")
+            guard LicenseKeyReplace.mayUnlock(authenticated: ok) else { return }
+            draftLicenseKey = ""
+            licenseKeyUnlocked = true
+            licenseKeyRevealed = false
             moneyPopoverPresented = true
         }
     }

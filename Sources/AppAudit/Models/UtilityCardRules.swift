@@ -48,13 +48,21 @@ enum LicenseDraftRules {
     }
 
     /// What Save does to the Keychain. A saved key stays locked until the
-    /// panel unlocks it (Reveal or Replace), and a locked field says nothing
-    /// about the key, so it is kept. An empty field never deletes a key:
-    /// removing one is the trash button, behind Touch ID.
+    /// panel unlocks it (Reveal or Replace, each after Touch ID), and a locked
+    /// field says nothing about the key, so it is kept. An empty field never
+    /// deletes a key: removing one is the trash button, behind Touch ID.
     static func keyAction(draft: String, hasSavedKey: Bool, keyEditable: Bool) -> KeyAction {
         guard keyEditable || !hasSavedKey else { return .keep }
         let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? .keep : .save(trimmed)
+    }
+}
+
+/// Replace on a saved licence key. Touch ID has to succeed before the field
+/// opens empty; otherwise Save could overwrite the key from an unlocked Mac.
+enum LicenseKeyReplace {
+    static func mayUnlock(authenticated: Bool) -> Bool {
+        authenticated
     }
 }
 

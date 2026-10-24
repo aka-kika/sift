@@ -33,3 +33,28 @@ struct BrewUninstallCopyTests {
         #expect(!text.localizedCaseInsensitiveContains("nothing is deleted"))
     }
 }
+
+@Suite("Replace a saved licence key")
+struct LicenseKeyReplaceTests {
+    @Test("A cancelled Touch ID prompt does not unlock the field")
+    func denied() {
+        #expect(!LicenseKeyReplace.mayUnlock(authenticated: false))
+    }
+
+    @Test("Touch ID success is what opens the empty field")
+    func allowed() {
+        #expect(LicenseKeyReplace.mayUnlock(authenticated: true))
+    }
+
+    @Test("The Replace button does not unlock the field itself")
+    func buttonAsksFirst() throws {
+        let source = try String(contentsOf: repoRoot.appending(path: "Sources/AppAudit/Views/MoneyPopover.swift"), encoding: .utf8)
+        guard let start = source.range(of: "Button(\"Replace\")") else {
+            Issue.record("Replace button missing")
+            return
+        }
+        let window = source[start.upperBound...].prefix(180)
+        #expect(window.contains("onReplaceKey()"))
+        #expect(!window.contains("keyUnlocked"))
+    }
+}

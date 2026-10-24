@@ -24,8 +24,8 @@ struct MoneyPopover: View {
     @Binding var draftLicenseKey: String
     /// Owned by the caller so an unlock survives the popover closing and
     /// reopening around the Touch ID prompt. A saved key is never read until
-    /// the panel unlocks it (Reveal after Touch ID, or Replace, which starts
-    /// from an empty field).
+    /// the panel unlocks it (Reveal or Replace, each after Touch ID). Replace
+    /// starts from an empty field and never reads the saved key.
     @Binding var keyUnlocked: Bool
     @Binding var revealed: Bool
     @Binding var draftLicenseEmail: String
@@ -46,6 +46,10 @@ struct MoneyPopover: View {
     /// and sets `keyUnlocked` and `revealed`. The system prompt takes focus
     /// and closes this popover, so the owner reopens it, already unlocked.
     let onRevealKey: () -> Void
+    /// Asks for Touch ID, then opens an empty field so a new key can replace
+    /// the saved one. The saved key is not read. The system prompt closes this
+    /// popover; the owner reopens it, already unlocked, only after success.
+    let onReplaceKey: () -> Void
     let onCopyKey: () -> Void
     let onRemoveKey: () -> Void
     let onSaveSubscription: () -> Void
@@ -256,12 +260,8 @@ struct MoneyPopover: View {
                 .help("Show the key (Touch ID)")
                 Button("Copy") { onCopyKey() }
                     .help("Copy the key (Touch ID)")
-                Button("Replace") {
-                    draftLicenseKey = ""
-                    keyUnlocked = true
-                    revealed = false
-                }
-                .help("Type a new key in place of the saved one")
+                Button("Replace") { onReplaceKey() }
+                .help("Type a new key in place of the saved one (Touch ID)")
             }
             .buttonStyle(.borderless)
             .controlSize(.small)

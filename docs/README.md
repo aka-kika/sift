@@ -131,7 +131,7 @@ Edit License…, Remove Key, or — when nothing is recorded — Mark as Paid an
 Mark as Free App.
 
 Keys live in the **macOS Keychain**, keyed to the bundle ID, device-bound and
-never iCloud-synced. Revealing or copying one asks for Touch ID.
+never iCloud-synced. Revealing, copying or replacing one asks for Touch ID.
 
 ---
 
