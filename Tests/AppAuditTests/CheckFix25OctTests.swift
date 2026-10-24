@@ -194,3 +194,18 @@ struct AnalysisSignOffTests {
         #expect(parsed?.bestUse == "Drafting notes.")
     }
 }
+
+@Suite("launchctl that does not start is not waited on")
+struct LaunchAgentProcessTests {
+    @Test("A tool that cannot launch returns at once")
+    func missingTool() async {
+        let started = await LaunchAgentUnload.run(executable: "/nonexistent/launchctl", arguments: ["bootout"])
+        #expect(!started)
+    }
+
+    @Test("A tool that launches is waited on")
+    func realTool() async {
+        let started = await LaunchAgentUnload.run(executable: "/usr/bin/true", arguments: [])
+        #expect(started)
+    }
+}

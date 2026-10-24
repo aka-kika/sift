@@ -1,12 +1,6 @@
 import Foundation
 import Security
 
-/// Discovers everything on disk that belongs to an app: the bundle itself
-/// plus leftovers across the user-level Library roots, matched identifier-
-/// first via `LeftoverMatcher` with a recorded reason per hit.
-///
-/// Scanning strategy adapted from uninstally's AssociatedFileScanner
-/// (https://github.com/gostonx/uninstally, MIT License © 2026 Codenta).
 /// A Launch Agent plist has to be unloaded before it is trashed, or the
 /// helper keeps running until logout.
 enum LaunchAgentUnload {
@@ -19,16 +13,36 @@ enum LaunchAgentUnload {
     }
 
     static func bootout(plistPath: String) async {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = arguments(plistPath: plistPath)
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try? process.run()
-        process.waitUntilExit()
+        await run(executable: "/bin/launchctl", arguments: arguments(plistPath: plistPath))
+    }
+
+    /// Runs off the main thread. Returns false when the tool did not start;
+    /// waiting on a process that never launched would never return.
+    @discardableResult
+    static func run(executable: String, arguments: [String]) async -> Bool {
+        await Task.detached {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: executable)
+            process.arguments = arguments
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            do {
+                try process.run()
+            } catch {
+                return false
+            }
+            process.waitUntilExit()
+            return true
+        }.value
     }
 }
 
+/// Discovers everything on disk that belongs to an app: the bundle itself
+/// plus leftovers across the user-level Library roots, matched identifier-
+/// first via `LeftoverMatcher` with a recorded reason per hit.
+///
+/// Scanning strategy adapted from uninstally's AssociatedFileScanner
+/// (https://github.com/gostonx/uninstally, MIT License © 2026 Codenta).
 struct LeftoverScanner: Sendable {
 
     /// `otherAppNames` are the names of the other installed apps (other bundle
