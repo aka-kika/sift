@@ -200,7 +200,7 @@ working across the rename. These internal identifiers are not user-visible.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Outside work Sift uses or learned from is credited in [THIRD-PARTY.md](THIRD-PARTY.md).
 
 With thanks to three projects that shaped Sift: the leftover-discovery strategy is
 adapted from [uninstally](https://github.com/gostonx/uninstally) (MIT, © 2026
