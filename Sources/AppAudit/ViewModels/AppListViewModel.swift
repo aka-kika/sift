@@ -260,6 +260,7 @@ final class AppListViewModel {
     private let updateChecker = UpdateChecker()
     private let appLinkResolver = AppLinkResolver()
     private let linkEvidenceService = LinkEvidenceService()
+    private let appStoreListingService = AppStoreListingService()
     var cacheService: CacheService?
     private var updateScanToken = UUID()
 
@@ -456,10 +457,21 @@ final class AppListViewModel {
         docsEvidence: String? = nil,
         userAsked: Bool = false
     ) async -> (String, AppInfo.AIState) {
-        let linkEvidence = ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan(), userAsked: userAsked)
-            ? await linkEvidenceService.evidence(for: appURL)
-            : nil
-        let result = await service(for: provider).analyze(app: app, profile: profile, appURL: appURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
+        let fetches = ScanNetwork.fetchesSavedLinkPage(checksUpdatesOnScan: Self.checksUpdatesOnScan(), userAsked: userAsked)
+        var promptURL = appURL
+        var linkEvidence: String?
+        if fetches, AppStoreListing.isStoreLink(appURL) {
+            // The store page says only "Download X on the App Store"; the lookup has the description.
+            linkEvidence = await appStoreListingService.listing(bundleID: app.bundleID, link: appURL)?.text
+                ?? AppStoreListing.notFoundNote
+        } else if fetches, app.isAppStoreInstall, (appURL ?? "").isEmpty,
+                  let listing = await appStoreListingService.listing(bundleID: app.bundleID, link: nil) {
+            promptURL = listing.pageURL
+            linkEvidence = promptURL == nil ? nil : listing.text
+        } else if fetches {
+            linkEvidence = await linkEvidenceService.evidence(for: appURL)
+        }
+        let result = await service(for: provider).analyze(app: app, profile: profile, appURL: promptURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
 
         switch result {
         case .unavailable(let msg):

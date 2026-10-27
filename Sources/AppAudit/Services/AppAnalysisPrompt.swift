@@ -69,6 +69,7 @@ enum AppAnalysisPrompt {
         Evidence rules:
         - Prefer bundle ID, reference URL context, app description, and installed path over the display name.
         - When "Fetched from the reference URL" content is present, treat it as the primary evidence for what the app is.
+        - An "App Store listing" block holds the developer's own store description; treat it the same way. If it says the listing was not found, the app may still have one: never say the listing gives no description.
         - The URL string alone (host, slug, TLD) is only a weak hint. Never infer what an app does from a domain name or TLD — a ".fit" domain does not imply fitness.
         - Do not claim to have browsed beyond what is quoted here.
         - If the URL conflicts with the app name, bundle ID, or path, mention the uncertainty and score conservatively.
@@ -133,7 +134,13 @@ enum AppAnalysisPrompt {
         - Slug keywords: \(slugHint)
         """
 
-        if let fetched, !fetched.isEmpty {
+        if let fetched, !fetched.isEmpty, AppStoreListing.isStoreLink(rawURL) {
+            block += """
+
+        App Store listing, read through Apple's public lookup (the developer's own words — treat as the primary link evidence):
+        \(fetched)
+        """
+        } else if let fetched, !fetched.isEmpty {
             block += """
 
         Fetched from the reference URL (the page's own words — treat as the primary link evidence):
