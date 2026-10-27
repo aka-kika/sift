@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sift picks</title>
+<style>
+  :root {
+    --ink: #1d1d1f;
+    --paper: #f7f6f3;
+    --accent: #d9cdf5;
+    --muted: #6e6e73;
+    --line: #e2e0da;
+    /* the app's own dark surfaces, as in Kika's screenshots */
+    --win: #2b2b2e;
+    --bar: #353538;
+    --tile: #3a3a3d;
+    --text: #e8e8ec;
+    --sub: #9a9aa0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 48px 16px 80px; }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .lead { color: var(--muted); margin: 0 0 48px; }
+  section { padding: 40px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 20px; margin: 0 0 4px; }
+  h2 .num { display: inline-block; width: 28px; height: 28px; border-radius: 50%;
+            background: var(--accent); text-align: center; line-height: 28px;
+            font-size: 15px; margin-right: 8px; }
+  .why { color: var(--muted); margin: 0 0 24px; max-width: 680px; }
+  .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .opt { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .opt.pick { border-color: #b9a6ee; box-shadow: 0 0 0 3px var(--accent); }
+  .opt h3 { font-size: 15px; margin: 0 0 2px; }
+  .opt p { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  .tag { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+         background: var(--accent); border-radius: 6px; padding: 2px 7px; margin-left: 6px; }
+  .stage { background: var(--win); border-radius: 10px; padding: 16px; color: var(--text); }
+
+  /* 1. tiles */
+  .tiles { display: flex; gap: 14px; justify-content: center; align-items: flex-end; }
+  .tile-wrap { text-align: center; font-size: 11px; color: var(--sub); }
+  .tile { width: 56px; height: 56px; border-radius: 14px; background: var(--tile);
+          display: grid; place-items: center; margin-bottom: 6px; }
+  .tile.on { background: #2f4744; }
+  .tile img { width: 24px; height: 24px; }
+
+  /* 2. rows */
+  .row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
+  .row img.icon { width: 32px; height: 32px; }
+  .row .name { flex: 1; font-size: 14px; }
+  .row .name small { display: block; color: var(--sub); font-size: 12px; }
+  .row .name img { width: 13px; height: 13px; vertical-align: -1px; margin-left: 4px; }
+  .score { width: 30px; height: 30px; border-radius: 50%; background: #9fd8a4; color: #1f3b22;
+           display: grid; place-items: center; font-weight: 600; font-size: 13px; }
+  .score.ring { box-shadow: 0 0 0 2px #c77dff; }
+  .score.soft { box-shadow: 0 0 0 1px rgba(199,125,255,.55); }
+  .hint { font-size: 11px; color: var(--sub); text-align: right; margin-top: 4px; }
+
+  /* 3. toolbar + palette */
+  .toolbar { display: flex; align-items: center; gap: 10px; background: var(--bar);
+             border-radius: 8px 8px 0 0; padding: 10px 12px; }
+  .dots { display: flex; gap: 6px; margin-right: 6px; }
+  .dots i { width: 11px; height: 11px; border-radius: 50%; background: #5a5a5e; display: block; }
+  .tb-btn { width: 28px; height: 26px; border-radius: 6px; display: grid; place-items: center; }
+  .tb-btn img { width: 16px; height: 16px; }
+  .tb-btn.hot { background: #4a4a4e; }
+  .sort { border: 1px solid #4a4a4e; border-radius: 6px; padding: 2px 8px; font-size: 13px; color: var(--sub);
+          display: flex; align-items: center; gap: 6px; }
+  .sort img { width: 10px; height: 10px; }
+  .list-under { background: var(--win); height: 70px; border-radius: 0 0 8px 8px; opacity: .6; }
+  .palette { background: #2f2f32; border: 1px solid #48484c; border-radius: 12px; width: 100%;
+             max-width: 380px; margin: 0 auto; box-shadow: 0 18px 40px rgba(0,0,0,.35); overflow: hidden; }
+  .pal-field { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #3e3e42; font-size: 16px; }
+  .pal-field img { width: 17px; height: 17px; opacity: .8; }
+  .pal-field .caret { border-left: 2px solid #c9b8f2; height: 18px; margin-left: -8px; }
+  .pal-row { display: flex; align-items: center; gap: 10px; padding: 7px 14px; font-size: 14px; }
+  .pal-row img { width: 22px; height: 22px; }
+  .pal-row.sel { background: #44404f; }
+  .pal-row small { color: var(--sub); margin-left: auto; font-size: 12px; }
+  .pal-foot { display: flex; gap: 14px; justify-content: flex-end; padding: 8px 14px; border-top: 1px solid #3e3e42;
+              font-size: 11px; color: var(--sub); }
+  .pal-foot img { width: 11px; height: 11px; vertical-align: -1px; margin-right: 3px; opacity: .8; }
+  .anchored { position: relative; }
+  .anchored .palette { max-width: 300px; margin: 6px 0 0 110px; }
+  .anchored .palette::before { content: ""; position: absolute; top: -6px; left: 150px; width: 12px; height: 12px;
+                               background: #2f2f32; border-left: 1px solid #48484c; border-top: 1px solid #48484c; transform: rotate(45deg); }
+  .also { margin-top: 20px; font-size: 13px; color: var(--muted); }
+  .answer { margin-top: 48px; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+  .answer code { background: var(--accent); padding: 2px 6px; border-radius: 5px; }
+  @media (max-width: 600px) { main { padding-top: 28px; } h1 { font-size: 24px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sift: three picks</h1>
+  <p class="lead">One letter per question. The outlined card is my suggestion. Everything else on your list is being built now.</p>
+
+  <section>
+    <h2><span class="num">1</span>The project folder button</h2>
+    <p class="why">Today it is a page icon, so it reads like "notes", not "attach a folder". Gray means no folder yet, teal means a folder is attached.</p>
+    <div class="opts">
+      <div class="opt">
+        <h3>Today</h3>
+        <p>doc.text</p>
+        <div class="stage"><div class="tiles">
+          <div class="tile-wrap"><div class="tile"><img src="doc.text.png" alt=""></div>none yet</div>
+        </div></div>
+      </div>
+      <div class="opt pick">
+        <h3>A. Folder with plus <span class="tag">suggested</span></h3>
+        <p>folder.fill.badge.plus: says "add a folder" at a glance</p>
+        <div class="stage"><div class="tiles">
+          <div class="tile-wrap"><div class="tile"><img src="folder.fill.badge.plus.png" alt=""></div>none yet</div>
+          <div class="tile-wrap"><div class="tile on"><img src="folder.fill.badge.plus-teal.png" alt=""></div>attached</div>
+        </div></div>
+      </div>
+      <div class="opt">
+        <h3>B. Folder with gear</h3>
+        <p>folder.badge.gearshape: says "project setup"</p>
+        <div class="stage"><div class="tiles">
+          <div class="tile-wrap"><div class="tile"><img src="folder.badge.gearshape.png" alt=""></div>none yet</div>
+          <div class="tile-wrap"><div class="tile on"><img src="folder.badge.gearshape-teal.png" alt=""></div>attached</div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>The purple ring around the rating</h2>
+    <p class="why">What it means today: "you build this app" (My App, with Developer mode on). The purple hammer next to the name already says the same thing, so the ring repeats it.</p>
+    <div class="opts">
+      <div class="opt">
+        <h3>Today</h3>
+        <p>Strong ring on every app you build</p>
+        <div class="stage">
+          <div class="row"><img class="icon" src="app-kartina.png" alt=""><div class="name">Kartina <img src="hammer-purple.png" alt=""><small>0.17.0</small></div><div class="score ring">5</div></div>
+          <div class="row"><img class="icon" src="app-tart.png" alt=""><div class="name">Tart<small>2.40.1</small></div><div class="score">5</div></div>
+        </div>
+      </div>
+      <div class="opt pick">
+        <h3>A. Drop it <span class="tag">suggested</span></h3>
+        <p>The hammer alone marks your apps. Every rating looks the same.</p>
+        <div class="stage">
+          <div class="row"><img class="icon" src="app-kartina.png" alt=""><div class="name">Kartina <img src="hammer-purple.png" alt=""><small>0.17.0</small></div><div class="score">5</div></div>
+          <div class="row"><img class="icon" src="app-tart.png" alt=""><div class="name">Tart<small>2.40.1</small></div><div class="score">5</div></div>
+        </div>
+      </div>
+      <div class="opt">
+        <h3>B. Keep it, quieter</h3>
+        <p>A thin faint ring, and hovering says "You build this app".</p>
+        <div class="stage">
+          <div class="row"><img class="icon" src="app-kartina.png" alt=""><div class="name">Kartina <img src="hammer-purple.png" alt=""><small>0.17.0</small></div><div class="score soft">5</div></div>
+          <div class="row"><img class="icon" src="app-tart.png" alt=""><div class="name">Tart<small>2.40.1</small></div><div class="score">5</div></div>
+          <div class="hint">hover: You build this app</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>Search as a small palette</h2>
+    <p class="why">The rescan arrow leaves the top bar (it stays in the menu bar menu with its shortcut). Its spot gets a search button, and the big "Search apps" field leaves the header. Click it, or press Command-F or Command-K: a small palette opens, you type, Return opens the app, Escape closes. Which place for the palette?</p>
+    <div class="opts">
+      <div class="opt pick">
+        <h3>A. Centered, like Spotlight <span class="tag">suggested</span></h3>
+        <p>Floats near the top middle of Sift's window.</p>
+        <div class="stage">
+          <div class="toolbar">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <div class="tb-btn"><img src="sidebar.left.png" alt=""></div>
+            <div class="sort">Relevance <img src="chevron.up.chevron.down.png" alt=""></div>
+            <div class="tb-btn hot"><img src="magnifyingglass.png" alt=""></div>
+          </div>
+          <div style="height:14px"></div>
+          <div class="palette">
+            <div class="pal-field"><img src="magnifyingglass.png" alt="">kar<span class="caret"></span></div>
+            <div class="pal-row sel"><img src="app-kartina.png" alt="">Kartina<small>0.17.0</small></div>
+            <div class="pal-row"><img src="app-tart.png" alt="">Tart<small>2.40.1</small></div>
+            <div class="pal-foot"><span><img src="return.png" alt="">open</span><span><img src="escape.png" alt="">close</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="opt">
+        <h3>B. Under the search button</h3>
+        <p>Drops down from the button, like a menu bar popover.</p>
+        <div class="stage anchored">
+          <div class="toolbar">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <div class="tb-btn"><img src="sidebar.left.png" alt=""></div>
+            <div class="sort">Relevance <img src="chevron.up.chevron.down.png" alt=""></div>
+            <div class="tb-btn hot"><img src="magnifyingglass.png" alt=""></div>
+          </div>
+          <div class="palette">
+            <div class="pal-field"><img src="magnifyingglass.png" alt="">kar<span class="caret"></span></div>
+            <div class="pal-row sel"><img src="app-kartina.png" alt="">Kartina<small>0.17.0</small></div>
+            <div class="pal-row"><img src="app-tart.png" alt="">Tart<small>2.40.1</small></div>
+            <div class="pal-foot"><span><img src="return.png" alt="">open</span><span><img src="escape.png" alt="">close</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="also">Both: solid background (no see-through glass), search only, shows name, version and icon. The dark divider lines go away in both.</p>
+  </section>
+
+  <div class="answer">Answer in the chat like <code>1A 2A 3A</code>, or change anything you like.</div>
+</main>
+</body>
+</html>
