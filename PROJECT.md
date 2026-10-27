@@ -49,7 +49,7 @@ itself through Sparkle. Ships as a Developer ID–signed, notarized DMG.
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status
-`shipped` — v1.12.5 live (2026-10-25); v1.13.0 prepared 2026-10-28 (Kika's polish round: App Store descriptions read from Apple's lookup, search palette, Last Added, the macOS 26 window), released on Kika's yes. Free during the beta. Next (1.14): analysis without setup (Apple Intelligence or a small model), then real in-place updates.
+`shipped` — v1.13.0 live (2026-10-28, build 28): Kika's polish round (App Store descriptions read from Apple's lookup, search palette, Last Added, the macOS 26 window). Free during the beta. Next (1.14): analysis without setup (Apple Intelligence or a small model), then real in-place updates.
 
 ## Key paths
 - **entry**: `Sources/AppAudit/AppAuditApp.swift`
@@ -73,6 +73,7 @@ isolated store) is the tester. Debt/TODO: unranked-My-Apps and receipt-extractio
 are designed but unbuilt.
 
 ## Log
+- 2026-10-28 — v1.13.0: Kika's evening polish round. App Store apps analyzed from Apple's lookup (the store page only said "Download X"), the binary names SDK 26 so macOS 26 draws the floating sidebar with no divider lines, search palette (Cmd-F, Cmd-K), Last Added sort, Rescan only in the File menu, one star color, no My App ring, folder-with-plus icon, one sheet button order. Report: docs/POLISH-2026-10-28.md.
 - 2026-10-14 — v1.12.3: the last Argon item (#11). The License panel shows "Key saved" with Reveal, Copy and Replace and reads the key only after Touch ID; it reopens itself after the Touch ID prompt, which closes popovers.
 - 2026-10-14 — v1.12.2: 14 findings from the Argon code review checked and fixed (one partly: the License panel still reads the key before Touch ID). License panel opens the right app, key removal needs Touch ID, brew output no longer hangs, duplicate bundle IDs handled per copy, links normalized to https, site countdown removed and uninstall FAQ corrected.
 - 2026-08-27 — v1.11.0: pre-launch audit (docs/audits/audit-2026-08-27.md) — 8 must-fix bugs (uninstall sweeping sibling apps, reanalyze crash, brew failure as success, detail-view record wipe, silent model switch…), 10 more, then dead code, duplicates and stale docs removed. Third release of the day; delivered through Sparkle.
