@@ -26,6 +26,17 @@ extension View {
         }
     }
 
+    /// No toolbar band or hairline under the window's top bar, so the sidebar
+    /// and the detail header read as one straight edge (Kika, 28 Oct).
+    @ViewBuilder
+    func plainWindowToolbar() -> some View {
+        if #available(macOS 15.0, *) {
+            self.toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        } else {
+            self.toolbarBackground(.hidden, for: .windowToolbar)
+        }
+    }
+
     /// Soft scroll-edge fade under translucent bars on macOS 26+, no-op earlier.
     @ViewBuilder
     func softTopScrollEdge() -> some View {

@@ -20,8 +20,9 @@ struct ContentView: View {
             }
 
             NavigationSplitView {
+                // Wide enough for Sort, Search and the sidebar button side by side.
                 AppListView()
-                    .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
+                    .navigationSplitViewColumnWidth(min: 290, ideal: 300, max: 360)
             } detail: {
                 if let selectedID = viewModel.selectedAppID,
                    let app = viewModel.apps.first(where: { $0.id == selectedID }) {
@@ -33,6 +34,24 @@ struct ContentView: View {
                     emptyDetailView
                 }
             }
+        }
+        .plainWindowToolbar()
+        .overlay(alignment: .top) {
+            if viewModel.showingSearchPalette {
+                ZStack(alignment: .top) {
+                    // A click outside closes the palette.
+                    Color.black.opacity(0.001)
+                        .onTapGesture { viewModel.showingSearchPalette = false }
+                    SearchPalette()
+                        .padding(.top, 72)
+                }
+            }
+        }
+        .background {
+            // ⌘K opens search too; ⌘F is the View menu's item.
+            Button("") { viewModel.showingSearchPalette = true }
+                .keyboardShortcut("k", modifiers: .command)
+                .hidden()
         }
         .toolbar {
             ToolbarItem(placement: .automatic) {

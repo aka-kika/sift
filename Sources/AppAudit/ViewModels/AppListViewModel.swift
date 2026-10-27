@@ -21,6 +21,8 @@ final class AppListViewModel {
     /// App-wide flag for presenting the License Vault sheet (set from the toolbar
     /// menu or the macOS menu bar).
     var showingVault = false
+    /// The search palette (the toolbar's search button, ⌘F, ⌘K) is open.
+    var showingSearchPalette = false
     /// The What's new sheet's lines while it is shown (once after an update, or from Help).
     var whatsNewLines: [WhatsNew.Line]? = nil
 
@@ -82,6 +84,7 @@ final class AppListViewModel {
         case relevance = "Relevance"
         case updates = "Updates"
         case lastUsed = "Last Used"
+        case lastAdded = "Last Added"
         case name = "Name"
     }
 
@@ -120,15 +123,17 @@ final class AppListViewModel {
             case .relevance:
                 return (a.aiState.score ?? 0) > (b.aiState.score ?? 0)
             case .lastUsed:
-                return lastUsedIsOrderedBefore(a, b)
+                return Self.newestFirst(a.lastUsedDate, b.lastUsedDate, a, b)
+            case .lastAdded:
+                return Self.newestFirst(a.addedDate, b.addedDate, a, b)
             }
         }
     }
 
-    /// Most recently used first; apps Spotlight has never seen sort to the bottom,
-    /// then alphabetically for stability.
-    private func lastUsedIsOrderedBefore(_ a: AppInfo, _ b: AppInfo) -> Bool {
-        switch (a.lastUsedDate, b.lastUsedDate) {
+    /// Newest date first (last used, or last added); apps with no date sort
+    /// to the bottom, then alphabetically for stability.
+    static func newestFirst(_ dateA: Date?, _ dateB: Date?, _ a: AppInfo, _ b: AppInfo) -> Bool {
+        switch (dateA, dateB) {
         case let (da?, db?):
             if da == db {
                 return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
@@ -184,6 +189,19 @@ final class AppListViewModel {
     func setFilterFavorites(_ value: Bool) {
         filterFavorites = value
         reconcileSelectionWithCurrentFilter(selectFirstIfNeeded: true)
+    }
+
+    /// The palette's pick. An app hidden by a filter or the Updates list
+    /// brings the full list back first, so the selection shows in the sidebar.
+    func openFromSearch(appID: String) {
+        searchText = ""
+        if !filteredApps.contains(where: { $0.id == appID }) {
+            filterMyApps = false
+            filterFavorites = false
+            if sortOrder == .updates { sortOrder = .relevance }
+        }
+        selectedAppID = appID
+        showingSearchPalette = false
     }
 
     func clearFilters() {

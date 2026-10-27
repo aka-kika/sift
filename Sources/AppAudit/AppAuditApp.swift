@@ -158,6 +158,12 @@ struct AppAuditApp: App {
                 .keyboardShortcut("L", modifiers: [.command, .shift])
             }
             CommandGroup(after: .sidebar) {
+                Button("Search Apps…") {
+                    viewModel.showingSearchPalette = true
+                }
+                .keyboardShortcut("F", modifiers: .command)
+                .disabled(viewModel.apps.isEmpty)
+                Divider()
                 if developerMode {
                     Toggle("Filter: My Apps", isOn: Binding(
                         get: { viewModel.filterMyApps },

@@ -112,3 +112,59 @@ private struct ListingClient: UpdateMetadataClient {
 
     func redirectLocation(for url: URL) async throws -> URL? { nil }
 }
+
+private func app(_ name: String, added: Date? = nil, used: Date? = nil, myApp: Bool = false) -> AppInfo {
+    AppInfo(id: "/Applications/\(name).app", name: name, version: "1.0", bundleID: "com.example.\(name.lowercased())",
+            path: "/Applications/\(name).app", humanReadableDescription: nil, sparkleFeedURL: nil,
+            isAppStoreInstall: false, icon: nil, lastUsedDate: used, addedDate: added, isMyApp: myApp)
+}
+
+@Suite("Last Added sort")
+@MainActor
+struct LastAddedSortTests {
+    @Test("Newest added first, apps with no date last, then by name")
+    func newestFirst() {
+        let viewModel = AppListViewModel()
+        let now = Date()
+        viewModel.apps = [app("Old", added: now.addingTimeInterval(-86_400 * 30)),
+                          app("Zed"), app("New", added: now), app("Abe")]
+        viewModel.setSortOrder(.lastAdded)
+        #expect(viewModel.filteredApps.map(\.name) == ["New", "Old", "Abe", "Zed"])
+    }
+
+    @Test("The sort menu offers Last Added")
+    func inMenu() {
+        #expect(AppListViewModel.SortOrder.allCases.contains(.lastAdded))
+        #expect(AppListViewModel.SortOrder.lastAdded.rawValue == "Last Added")
+    }
+}
+
+@Suite("Search palette")
+@MainActor
+struct SearchPaletteTests {
+    @Test("Names starting with the query come first, then names containing it")
+    func ordering() {
+        let apps = [app("Docker"), app("Kartina"), app("Karabiner"), app("Sidekar")]
+        #expect(PaletteSearch.matches(in: apps, query: "kar").map(\.name) == ["Karabiner", "Kartina", "Sidekar"])
+        #expect(PaletteSearch.matches(in: apps, query: "  ").isEmpty)
+    }
+
+    @Test("At most eight results")
+    func limit() {
+        let apps = (1...20).map { app("App\($0)") }
+        #expect(PaletteSearch.matches(in: apps, query: "app").count == PaletteSearch.limit)
+    }
+
+    @Test("Opening an app hidden by a filter brings the full list back and selects it")
+    func opensHiddenApp() {
+        let viewModel = AppListViewModel()
+        viewModel.apps = [app("Mine", myApp: true), app("Other")]
+        viewModel.setFilterMyApps(true)
+        viewModel.showingSearchPalette = true
+        viewModel.openFromSearch(appID: "/Applications/Other.app")
+        #expect(viewModel.selectedAppID == "/Applications/Other.app")
+        #expect(!viewModel.filterMyApps)
+        #expect(!viewModel.showingSearchPalette)
+        #expect(viewModel.filteredApps.contains { $0.name == "Other" })
+    }
+}

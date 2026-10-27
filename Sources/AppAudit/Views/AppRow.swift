@@ -268,8 +268,16 @@ struct AppRow: View {
 
     private var subtitleText: String {
         let base = app.version.isEmpty ? app.bundleID : app.version
-        guard viewModel.sortOrder == .lastUsed else { return base }
-        return "\(base) · \(lastUsedText)"
+        switch viewModel.sortOrder {
+        case .lastUsed: return "\(base) · \(lastUsedText)"
+        case .lastAdded: return "\(base) · \(addedText)"
+        default: return base
+        }
+    }
+
+    private var addedText: String {
+        guard let date = app.addedDate else { return "Added date unknown" }
+        return "Added " + Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
     }
 
     private var lastUsedText: String {
@@ -435,18 +443,12 @@ struct ScoreBadgeView: View {
                 .scaleEffect(0.6)
                 .frame(width: 24, height: 24)
         case .loaded(_, let score, _, _):
-            ZStack {
-                Text("\(score)")
-                    .font(.caption.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(numeralColor(score))
-                    .frame(width: 24, height: 24)
-                    .background(pastelize(ScoreScale.color(score), colorScheme), in: Circle())
-                if isMyApp {
-                    Circle()
-                        .stroke(.purple, lineWidth: 2)
-                        .frame(width: 24, height: 24)
-                }
-            }
+            // No ring for My Apps: the hammer beside the name already marks them.
+            Text("\(score)")
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(numeralColor(score))
+                .frame(width: 24, height: 24)
+                .background(pastelize(ScoreScale.color(score), colorScheme), in: Circle())
         case .unavailable:
             Image(systemName: "brain.slash")
                 .font(.caption)

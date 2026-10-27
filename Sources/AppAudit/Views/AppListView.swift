@@ -45,13 +45,6 @@ struct AppListView: View {
             }
         }
         .navigationTitle("Sift")
-        .searchable(
-            text: Binding(
-                get: { viewModel.searchText },
-                set: { viewModel.setSearchText($0) }
-            ),
-            prompt: "Search apps"
-        )
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 Picker("Sort", selection: Binding(
@@ -64,34 +57,20 @@ struct AppListView: View {
                 }
                 .pickerStyle(.menu)
             }
+            // Rescan lives in the File menu (⌘R) only: one stray click here
+            // rescanned everything (Kika, 28 Oct). Search took its place.
             ToolbarItem(placement: .automatic) {
                 Button {
-                    Task { await viewModel.performScanShortcut() }
+                    viewModel.showingSearchPalette = true
                 } label: {
-                    Label(refreshButtonTitle, systemImage: "arrow.clockwise")
+                    Label("Search Apps", systemImage: "magnifyingglass")
                 }
-                .disabled(isRefreshButtonDisabled)
-                .help(AppListViewModel.ScanCommands.isBusy(viewModel.scanState)
-                      ? AppListViewModel.ScanCommands.busyReason
-                      : refreshButtonTitle)
+                .help("Search apps (⌘F or ⌘K)")
             }
         }
         .sheet(isPresented: $vm.showingVault) {
             LicenseVaultView(installedBundleIDs: Set(viewModel.apps.map(\.bundleID)))
         }
-    }
-
-    private var refreshButtonTitle: String {
-        if viewModel.sortOrder == .updates {
-            return viewModel.isRefreshingUpdates ? "Refreshing Updates" : "Refresh Updates"
-        }
-        return "Rescan"
-    }
-
-    private var isRefreshButtonDisabled: Bool {
-        AppListViewModel.ScanCommands.isBusy(viewModel.scanState) ||
-            viewModel.isRefreshingUpdates ||
-            (viewModel.sortOrder == .updates && viewModel.apps.isEmpty)
     }
 
     @ViewBuilder

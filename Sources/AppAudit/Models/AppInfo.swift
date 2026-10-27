@@ -39,6 +39,9 @@ struct AppInfo: Identifiable {
     let icon: SendableImage?
     let category: String?
     let lastUsedDate: Date?
+    /// When the app arrived in its folder (Spotlight's "Date Added"), for the
+    /// Last Added sort.
+    let addedDate: Date?
     let runtime: AppRuntime?
 
     var isRunning: Bool = false
@@ -73,6 +76,7 @@ struct AppInfo: Identifiable {
         icon: SendableImage?,
         category: String? = nil,
         lastUsedDate: Date? = nil,
+        addedDate: Date? = nil,
         runtime: AppRuntime? = nil,
         isRunning: Bool = false,
         aiState: AIState = .pending,
@@ -96,6 +100,7 @@ struct AppInfo: Identifiable {
         self.icon = icon
         self.category = category
         self.lastUsedDate = lastUsedDate
+        self.addedDate = addedDate
         self.runtime = runtime
         self.isRunning = isRunning
         self.aiState = aiState

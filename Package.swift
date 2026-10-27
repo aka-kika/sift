@@ -21,7 +21,12 @@ let package = Package(
             linkerSettings: [
                 // Sparkle.framework is embedded by Scripts/package_app.sh into
                 // Contents/Frameworks; the binary must look for it there.
-                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])
+                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"]),
+                // SwiftPM stamps the binary with the deployment target as its SDK
+                // (14.0), so macOS 26 drew Sift in its old style: a full-height
+                // sidebar with divider lines and a separate gray top bar
+                // (Kika, 28 Oct). Stamping SDK 26 opts into the macOS 26 window.
+                .unsafeFlags(["-Xlinker", "-platform_version", "-Xlinker", "macos", "-Xlinker", "14.0", "-Xlinker", "26.0"])
             ]
         ),
         .testTarget(

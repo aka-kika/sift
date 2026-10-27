@@ -125,6 +125,7 @@ actor AppScanner {
             icon: icon,
             category: category,
             lastUsedDate: lastUsedDate(forPath: path),
+            addedDate: addedDate(forPath: path),
             runtime: AppRuntimeDetector.detect(bundlePath: path, infoPlist: plist as? [String: Any] ?? [:]),
             isRunning: runningBundleIDs.contains(bundleID)
         )
@@ -142,5 +143,16 @@ actor AppScanner {
             return nil
         }
         return value as? Date
+    }
+
+    /// When the bundle was added to its folder: Spotlight's Date Added, or the
+    /// bundle's creation date when Spotlight has none. An installer or a drag
+    /// to /Applications sets both; an in-place update keeps them.
+    private func addedDate(forPath path: String) -> Date? {
+        if let item = MDItemCreate(nil, path as CFString),
+           let value = MDItemCopyAttribute(item, kMDItemDateAdded) as? Date {
+            return value
+        }
+        return (try? FileManager.default.attributesOfItem(atPath: path))?[.creationDate] as? Date
     }
 }
