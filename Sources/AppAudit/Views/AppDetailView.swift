@@ -768,8 +768,9 @@ struct AppDetailView: View {
 
     private var favoriteCard: some View {
         let fav = app.isFavorite
-        return UtilityCard(tint: .pink, active: fav, action: { toggleFavorite() }) {
-            cardIcon(fav ? "star.fill" : "star", tint: fav ? .pink : .secondary)
+        // Yellow, like the star beside the name in the list and the header.
+        return UtilityCard(tint: .yellow, active: fav, action: { toggleFavorite() }) {
+            cardIcon(fav ? "star.fill" : "star", tint: fav ? .yellow : .secondary)
         }
         .help(fav ? "Favorite — click to unmark" : "Mark as favorite")
     }
@@ -787,7 +788,7 @@ struct AppDetailView: View {
         return UtilityCard(tint: .teal, active: hasDocs && enabled, disabled: !enabled, action: {
             if hasDocs { refreshDocs() } else { attachDocsFolder() }
         }) {
-            cardIcon("doc.text", tint: (hasDocs && enabled) ? .teal : .secondary)
+            cardIcon("folder.fill.badge.plus", tint: (hasDocs && enabled) ? .teal : .secondary)
         }
         .help(enabled ? docsHelp : "Mark this as My App (the hammer) to attach a project folder")
         .contextMenu {
@@ -795,7 +796,7 @@ struct AppDetailView: View {
             Button {
                 attachDocsFolder()
             } label: {
-                Label(hasDocs ? "Change Folder…" : "Attach Project Folder…", systemImage: "folder")
+                Label(hasDocs ? "Change Folder…" : "Attach Project Folder…", systemImage: "folder.badge.plus")
             }
             if hasDocs {
                 Button {
@@ -1585,16 +1586,19 @@ struct EditDescriptionSheet: View {
                 .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
                 .focused($focused)
 
+            // One order in every sheet: Clear on the left, Cancel and Save on the right.
             HStack {
-                Button("Cancel") { onDone(false) }
-                    .keyboardShortcut(.escape)
-                Spacer()
                 Button("Clear") { draft = ""; onDone(true) }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
+                    .help("Remove your description and close")
+                Spacer()
+                Button("Cancel") { onDone(false) }
+                    .keyboardShortcut(.cancelAction)
                 Button("Save") { onDone(true) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.borderedProminent)
+                    .help("Save (⌘↩)")
             }
         }
         .padding(20)
@@ -1627,6 +1631,8 @@ struct EditURLSheet: View {
             TextField("https://github.com/author/repo", text: $draft)
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
+                // One line, so plain Return saves too.
+                .onSubmit { if isValidURL { onDone(true) } }
 
             if !isValidURL {
                 Text("Enter a web link, like github.com/author/repo")
@@ -1635,16 +1641,18 @@ struct EditURLSheet: View {
             }
 
             HStack {
-                Button("Cancel") { onDone(false) }
-                    .keyboardShortcut(.escape)
-                Spacer()
                 Button("Clear") { draft = ""; onDone(true) }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
+                    .help("Remove the link and close")
+                Spacer()
+                Button("Cancel") { onDone(false) }
+                    .keyboardShortcut(.cancelAction)
                 Button("Save") { onDone(true) }
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.borderedProminent)
                     .disabled(!isValidURL)
+                    .help("Save (⌘↩ or ↩)")
             }
         }
         .padding(20)
