@@ -31,7 +31,7 @@ Kika's polish round of 28 October.
 
 <!-- SF Symbol: paintbrush -->
 ### Changed
-- Rescan left the toolbar, where one stray click rescanned everything; File > Rescan (`⌘R`) stays.
+- Rescan left the toolbar and the "No App Selected" screen, where one stray click rescanned everything; File > Rescan (`⌘R`) stays.
 - One star color: the Favorite card is yellow, like the star beside the name.
 - My App ratings lost their purple ring; the hammer beside the name marks them.
 - The project folder card shows a folder with a plus.

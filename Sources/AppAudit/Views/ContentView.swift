@@ -191,16 +191,12 @@ struct ContentView: View {
                     }
                 }
             } else {
+                // No Rescan button here: one stray click rescanned everything
+                // (Kika, 28 Oct). File > Rescan (⌘R) stays.
                 ContentUnavailableView {
                     Label("No App Selected", systemImage: "app.badge")
                 } description: {
                     Text("Choose an app from the sidebar to inspect its analysis, notes, links, and update status.")
-                } actions: {
-                    Button {
-                        Task { await viewModel.runFullScan() }
-                    } label: {
-                        Label("Rescan", systemImage: "arrow.clockwise")
-                    }
                 }
             }
         }
