@@ -2,7 +2,7 @@
 title: The sidebar's top bar and the detail header don't line up
 date: 2026-10-28
 kind: polish
-status: new
+status: done
 ---
 
 ## What Kika said

@@ -7,7 +7,7 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # Sift — Privacy & Permissions
 
-**Updated:** 2026-10-25 · **Version:** 1.12.5
+**Updated:** 2026-10-28 · **Version:** 1.13.0
 
 ## In one line
 

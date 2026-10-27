@@ -1,6 +1,6 @@
 # Sift — User and Developer Guide
 
-**Version 1.12.5** · macOS 14+ · Apple Silicon
+**Version 1.13.0** · macOS 14+ · Apple Silicon
 
 A native macOS app that audits your installed applications with a local model.
 For every app on your Mac, Sift answers three questions:
@@ -34,7 +34,7 @@ ollama serve
 ollama pull llama3.2
 ```
 
-Open `Sift-1.12.5.dmg`, drag Sift to Applications, launch it. Sift scans
+Open `Sift-1.13.0.dmg`, drag Sift to Applications, launch it. Sift scans
 `/Applications` and `~/Applications` and analyzes each app with the selected
 provider. Results are cached, so later launches are instant.
 
@@ -44,14 +44,19 @@ provider. Results are cached, so later launches are instant.
 
 A sidebar of your apps, a detail pane for the selected one.
 
-**Sidebar** — search field, a **Sort** picker in the toolbar, and a Rescan
-button. Each row shows the icon, name, version, a score badge, and small badges
+**Sidebar** — a **Sort** picker and a **Search** button in the toolbar. Rescan
+lives in the File menu (`⌘R`), so a stray click never rescans everything. Each row shows the icon, name, version, a score badge, and small badges
 for what's true of that app: favorite, My App, and one **license badge** that
 mirrors the detail view's License cube exactly (same glyph, same colour).
 
-**Sort** — Relevance (highest first), Updates (only apps with one; the Rescan
-button becomes Refresh Updates), Last Used (most recent first; apps macOS has no
-record for sort last as "Never used"), or Name.
+**Sort** — Relevance (highest first), Updates (only apps with one; `⌘R`
+refreshes updates there), Last Used (most recent first; apps macOS has no
+record for sort last as "Never used"), Last Added (newest installed first), or Name.
+
+**Search** — the toolbar's magnifying glass, `⌘F` or `⌘K` opens a small search
+box near the top of the window. Type part of a name, pick with the arrow keys,
+Return opens the app, Escape closes. An app hidden by a filter or the Updates
+list brings the full list back.
 
 **Filter** — under the View menu: **Favorites**, plus **My Apps** when Developer
 Mode is on. Filters apply on top of the current sort.
@@ -285,6 +290,7 @@ Favorite, Subscription, sub price / cycle / renewal, source, paid, and notes.
 
 | Shortcut | Action |
 |---|---|
+| `⌘F` or `⌘K` | Search apps |
 | `⌘R` | Rescan apps (Refresh Updates in the Updates sort) |
 | `⇧⌘R` | Re-analyze all apps |
 | `⌘E` | Export to CSV |

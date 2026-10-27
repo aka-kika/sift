@@ -2,7 +2,7 @@
 title: Docs: PROJECT.md still says 1.12.4
 date: 2026-10-25
 kind: polish
-status: new
+status: done
 ---
 
 ## Docs check at the coordinator wrap (25 Oct)

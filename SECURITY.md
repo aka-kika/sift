@@ -10,8 +10,8 @@ Style: no emojis. Monochrome.
 
 | Version | Supported |
 |---|---|
-| 1.12.x | Yes |
-| < 1.12 | No — update to the [latest release](https://sift.akakika.com/Sift.dmg) |
+| 1.13.x | Yes |
+| < 1.13 | No — update to the [latest release](https://sift.akakika.com/Sift.dmg) |
 
 Sift ships as a Developer ID–signed, Apple-notarized DMG. Only builds obtained
 from [sift.akakika.com](https://sift.akakika.com/Sift.dmg) (or delivered by its

@@ -20,7 +20,7 @@ Use this for internal testing. It is ad-hoc signed and not notarization-ready.
 
 ```bash
 bash Scripts/make_dmg.sh
-hdiutil verify Sift-1.12.5.dmg
+hdiutil verify Sift-1.13.0.dmg
 ```
 
 The DMG includes a polished Finder layout, the app icon, an Applications drop link, and a custom icon on the `.dmg` file itself.
@@ -40,10 +40,10 @@ Confirm the app is signed with hardened runtime:
 ```bash
 codesign --verify --deep --strict --verbose=2 Sift.app
 codesign -dv --verbose=4 Sift.app
-codesign --verify --verbose=2 Sift-1.12.5.dmg
+codesign --verify --verbose=2 Sift-1.13.0.dmg
 spctl --assess --type execute --verbose=4 Sift.app
-spctl --assess --type open --context context:primary-signature --verbose=4 Sift-1.12.5.dmg
-hdiutil verify Sift-1.12.5.dmg
+spctl --assess --type open --context context:primary-signature --verbose=4 Sift-1.13.0.dmg
+hdiutil verify Sift-1.13.0.dmg
 ```
 
 ## 4. Notarize
@@ -51,7 +51,7 @@ hdiutil verify Sift-1.12.5.dmg
 Submit the DMG after Developer ID signing passes.
 
 ```bash
-xcrun notarytool submit Sift-1.12.5.dmg \
+xcrun notarytool submit Sift-1.13.0.dmg \
   --keychain-profile "AC_PASSWORD" \
   --wait
 ```
@@ -59,9 +59,9 @@ xcrun notarytool submit Sift-1.12.5.dmg \
 Staple and verify:
 
 ```bash
-xcrun stapler staple Sift-1.12.5.dmg
-xcrun stapler validate Sift-1.12.5.dmg
-spctl --assess --type open --verbose=4 Sift-1.12.5.dmg
+xcrun stapler staple Sift-1.13.0.dmg
+xcrun stapler validate Sift-1.13.0.dmg
+spctl --assess --type open --verbose=4 Sift-1.13.0.dmg
 ```
 
 ## 5. Sparkle self-update (since 1.9.0)

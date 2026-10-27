@@ -49,7 +49,7 @@ itself through Sparkle. Ships as a Developer ID–signed, notarized DMG.
 - `Sources/AppAudit/Models/` — AppRecord (@Model), AppInfo, LicenseType, UtilityCardRules
 
 ## Status
-`shipped` — v1.12.4 live (2026-10-20): 28 of 29 findings of the 20 Oct review fixed; cloud API keys live in the login keychain. Free during the beta. Next (1.13): analysis without setup (Apple Intelligence or a small model), then real in-place updates.
+`shipped` — v1.12.5 live (2026-10-25); v1.13.0 prepared 2026-10-28 (Kika's polish round: App Store descriptions read from Apple's lookup, search palette, Last Added, the macOS 26 window), released on Kika's yes. Free during the beta. Next (1.14): analysis without setup (Apple Intelligence or a small model), then real in-place updates.
 
 ## Key paths
 - **entry**: `Sources/AppAudit/AppAuditApp.swift`

@@ -14,7 +14,7 @@ Sift is a native SwiftUI app for macOS that inventories installed applications, 
 [![Apple Silicon](https://img.shields.io/badge/arch-Apple%20Silicon-black?style=flat-square)](#requirements)
 [![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-SwiftData-0071e3?style=flat-square)](https://developer.apple.com/xcode/swiftui/)
-[![Version](https://img.shields.io/badge/release-1.12.5-success?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/release-1.13.0-success?style=flat-square)](CHANGELOG.md)
 [![Notarized](https://img.shields.io/badge/Apple-notarized-success?style=flat-square)](docs/RELEASE.md)
 [![Local first](https://img.shields.io/badge/AI-local%20first-6E56CF?style=flat-square)](#privacy)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
@@ -83,7 +83,8 @@ Then it keeps the answers, so the second launch is instant and the audit becomes
 - 1–5 relevance score, explanation, best use, and the reason behind the score — all in one model call
 - Automatic workflow profile from your installed apps, with an optional override you write yourself
 - **Lock** an analysis to freeze it against rescans, model changes, and re-runs
-- Sort by relevance, updates, last used, or name; filter to favourites or your own apps
+- Sort by relevance, updates, last used, last added, or name; filter to favourites or your own apps
+- Search from a small palette (`⌘F` or `⌘K`)
 - Full audit **export to CSV** — licence keys are never included
 
 ### Money, in one place

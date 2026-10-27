@@ -2,7 +2,7 @@
 title: "What is this?" says the App Store listing has no description, when it has one
 date: 2026-10-28
 kind: bug
-status: new
+status: done
 ---
 
 ## What Kika said

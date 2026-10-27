@@ -12,7 +12,29 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 ## [Unreleased]
 
-Next up (1.13): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
+Next up (1.14): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
+
+## [1.13.0] — 2026-10-28
+
+Kika's polish round of 28 October.
+
+<!-- SF Symbol: wrench.and.screwdriver -->
+### Fixed
+- "What is this?" said an App Store app's listing gave no description (Localpage, and another App Store app), because the store's web page only carries "Download X on the App Store". The analysis now reads the developer's description from Apple's public lookup, by store number, in the link's storefront and then this Mac's region, and counts universal purchases. When no storefront has the app, the prompt says "not found" instead of letting the model call the listing empty.
+- The sidebar's top bar and the detail header did not meet in one straight line, and dark divider lines split the window. The binary named the macOS 14 SDK, so macOS 26 drew Sift in its old style; it now names SDK 26 and gets the floating sidebar, and the toolbar hairline is hidden.
+- The description, link and notes sheets ordered their buttons differently. All three put Clear on the left and Cancel and Save on the right; plain Return saves a link.
+
+<!-- SF Symbol: sparkle -->
+### Added
+- Sort by **Last Added**, newest installed first.
+- **Search palette:** the toolbar's search button, `⌘F` or `⌘K` opens a small search box near the top; Return opens the app, Escape closes. It replaces the header search field.
+
+<!-- SF Symbol: paintbrush -->
+### Changed
+- Rescan left the toolbar, where one stray click rescanned everything; File > Rescan (`⌘R`) stays.
+- One star color: the Favorite card is yellow, like the star beside the name.
+- My App ratings lost their purple ring; the hammer beside the name marks them.
+- The project folder card shows a folder with a plus.
 
 ## [1.12.5] — 2026-10-25
 

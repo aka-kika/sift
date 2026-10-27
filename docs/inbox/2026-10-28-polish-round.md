@@ -2,7 +2,7 @@
 title: Polish round from Kika's evening with Sift (sort, icons, colors, rescan, search)
 date: 2026-10-28
 kind: polish
-status: new
+status: done
 ---
 
 Kika's words, one item each, with her screenshots (2026-10-28-shot-NN.png).

@@ -17,14 +17,14 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 ## Next
 
 <!-- SF Symbol: circle.lefthalf.filled -->
-- **1.13 — works out of the box.** Today the analysis needs Ollama or an API
+- **1.14 — works out of the box.** Today the analysis needs Ollama or an API
   key, and a first-time user meets that as a wall (a reader said so, and the
   site did not even mention it until 1.12.0). First focus of the next version:
   an engine that needs no setup — Apple Intelligence (the on-device Foundation
   Models), or a small model that ships with or is fetched by the app. The Apple
   Intelligence engine was removed in the 1.3.x "Ollama-first" edition; bringing
   it back is a fresh decision, not a revert — write the ADR first.
-- **1.13 — real in-place updates.** 1.12.0 opens a Sparkle app so it updates
+- **1.14 — real in-place updates.** 1.12.0 opens a Sparkle app so it updates
   itself. The real thing: download, verify the EdDSA signature and the
   developer's Team ID, quit the app gently (never force), move the old copy to
   the Trash as the rollback, swap the new one in, relaunch. zip and dmg only;

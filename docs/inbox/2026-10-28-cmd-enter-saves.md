@@ -2,7 +2,7 @@
 title: Notes and App link sheets: one button order
 date: 2026-10-28
 kind: polish
-status: new
+status: done
 ---
 
 ## What Kika said
