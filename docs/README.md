@@ -224,7 +224,8 @@ results came from a different model.
 
 ### Updates
 
-For App Store apps, apps with a Sparkle appcast, and Homebrew casks, Sift checks
+For App Store apps, apps with a Sparkle appcast, Homebrew casks, and GitHub
+releases (when the saved app link is a GitHub repo), Sift checks
 whether a newer version exists. The row offers the update action or **Mark
 Updated** to acknowledge it. Homebrew updates can run `brew upgrade --cask` or
 copy the command.
@@ -333,8 +334,8 @@ Data           SwiftData (AppRecord) + Keychain (keys) + UserDefaults (settings)
 
 Pure rules live in `Models/` as plain enums and structs so they can be unit
 tested without a view: `MoneyCubeState`, `UtilityCardRules`, `LicenseDraftRules`,
-`AppFacts`, `VaultLink`, `UninstallRules`, `LeftoverMatcher`. 307 tests across
-90 suites cover them and the services.
+`AppFacts`, `VaultLink`, `UninstallRules`, `LeftoverMatcher`. 448 tests across
+148 suites cover them and the services.
 
 ### Key files
 

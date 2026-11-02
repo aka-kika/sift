@@ -1,12 +1,12 @@
 ---
 project: Sift
 slug: sift
-path: /Users/kika_hub/Documents/Agents-hubs/GITHUB/sift
+path: /Users/kika_hub/Documents/PROJECTS/98_SHIPED/sift
 obsidian_log: N/A
 status: shipped
 tags: [macos, swiftui, app-audit]
 created: 2026-06-17
-updated: 2026-08-27
+updated: 2026-10-28
 ---
 
 # Sift

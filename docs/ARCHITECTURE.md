@@ -42,7 +42,7 @@ App Launch
               → ViewModel updates app in place → SwiftUI re-renders row
 
 Background side tasks:
-- `UpdateChecker` checks App Store and Sparkle update state
+- `UpdateChecker` checks App Store, Homebrew, Sparkle, and GitHub release update state
 - `AppLinkResolver` suggests missing app links from App Store lookup or Sparkle appcast metadata
 - `UpdateService` (Sparkle 2) checks Sift's own feed once a day — see Self-update below
 ```
@@ -75,7 +75,7 @@ folder so data carries across the Sift rename, and the `Sift2` side-build uses `
 
 `AppRecord` stores AI results + user edits. Fields added after initial release use `= default` values for zero-migration-plan schema evolution.
 
-License keys are stored in macOS Keychain via `LicenseKeyStore` with device-bound accessibility, under a bundle-ID-derived service name. SwiftData keeps a migration bridge field; a one-time launch sweep purges any legacy plaintext into the Keychain. `AppRecord.hasLicenseKey` powers the License Vault.
+License keys are stored in macOS Keychain via `LicenseKeyStore` with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. The login keychain does not honor that flag, so a key is not locked to this Mac. The service name comes from the bundle ID. SwiftData keeps a migration bridge field; a one-time launch sweep purges any legacy plaintext into the Keychain. `AppRecord.hasLicenseKey` powers the License Vault.
 
 Manual `appURL` values are preserved. Automatic link discovery writes `suggestedAppURL`, which only **prefills the editable link field** — it becomes analysis context when the user saves it (no separate approval step).
 

@@ -6,13 +6,13 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 
 # Sift — Roadmap
 
-**Updated:** 2026-10-20 · **Current version:** 1.12.4
+**Updated:** 2026-10-28 · **Current version:** 1.13.0
 
 ## Now
 
 <!-- SF Symbol: circle.fill -->
-- **Free beta** — Sift is free while downloads are counted for 14 days from the
-  1.10.0 launch. Bug fixes found by living in the app land in `[Unreleased]`.
+- **Free beta** — Sift is still free during the beta. The 14-day count from the
+  1.10.0 launch (2026-08-27) ended on 2026-09-10. Pricing is still undecided. Bug fixes found by living in the app land in `[Unreleased]`.
 
 ## Next
 
@@ -34,8 +34,8 @@ Style: no emojis. Monochrome. SF Symbol names noted in comments, not rendered.
 - **Receipt extraction** — drop an invoice PDF onto an app and backfill the
   subscription and licence fields from it. Spec ready to build:
   [docs/specs/receipt-extraction.md](specs/receipt-extraction.md).
-- **Pricing decision** — after the 14-day free beta: stay free, one-time, or
-  something else. Decided on the download count, not before.
+- **Pricing decision** — still open. The README and the site still say free during
+  the beta. The 14-day count from the 1.10.0 launch ended on 2026-09-10.
 
 ## Later
 

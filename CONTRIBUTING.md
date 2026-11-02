@@ -51,8 +51,8 @@ match than to describe. The load-bearing conventions:
 ## Tests
 
 `swift test` must pass. New behaviour with a decision in it needs a test — the
-pure models exist precisely so this is cheap. As of 1.8.0 there are 133 tests
-across 35 suites; that number should go up.
+pure models exist precisely so this is cheap. As of 1.13.0 there are 448 tests
+across 148 suites; that number should go up.
 
 ## Commits and pull requests
 

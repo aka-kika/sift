@@ -93,14 +93,14 @@ updating, and which licenses and subscriptions you're paying for.
   - **App Link** shows a corner notification dot when a suggestion is available; once set, the icon reflects the host (a code glyph for GitHub/GitLab/…, a globe for websites) and clicking opens it.
   - **My App cube** (hammer, Developer Mode): mark an app as one you build.
   - **Docs cube** (Developer Mode): for **My Apps only**, attach an app's local **project folder** and Sift reads its README (and notes which manifest files are present) as primary evidence — grounding analysis for your own apps with private or no public repo, fully offline. Tap to attach, tap again to refresh after you edit the README, right-click to change/reveal/remove. Attaching, refreshing, or removing re-runs the analysis.
-  - **Developer Mode** (Settings → Scanning) gates all My App UI — the hammer and docs cubes, sidebar hammer badges, and the My Apps filter. Off by default; marks are kept either way.
+  - **Developer Mode** (Settings → General) gates all My App UI — the hammer and docs cubes, sidebar hammer badges, and the My Apps filter. Off by default; marks are kept either way.
   - Cards **gray out when they cannot apply** — license & subscription for **Free apps** (the explicit opposite of Paid) and **My Apps**, subscription also under a **Lifetime**/**One-time** license — always explaining why in the tooltip, never deleting stored data.
 - **Find similar apps you have**: a button under the recommendation asks the current model which of your *other installed apps* overlap in function. The model only ever sees a numbered list of your apps and can only pick from it, so results are grounded — no invented apps or dead links. Results are compact rows (icon + name + short reason); click one to jump to that app.
 
 ## Notes
 
 - Free-form per-app notes — when you installed it, whether to keep it, etc. Preserved across re-analyses.
-- Per-app notes feed the AI analysis as personal-usage evidence — write "I use this for x y z" and the next analysis (auto-triggered when you close the notes editor) scores and recommends around how *you* actually use the app. Locked analyses just keep the note for the next manual run.
+- Per-app notes feed the AI analysis as personal-usage evidence — write "I use this for x y z" and the next analysis (runs when you press Save or Clear; Cancel and Escape change nothing) scores and recommends around how *you* actually use the app. Locked analyses just keep the note for the next manual run.
 
 ## Privacy & data
 

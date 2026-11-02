@@ -60,7 +60,7 @@ Out of scope:
 
 ## Design notes worth knowing before you test
 
-- Licence keys are stored with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` and a Keychain service derived from the bundle ID — side-builds cannot read the primary app's keys.
+- Licence keys are stored with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. The login keychain does not honor that flag, so a key is not locked to this Mac. Side-builds cannot read the primary app's keys because the Keychain service comes from the bundle ID.
 - Sift is **not sandboxed**; it reads `/Applications`, `~/Applications`, and user-level Library folders in order to do its job. See [docs/privacy.md](docs/privacy.md).
 - The uninstall sweep moves to the Trash only. Apple system apps (`com.apple.*`) and Sift itself are refused.
 - Root-owned bundles are handed to Finder by Apple Event rather than escalated in-process; the reasoning is in [ADR 0003](docs/decisions/0003-finder-does-privileged-trash-moves.md).
