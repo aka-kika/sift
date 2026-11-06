@@ -15,3 +15,5 @@
 # Vercel CLI link state
 .vercel/
 !site/downloads/*.dmg
+IDEAS.md
+docs/inbox/
