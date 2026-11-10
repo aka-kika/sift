@@ -14,7 +14,9 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 Next up (1.14): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 
-The 10 November review fixes.
+## [1.13.1] — 2026-11-10
+
+Fixes from the 10 November review (Fable and DeepSeek) and the Goose update report.
 
 <!-- SF Symbol: wrench.and.screwdriver -->
 ### Fixed
