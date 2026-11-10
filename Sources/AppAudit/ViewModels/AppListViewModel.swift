@@ -425,7 +425,9 @@ final class AppListViewModel {
                     let isLocked = self.apps[idx].isAnalysisLocked ||
                         self.cacheService?.load(bundleID: bundleID)?.isAnalysisLocked == true
 
-                    if !isLocked {
+                    if isLocked {
+                        self.restoreSavedAnalysis(bundleID: bundleID)
+                    } else {
                         self.update(bundleID: bundleID) { $0.aiState = state }
 
                         if case .loaded(let explanation, let score, let reason, let bestUse) = state,
@@ -760,6 +762,8 @@ final class AppListViewModel {
         guard let idx = apps.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         guard cacheService?.load(bundleID: bundleID)?.isAnalysisLocked != true,
               !apps[idx].isAnalysisLocked else {
+            // Locked while it ran: the result is dropped, the saved one shows.
+            restoreSavedAnalysis(bundleID: bundleID)
             return
         }
         update(bundleID: bundleID) { $0.aiState = result.1 }
@@ -858,6 +862,15 @@ final class AppListViewModel {
         scanState = .done
         staleModelCount = 0
         runQueuedReanalysis()
+    }
+
+    /// Puts the saved analysis back after a run was dropped for a lock.
+    private func restoreSavedAnalysis(bundleID: String) {
+        let record = cacheService?.load(bundleID: bundleID)
+        update(bundleID: bundleID) {
+            $0.aiState = .saved(explanation: record?.explanation, score: record?.relevanceScore ?? 0,
+                                reason: record?.relevanceReason ?? "", bestUse: record?.bestUse)
+        }
     }
 
     private func runQueuedReanalysis() {

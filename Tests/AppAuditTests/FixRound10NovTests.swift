@@ -158,3 +158,27 @@ struct StorefrontUpdateCheckTests {
         #expect(link?.url.contains("id42") == true)
     }
 }
+
+@Suite("Locking during a re-analyze shows the saved analysis, not a spinner (b3b1)")
+struct LockedReanalysisStateTests {
+    @Test("A saved analysis comes back as loaded")
+    func savedComesBack() {
+        guard case .loaded(let explanation, let score, _, let bestUse) =
+                AppInfo.AIState.saved(explanation: "Edits photos.", score: 4, reason: "fits", bestUse: nil) else {
+            Issue.record("expected the saved analysis"); return
+        }
+        #expect(explanation == "Edits photos.")
+        #expect(score == 4)
+        #expect(bestUse == "")
+    }
+
+    @Test("No saved analysis means pending, never loading")
+    func nothingSaved() {
+        if case .pending = AppInfo.AIState.saved(explanation: nil, score: 0, reason: "", bestUse: nil) {} else {
+            Issue.record("expected pending")
+        }
+        if case .pending = AppInfo.AIState.saved(explanation: "", score: 0, reason: "", bestUse: nil) {} else {
+            Issue.record("expected pending")
+        }
+    }
+}

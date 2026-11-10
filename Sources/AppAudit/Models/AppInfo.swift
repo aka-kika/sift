@@ -117,6 +117,14 @@ struct AppInfo: Identifiable {
         case loading
         case loaded(explanation: String, score: Int, reason: String, bestUse: String)
         case unavailable(String)
+
+        /// What the saved record shows: its analysis, or nothing yet. Used when
+        /// a running analysis is dropped because the app was locked meanwhile,
+        /// so the spinner it started does not stay on.
+        static func saved(explanation: String?, score: Int, reason: String, bestUse: String?) -> AIState {
+            guard let explanation, !explanation.isEmpty else { return .pending }
+            return .loaded(explanation: explanation, score: score, reason: reason, bestUse: bestUse ?? "")
+        }
     }
 
     enum UpdateSource: String, Sendable {
