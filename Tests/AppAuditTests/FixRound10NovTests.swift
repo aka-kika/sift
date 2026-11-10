@@ -118,3 +118,43 @@ struct CaskTokenFromReceiptTests {
                                             installedCasks: ["firefox"], receiptIndex: index) == "firefox")
     }
 }
+
+private final class CannedUpdateClient: UpdateMetadataClient, @unchecked Sendable {
+    private let responses: [String: Data]
+    init(_ responses: [String: String]) { self.responses = responses.mapValues { Data($0.utf8) } }
+    func data(for url: URL) async throws -> Data {
+        guard let data = responses[url.absoluteString] else { throw URLError(.badServerResponse) }
+        return data
+    }
+    func redirectLocation(for url: URL) async throws -> URL? { nil }
+}
+
+@Suite("The App Store update check asks this Mac's storefront too (b3b1)")
+struct StorefrontUpdateCheckTests {
+    private static let bundleID = "com.example.LocalOnly"
+    private static let empty = #"{"resultCount":0,"results":[]}"#
+    private static let ilAnswer = #"{"resultCount":1,"results":[{"bundleId":"com.example.LocalOnly","trackId":42,"version":"2.0","trackViewUrl":"https://apps.apple.com/il/app/local-only/id42"}]}"#
+
+    @Test("The US store first, then the Mac's region; no repeat for a US Mac")
+    func lookupOrder() {
+        let il = UpdateChecker.appStoreLookupURLs(for: Self.bundleID, region: "IL").map(\.absoluteString)
+        #expect(il.count == 2)
+        #expect(!il[0].contains("country="))
+        #expect(il[1].contains("country=il"))
+        #expect(UpdateChecker.appStoreLookupURLs(for: Self.bundleID, region: "US").count == 1)
+        #expect(UpdateChecker.appStoreLookupURLs(for: Self.bundleID, region: nil).count == 1)
+    }
+
+    @Test("An app not sold in the US store gets its update from the Mac's storefront")
+    func regionOnlyApp() async throws {
+        let urls = UpdateChecker.appStoreLookupURLs(for: Self.bundleID, region: "IL")
+        let client = CannedUpdateClient([urls[0].absoluteString: Self.empty, urls[1].absoluteString: Self.ilAnswer])
+        let app = AppInfo(id: Self.bundleID, name: "Local Only", version: "1.0", bundleID: Self.bundleID,
+                          path: "/Applications/Local Only.app", humanReadableDescription: nil,
+                          sparkleFeedURL: nil, isAppStoreInstall: true, icon: nil)
+        let state = await UpdateChecker(client: client, region: "IL").check(app: app)
+        #expect(state.isUpdateAvailable)
+        let link = await AppLinkResolver(client: client, region: "IL").resolve(app: app)
+        #expect(link?.url.contains("id42") == true)
+    }
+}

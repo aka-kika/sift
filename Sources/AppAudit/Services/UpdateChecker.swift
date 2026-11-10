@@ -88,9 +88,13 @@ actor UpdateChecker {
     private let client: any UpdateMetadataClient
     private let homebrew = HomebrewService()
     private var outdatedCasksCache: HomebrewOutdatedAnswer?
+    /// This Mac's storefront region, asked after the default (US) store.
+    private let region: String?
 
-    init(client: any UpdateMetadataClient = LiveUpdateMetadataClient()) {
+    init(client: any UpdateMetadataClient = LiveUpdateMetadataClient(),
+         region: String? = Locale.current.region?.identifier) {
         self.client = client
+        self.region = region
     }
 
     func resetHomebrewCache() {
@@ -182,15 +186,16 @@ actor UpdateChecker {
         return .unavailable
     }
 
+    /// The default (US) store first, then this Mac's region: an app not sold
+    /// in the US store is answered by the user's own storefront.
     private func fetchAppStoreMetadata(bundleID: String) async -> UpdateMetadata? {
-        guard let lookupURL = Self.appStoreLookupURL(for: bundleID) else { return nil }
-
-        do {
-            let data = try await client.data(for: lookupURL)
-            return try Self.parseAppStoreMetadata(from: data, preferredBundleID: bundleID, systemVersion: Self.currentSystemVersion)
-        } catch {
-            return nil
+        for lookupURL in Self.appStoreLookupURLs(for: bundleID, region: region) {
+            guard let data = try? await client.data(for: lookupURL),
+                  let metadata = try? Self.parseAppStoreMetadata(from: data, preferredBundleID: bundleID,
+                                                                 systemVersion: Self.currentSystemVersion) else { continue }
+            return metadata
         }
+        return nil
     }
 
     private func fetchSparkleFeed(feedURLString: String?) async -> SparkleFeedAnswer? {
@@ -263,13 +268,25 @@ actor UpdateChecker {
         return result.caseInsensitiveCompare(installed) == .orderedSame
     }
 
-    static func appStoreLookupURL(for bundleID: String) -> URL? {
+    static func appStoreLookupURL(for bundleID: String, country: String? = nil) -> URL? {
         var components = URLComponents(string: "https://itunes.apple.com/lookup")
-        components?.queryItems = [
+        var items = [
             URLQueryItem(name: "bundleId", value: bundleID),
             URLQueryItem(name: "entity", value: "macSoftware")
         ]
+        if let country { items.append(URLQueryItem(name: "country", value: country)) }
+        components?.queryItems = items
         return components?.url
+    }
+
+    /// The lookups to try, in order: the default store (US), then this Mac's
+    /// region when it is another one, as `AppStoreListing.lookupURLs` does.
+    static func appStoreLookupURLs(for bundleID: String, region: String?) -> [URL] {
+        var countries: [String?] = [nil]
+        if let region = region?.lowercased(), region.count == 2, region != "us" {
+            countries.append(region)
+        }
+        return countries.compactMap { appStoreLookupURL(for: bundleID, country: $0) }
     }
 
     /// `https://github.com/owner/repo[/anything]` → that repo's `/releases/latest`

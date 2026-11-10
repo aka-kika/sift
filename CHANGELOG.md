@@ -22,6 +22,7 @@ The 10 November review fixes.
 - Typing in the API key field in Settings and clearing it again deleted the saved key when the field lost focus. An empty field now never removes a key; only Remove Key does.
 - In the License Vault, an app kept only for its subscription said "Paid", and its trash button did nothing. It now says Subscription, and the trash clears the subscription too.
 - Apps whose Homebrew cask has another name than the app (Goose, cask block-goose) never showed brew's updates, because Sift matched casks by name only. Sift now asks Homebrew's own install record first.
+- The App Store update check and the store-link guess asked the US store only, so an app not sold there never showed an update. They now ask this Mac's own storefront next.
 
 ## [1.13.0] — 2026-10-28
 

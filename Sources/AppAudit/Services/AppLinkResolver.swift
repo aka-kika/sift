@@ -12,9 +12,12 @@ actor AppLinkResolver {
     }
 
     private let client: any UpdateMetadataClient
+    private let region: String?
 
-    init(client: any UpdateMetadataClient = LiveUpdateMetadataClient()) {
+    init(client: any UpdateMetadataClient = LiveUpdateMetadataClient(),
+         region: String? = Locale.current.region?.identifier) {
         self.client = client
+        self.region = region
     }
 
     func resolve(app: AppInfo) async -> ResolvedLink? {
@@ -31,14 +34,12 @@ actor AppLinkResolver {
     }
 
     private func fetchAppStoreLink(bundleID: String) async -> String? {
-        guard let lookupURL = UpdateChecker.appStoreLookupURL(for: bundleID) else { return nil }
-
-        do {
-            let data = try await client.data(for: lookupURL)
-            return try Self.parseAppStoreLink(from: data, preferredBundleID: bundleID)
-        } catch {
-            return nil
+        for lookupURL in UpdateChecker.appStoreLookupURLs(for: bundleID, region: region) {
+            guard let data = try? await client.data(for: lookupURL),
+                  let link = try? Self.parseAppStoreLink(from: data, preferredBundleID: bundleID) else { continue }
+            return link
         }
+        return nil
     }
 
     private func fetchSparkleWebsite(feedURLString: String?) async -> String? {
