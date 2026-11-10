@@ -190,7 +190,7 @@ struct AppDetailView: View {
             lastUsed: app.lastUsedDate,
             now: Date(),
             installSource: app.installSourceLabel,
-            analyzedAt: record?.generatedAt,
+            analyzedAt: AppFacts.analyzedDate(generatedAt: record?.generatedAt, explanation: record?.explanation),
             builtWith: app.runtime
         )
         return VStack(alignment: .leading, spacing: 12) {

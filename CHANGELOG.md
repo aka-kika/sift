@@ -25,6 +25,7 @@ The 10 November review fixes.
 - The App Store update check and the store-link guess asked the US store only, so an app not sold there never showed an update. They now ask this Mac's own storefront next.
 - Locking an app's analysis while it was being re-analyzed left "Analyzing" spinning until the next rescan. The saved analysis now shows again.
 - After `brew uninstall` removed an app, Cancel (to keep its leftovers) left the removed app in the sidebar until the next rescan. It is dropped now.
+- The facts row said "Analyzed just now" for an app that was only favorited, locked or given a note, with no analysis yet. It shows a date only after a real analysis.
 
 ## [1.13.0] — 2026-10-28
 

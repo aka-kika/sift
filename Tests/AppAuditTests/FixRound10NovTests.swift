@@ -193,3 +193,15 @@ struct CancelAfterBrewTests {
         #expect(BrewUninstallFooter.action(homebrewRemovedTheApp: true, anythingChecked: true) == .moveToTrash)
     }
 }
+
+@Suite("No Analyzed date for an app that was never analyzed (b3b1)")
+struct AnalyzedDateTests {
+    @Test("A record holding only marks shows no Analyzed date")
+    func stubHasNone() {
+        let stub = AppRecord(stub: "com.example.app", appName: "Example")
+        #expect(AppFacts.analyzedDate(generatedAt: stub.generatedAt, explanation: stub.explanation) == nil)
+        let now = Date()
+        #expect(AppFacts.analyzedDate(generatedAt: now, explanation: "A notes app.") == now)
+        #expect(AppFacts.analyzedDate(generatedAt: nil, explanation: "A notes app.") == nil)
+    }
+}

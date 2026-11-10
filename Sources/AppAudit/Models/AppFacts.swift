@@ -37,6 +37,14 @@ enum AppFacts {
         return facts
     }
 
+    /// When the app was analyzed, or nil when it never was. A record made only
+    /// to hold a favorite, lock or note gets a `generatedAt` too, with no
+    /// analysis in it, so the date alone does not prove one ran.
+    static func analyzedDate(generatedAt: Date?, explanation: String?) -> Date? {
+        guard let generatedAt, let explanation, !explanation.isEmpty else { return nil }
+        return generatedAt
+    }
+
     static func sizeText(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
