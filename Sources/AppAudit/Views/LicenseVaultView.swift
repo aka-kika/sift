@@ -133,8 +133,14 @@ struct LicenseVaultView: View {
                 .help("Remove this key from the vault")
             } else {
                 let type = record.licenseType.flatMap(LicenseType.init(rawValue:))
-                let tint = type.map { MoneyCubeState.licensed($0).tint } ?? .green
-                Text(type?.displayName ?? paidLabel(for: record))
+                let label = VaultPurchase.label(licenseType: type, isPaidApp: record.isPaidApp,
+                                                hasSubscription: record.hasSubscription)
+                let tint: Color = switch label {
+                case .licenseType(let type): MoneyCubeState.licensed(type).tint
+                case .subscription: MoneyCubeState.subscription(renewalNear: false).tint
+                case .paid: .green
+                }
+                Text(purchaseText(label, for: record))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(tint)
                     .padding(.horizontal, 6)
@@ -177,6 +183,14 @@ struct LicenseVaultView: View {
 
     /// A keyless Paid mark can be on any app, so the Store is named only
     /// when the installed copy really came from it.
+    private func purchaseText(_ label: VaultPurchase.Label, for record: AppRecord) -> String {
+        switch label {
+        case .licenseType(let type): return type.displayName
+        case .subscription: return "Subscription"
+        case .paid: return paidLabel(for: record)
+        }
+    }
+
     private func paidLabel(for record: AppRecord) -> String {
         let fromStore = viewModel.apps.contains { $0.bundleID == record.bundleID && $0.isAppStoreInstall }
         return fromStore ? "Mac App Store · Paid" : "Paid"
@@ -209,13 +223,13 @@ struct LicenseVaultView: View {
         }
     }
 
-    /// Clears both traces of a keyless purchase — the Paid mark and the
-    /// license type — so one trash click actually removes the row.
+    /// Clears every trace of a keyless purchase (the Paid mark, the license
+    /// type and a subscription), so one trash click actually removes the row.
     private func removePurchase(_ record: AppRecord) {
-        record.isPaidApp = false
+        VaultPurchase.clear(record)
         viewModel.setPaidApp(bundleID: record.bundleID, value: false)
-        record.licenseType = nil
         viewModel.setLicenseType(bundleID: record.bundleID, rawValue: nil)
+        viewModel.setSubscription(bundleID: record.bundleID, value: false)
         modelContext.saveReportingFailure()
     }
 }

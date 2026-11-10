@@ -20,6 +20,7 @@ The 10 November review fixes.
 ### Fixed
 - Copy Key from the License cube's right-click menu opened an empty License panel after Touch ID, and Save there wiped the saved email, license type and subscription details. The key is copied and the panel comes back only when it was open before.
 - Typing in the API key field in Settings and clearing it again deleted the saved key when the field lost focus. An empty field now never removes a key; only Remove Key does.
+- In the License Vault, an app kept only for its subscription said "Paid", and its trash button did nothing. It now says Subscription, and the trash clears the subscription too.
 
 ## [1.13.0] — 2026-10-28
 

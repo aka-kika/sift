@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SwiftData
 @testable import Sift
 
 /// The 10 Nov review fixes (Runway card "Sift": 5d16, 5745, 380e, 5486, b3b1).
@@ -42,5 +43,37 @@ struct EmptiedAPIKeyFieldTests {
         field.update("   ")
         field.commit()
         #expect(backend.read(account: AnalysisProviderKind.gemini.apiKeyAccount) == "gem-saved")
+    }
+}
+
+@Suite("A subscription-only row in the License Vault (380e)")
+@MainActor
+struct VaultSubscriptionRowTests {
+    @Test("It reads as a subscription, not Paid")
+    func label() {
+        #expect(VaultPurchase.label(licenseType: nil, isPaidApp: false, hasSubscription: true) == .subscription)
+        #expect(VaultPurchase.label(licenseType: nil, isPaidApp: true, hasSubscription: false) == .paid)
+        #expect(VaultPurchase.label(licenseType: nil, isPaidApp: true, hasSubscription: true) == .paid)
+        #expect(VaultPurchase.label(licenseType: .annual, isPaidApp: false, hasSubscription: true) == .licenseType(.annual))
+    }
+
+    @Test("The trash removes it from the vault")
+    func trashRemovesRow() throws {
+        let container = try ModelContainer(for: AppRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let monthly = AppRecord(stub: "com.example.monthly", appName: "Monthly")
+        monthly.hasSubscription = true
+        monthly.subscriptionPrice = 9.99
+        monthly.subscriptionCycle = "monthly"
+        monthly.subscriptionEmail = "me@example.com"
+        context.insert(monthly)
+        try context.save()
+        #expect(try context.fetch(FetchDescriptor(predicate: VaultMembership.predicate)).count == 1)
+
+        VaultPurchase.clear(monthly)
+        try context.save()
+        #expect(try context.fetch(FetchDescriptor(predicate: VaultMembership.predicate)).isEmpty)
+        #expect(monthly.subscriptionPrice == nil)
+        #expect(monthly.subscriptionEmail == nil)
     }
 }

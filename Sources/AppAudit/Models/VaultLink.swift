@@ -11,6 +11,37 @@ enum VaultMembership {
     }
 }
 
+/// A keyless row in the License Vault: what its capsule says, and what its
+/// trash button clears. A subscription-only record is in the vault because of
+/// the subscription, so it reads as one and the trash clears it too;
+/// otherwise the row would say "Paid" and never leave.
+enum VaultPurchase {
+    enum Label: Equatable {
+        case licenseType(LicenseType)
+        case subscription
+        case paid
+    }
+
+    static func label(licenseType: LicenseType?, isPaidApp: Bool, hasSubscription: Bool) -> Label {
+        if let licenseType { return .licenseType(licenseType) }
+        if hasSubscription && !isPaidApp { return .subscription }
+        return .paid
+    }
+
+    /// Clears every trace that keeps a keyless record in the vault: the Paid
+    /// mark, the license type and the subscription with its details.
+    static func clear(_ record: AppRecord) {
+        record.isPaidApp = false
+        record.licenseType = nil
+        record.hasSubscription = false
+        record.subscriptionPrice = nil
+        record.subscriptionCurrency = nil
+        record.subscriptionCycle = nil
+        record.subscriptionRenewalDate = nil
+        record.subscriptionEmail = nil
+    }
+}
+
 /// Where the app name in the License Vault takes you. A vault entry often
 /// outlives the app itself, and the reason you kept it — the key, the receipt,
 /// the reinstall — usually lives on the maker's site. So the name is always a
