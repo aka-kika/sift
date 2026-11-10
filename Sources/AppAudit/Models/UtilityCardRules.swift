@@ -66,6 +66,16 @@ enum RevealedLicenseKey {
     }
 }
 
+/// Copy Key works from the License panel and from the cube's right-click menu.
+/// The Touch ID prompt closes the panel, so it is shown again only when it was
+/// open before: opened from the menu, its drafts were never filled from the
+/// record, and Save there would write the empty email and type over the saved ones.
+enum CopyKeyPanel {
+    static func reopensAfterCopy(panelWasOpen: Bool) -> Bool {
+        panelWasOpen
+    }
+}
+
 /// A first key typed for an app with no saved key, kept when the panel closes
 /// before Save so a click outside does not lose it. It comes back for that
 /// same app only. A revealed or replacing key is never kept.

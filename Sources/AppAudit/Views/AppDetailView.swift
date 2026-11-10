@@ -1143,11 +1143,15 @@ struct AppDetailView: View {
     }
 
     private func copyLicenseKey() {
+        // Read before the Touch ID prompt closes the panel.
+        let panelWasOpen = moneyPopoverPresented
         withTouchIDPrompt {
             guard await LicenseKeyGuard.authenticate(reason: "copy the license key for \(app.name)"),
                   let key = readLicenseKey() else { return }
             SecretClipboard.copy(key)
-            moneyPopoverPresented = true
+            if CopyKeyPanel.reopensAfterCopy(panelWasOpen: panelWasOpen) {
+                moneyPopoverPresented = true
+            }
         }
     }
 

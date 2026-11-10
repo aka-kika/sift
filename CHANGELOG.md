@@ -14,6 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com). Versioning: [SemVer](htt
 
 Next up (1.14): real in-place updates for Sparkle apps, and an analysis that works out of the box — Apple Intelligence or a small bundled model — so Sift does not need Ollama or a key to be useful. See `docs/roadmap.md`.
 
+The 10 November review fixes.
+
+<!-- SF Symbol: wrench.and.screwdriver -->
+### Fixed
+- Copy Key from the License cube's right-click menu opened an empty License panel after Touch ID, and Save there wiped the saved email, license type and subscription details. The key is copied and the panel comes back only when it was open before.
+
 ## [1.13.0] — 2026-10-28
 
 Kika's polish round of 28 October.
