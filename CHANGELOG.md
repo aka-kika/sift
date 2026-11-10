@@ -26,6 +26,7 @@ The 10 November review fixes.
 - Locking an app's analysis while it was being re-analyzed left "Analyzing" spinning until the next rescan. The saved analysis now shows again.
 - After `brew uninstall` removed an app, Cancel (to keep its leftovers) left the removed app in the sidebar until the next rescan. It is dropped now.
 - The facts row said "Analyzed just now" for an app that was only favorited, locked or given a note, with no analysis yet. It shows a date only after a real analysis.
+- A saved link to a big file (a .dmg) was downloaded in full on every analysis before Sift kept its first 128 KB. Pages now stop at 128 KB, and update feeds over 8 MB are not read.
 
 ## [1.13.0] — 2026-10-28
 

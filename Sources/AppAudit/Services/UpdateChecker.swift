@@ -11,7 +11,8 @@ struct LiveUpdateMetadataClient: UpdateMetadataClient {
         guard await UpdateFetchGuard.allows(url) else { throw URLError(.appTransportSecurityRequiresSecureConnection) }
         // Abandoned apps have dead feeds; 60 s per host would stall the whole refresh.
         let request = URLRequest(url: url, timeoutInterval: 15)
-        let (data, response) = try await URLSession.shared.data(for: request, delegate: UpdateFetchGuard())
+        let (data, response) = try await CappedDownload.data(for: request, delegate: UpdateFetchGuard(),
+                                                             limit: CappedDownload.feedLimit, overLimit: .fail)
         // A refused redirect comes back as the 3xx itself, so the 2xx check drops it.
         guard let httpResponse = response as? HTTPURLResponse,
               (200..<300).contains(httpResponse.statusCode),

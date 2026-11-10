@@ -205,3 +205,30 @@ struct AnalyzedDateTests {
         #expect(AppFacts.analyzedDate(generatedAt: nil, explanation: "A notes app.") == nil)
     }
 }
+
+@Suite("A big linked file is not read in full (b3b1)")
+struct CappedDownloadTests {
+    private func stream(_ count: Int) -> AsyncStream<UInt8> {
+        AsyncStream { continuation in
+            for i in 0..<count { continuation.yield(UInt8(i % 256)) }
+            continuation.finish()
+        }
+    }
+
+    @Test("A page stops at the limit")
+    func truncates() async throws {
+        let data = try await CappedDownload.collect(stream(5_000), limit: 1_000, overLimit: .truncate)
+        #expect(data.count == 1_000)
+    }
+
+    @Test("A feed over the limit is refused, one under it is whole")
+    func failsOverLimit() async throws {
+        await #expect(throws: URLError.self) {
+            _ = try await CappedDownload.collect(stream(5_000), limit: 1_000, overLimit: .fail)
+        }
+        let whole = try await CappedDownload.collect(stream(900), limit: 1_000, overLimit: .fail)
+        #expect(whole.count == 900)
+        let exact = try await CappedDownload.collect(stream(1_000), limit: 1_000, overLimit: .fail)
+        #expect(exact.count == 1_000)
+    }
+}

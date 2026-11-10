@@ -220,14 +220,15 @@ actor LinkEvidenceService {
         var request = URLRequest(url: url, timeoutInterval: 6)
         request.setValue("Mozilla/5.0 (Macintosh) Sift", forHTTPHeaderField: "User-Agent")
         do {
-            let (data, response) = try await URLSession.shared.data(for: request, delegate: LinkEvidenceRedirectGuard())
+            let (data, response) = try await CappedDownload.data(for: request, delegate: LinkEvidenceRedirectGuard(),
+                                                                 limit: CappedDownload.pageLimit, overLimit: .truncate)
             // A refused redirect comes back as the 3xx itself, so the 200 check drops it too.
             guard let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let finalURL = http.url, LinkEvidence.isAllowedTarget(finalURL) else {
                 cache[urlString] = nil as String?
                 return nil
             }
-            let html = String(decoding: data.prefix(131_072), as: UTF8.self)
+            let html = String(decoding: data.prefix(CappedDownload.pageLimit), as: UTF8.self)
             let evidence = LinkEvidence.extract(fromHTML: html)
             cache[urlString] = evidence
             return evidence
