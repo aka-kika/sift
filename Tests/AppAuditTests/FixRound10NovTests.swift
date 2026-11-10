@@ -232,3 +232,14 @@ struct CappedDownloadTests {
         #expect(exact.count == 1_000)
     }
 }
+
+@Suite("A failed page fetch is tried again when the user asks (b3b1)")
+struct LinkEvidenceRetryTests {
+    @Test("Never fetched: fetch. Worked: keep. Failed: only when the user asked")
+    func rules() {
+        #expect(LinkEvidenceService.shouldFetch(cached: nil, retryingFailure: false))
+        #expect(!LinkEvidenceService.shouldFetch(cached: .some("Words"), retryingFailure: true))
+        #expect(!LinkEvidenceService.shouldFetch(cached: .some(nil), retryingFailure: false))
+        #expect(LinkEvidenceService.shouldFetch(cached: .some(nil), retryingFailure: true))
+    }
+}

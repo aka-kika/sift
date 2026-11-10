@@ -202,14 +202,27 @@ private final class LinkEvidenceRedirectGuard: NSObject, URLSessionTaskDelegate 
 }
 
 /// Fetches and caches link evidence per URL for the lifetime of the app run, so
-/// bulk re-analyzes do not refetch the same page.
+/// bulk re-analyzes do not refetch the same page. A failed fetch is remembered
+/// too, but a re-analyze the user asked for tries it again: the network may be
+/// back, and the page should not be skipped until Sift restarts.
 actor LinkEvidenceService {
     private var cache: [String: String?] = [:]
 
-    func evidence(for urlString: String?) async -> String? {
+    /// `cached` is the cache's answer: nil when the URL was never fetched,
+    /// `.some(nil)` when it failed, `.some(text)` when it worked.
+    static func shouldFetch(cached: String??, retryingFailure: Bool) -> Bool {
+        switch cached {
+        case .none: return true
+        case .some(.none): return retryingFailure
+        case .some(.some): return false
+        }
+    }
+
+    func evidence(for urlString: String?, retryingFailure: Bool = false) async -> String? {
         // Older records may hold a bare host ("raycast.com") saved before links were normalized.
         guard let urlString = AppLinkInput.normalized(urlString) else { return nil }
-        if let cached = cache[urlString] { return cached }
+        let cached = cache[urlString]
+        if !Self.shouldFetch(cached: cached, retryingFailure: retryingFailure) { return cached ?? nil }
 
         guard let url = LinkEvidence.fetchableURL(from: urlString),
               await LinkEvidence.mayFetch(url, httpsOnly: false) else {

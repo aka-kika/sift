@@ -489,7 +489,7 @@ final class AppListViewModel {
             promptURL = listing.pageURL
             linkEvidence = promptURL == nil ? nil : listing.text
         } else if fetches {
-            linkEvidence = await linkEvidenceService.evidence(for: appURL)
+            linkEvidence = await linkEvidenceService.evidence(for: appURL, retryingFailure: userAsked)
         }
         let result = await service(for: provider).analyze(app: app, profile: profile, appURL: promptURL, linkEvidence: linkEvidence, userNotes: userNotes, docsEvidence: docsEvidence)
 
