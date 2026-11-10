@@ -229,7 +229,9 @@ struct UninstallSheet: View {
                 Button("Done") { onFinished(true) }
                     .keyboardShortcut(.defaultAction)
             } else {
-                Button("Cancel") { onFinished(false) }
+                Button("Cancel") {
+                    onFinished(BrewUninstallFooter.cancelReportsRemoved(homebrewRemovedTheApp: brewOutput != nil))
+                }
                     .keyboardShortcut(.escape)
                 Spacer()
                 Button("Move to Trash", role: .destructive) {

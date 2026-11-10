@@ -182,3 +182,14 @@ struct LockedReanalysisStateTests {
         }
     }
 }
+
+@Suite("Cancel after brew uninstall drops the removed app (b3b1)")
+struct CancelAfterBrewTests {
+    @Test("Cancel reports the app removed only when brew removed it")
+    func cancelReports() {
+        #expect(BrewUninstallFooter.cancelReportsRemoved(homebrewRemovedTheApp: true))
+        #expect(!BrewUninstallFooter.cancelReportsRemoved(homebrewRemovedTheApp: false))
+        // With leftovers still checked the footer offers Cancel, not Done.
+        #expect(BrewUninstallFooter.action(homebrewRemovedTheApp: true, anythingChecked: true) == .moveToTrash)
+    }
+}

@@ -56,6 +56,10 @@ enum BrewUninstallFooter {
     }
 
     static func brewButtonEnabled(running: Bool) -> Bool { !running }
+
+    /// Cancel keeps the leftovers, but the app is gone once brew removed it:
+    /// the sidebar row goes too, instead of staying until the next rescan.
+    static func cancelReportsRemoved(homebrewRemovedTheApp: Bool) -> Bool { homebrewRemovedTheApp }
 }
 
 /// Apps Sift refuses to uninstall: the system's and its own.
