@@ -103,9 +103,17 @@ final class APIKeyField {
         saveFailed = false
     }
 
-    /// Write the draft. An untouched empty field does not remove a saved key.
+    /// Write the draft. An empty field never removes a saved key, even one
+    /// typed in and cleared again: a stray keystroke and Backspace would lose
+    /// the key. Only Remove Key deletes it.
     func commit() {
         guard edited else { return }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            text = ""
+            edited = false
+            saveFailed = false
+            return
+        }
         let ok = store.setKey(text, for: kind)
         saveFailed = !ok
         guard ok else { return }

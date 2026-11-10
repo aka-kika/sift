@@ -12,3 +12,35 @@ struct CopyKeyPanelTests {
         #expect(!CopyKeyPanel.reopensAfterCopy(panelWasOpen: false))
     }
 }
+
+@Suite("An emptied API key field keeps the saved key (5745)")
+@MainActor
+struct EmptiedAPIKeyFieldTests {
+    @Test("Typing a letter, deleting it and leaving the field keeps the key")
+    func strayKeystrokeKeepsKey() {
+        let backend = MemorySecretStoreBackend()
+        backend.write("sk-ant-saved", account: AnalysisProviderKind.anthropic.apiKeyAccount)
+        let defaults = UserDefaults(suiteName: "sift-tests-\(UUID().uuidString)")!
+        let field = APIKeyField(store: APIKeyStore(backend: backend, defaults: defaults))
+        field.load(.anthropic)
+        field.update("x")
+        field.update("")
+        field.commit()
+        #expect(backend.read(account: AnalysisProviderKind.anthropic.apiKeyAccount) == "sk-ant-saved")
+        #expect(field.hasStoredKey)
+        #expect(!field.saveFailed)
+        #expect(field.text.isEmpty)
+    }
+
+    @Test("Spaces only count as empty too")
+    func spacesKeepKey() {
+        let backend = MemorySecretStoreBackend()
+        backend.write("gem-saved", account: AnalysisProviderKind.gemini.apiKeyAccount)
+        let defaults = UserDefaults(suiteName: "sift-tests-\(UUID().uuidString)")!
+        let field = APIKeyField(store: APIKeyStore(backend: backend, defaults: defaults))
+        field.load(.gemini)
+        field.update("   ")
+        field.commit()
+        #expect(backend.read(account: AnalysisProviderKind.gemini.apiKeyAccount) == "gem-saved")
+    }
+}
