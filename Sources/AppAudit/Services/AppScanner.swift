@@ -44,6 +44,7 @@ actor AppScanner {
         }
 
         let installedCasks = homebrew.installedCasks()
+        let caskReceipts = HomebrewService.caskTokensByAppPath(installedCasks: installedCasks)
         var apps: [AppInfo] = []
 
         for dir in scanDirs {
@@ -55,6 +56,7 @@ actor AppScanner {
                     from: fullPath,
                     includeApple: shouldIncludeApple,
                     installedCasks: installedCasks,
+                    caskReceipts: caskReceipts,
                     runningBundleIDs: runningBundleIDs
                 ) {
                     apps.append(appInfo)
@@ -87,7 +89,7 @@ actor AppScanner {
         return paths
     }
 
-    private func makeAppInfo(from path: String, includeApple: Bool, installedCasks: [String], runningBundleIDs: Set<String> = []) -> AppInfo? {
+    private func makeAppInfo(from path: String, includeApple: Bool, installedCasks: [String], caskReceipts: [String: String] = [:], runningBundleIDs: Set<String> = []) -> AppInfo? {
         let plistPath = (path as NSString).appendingPathComponent("Contents/Info.plist")
         guard let plist = NSDictionary(contentsOfFile: plistPath),
               let name = Self.appName(from: plist, path: path),
@@ -102,7 +104,8 @@ actor AppScanner {
                      ?? plist["CFBundleGetInfoString"] as? String
         let sparkleFeedURL = plist["SUFeedURL"] as? String
         let isAppStoreInstall = FileManager.default.fileExists(atPath: (path as NSString).appendingPathComponent("Contents/_MASReceipt/receipt"))
-        let homebrewCaskToken = homebrew.caskToken(forAppName: name, path: path, installedCasks: installedCasks)
+        let homebrewCaskToken = homebrew.caskToken(forAppName: name, path: path, installedCasks: installedCasks,
+                                                     receiptIndex: caskReceipts)
 
         let icon: SendableImage?
         icon = SendableImage(image: NSWorkspace.shared.icon(forFile: path))

@@ -74,8 +74,16 @@ struct HomebrewService: Sendable {
         runBrewChecked(arguments: ["uninstall", "--cask", token])
     }
 
-    func caskToken(forAppName appName: String, path: String, installedCasks: [String]) -> String? {
+    /// `receiptIndex` is `caskTokensByAppPath`: brew's own install records,
+    /// asked before the name match, so a cask named unlike its app
+    /// (block-goose for Goose.app) is still found.
+    func caskToken(forAppName appName: String, path: String, installedCasks: [String],
+                   receiptIndex: [String: String] = [:]) -> String? {
         if let token = Self.caskTokenFromCaskroomPath(path) {
+            return token
+        }
+
+        if let token = receiptIndex[Self.canonicalPath(path)] {
             return token
         }
 
@@ -138,6 +146,29 @@ struct HomebrewService: Sendable {
             }
         }
         return false
+    }
+
+    /// Every installed cask's apps, by where brew put them: canonical bundle
+    /// path to cask token, read from each cask's INSTALL_RECEIPT. Read once per
+    /// scan. A cask with no readable record adds nothing.
+    static func caskTokensByAppPath(installedCasks: [String],
+                                    caskroomRoots: [String] = caskroomRoots) -> [String: String] {
+        var index: [String: String] = [:]
+        for token in installedCasks {
+            for root in caskroomRoots {
+                let metadata = ((root as NSString).appendingPathComponent(token) as NSString)
+                    .appendingPathComponent(".metadata")
+                guard let receipt = FileManager.default.contents(
+                    atPath: (metadata as NSString).appendingPathComponent("INSTALL_RECEIPT.json")) else { continue }
+                let config = FileManager.default.contents(
+                    atPath: (metadata as NSString).appendingPathComponent("config.json"))
+                for appPath in appPaths(fromReceipt: receipt, appdir: installedAppdir(fromConfig: config)) {
+                    let key = canonicalPath(appPath)
+                    if index[key] == nil { index[key] = token }
+                }
+            }
+        }
+        return index
     }
 
     /// The appdir the cask was installed with: an explicit `--appdir` wins over

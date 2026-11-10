@@ -77,3 +77,44 @@ struct VaultSubscriptionRowTests {
         #expect(monthly.subscriptionEmail == nil)
     }
 }
+
+@Suite("A cask named unlike its app is found from brew's install record (5486)")
+struct CaskTokenFromReceiptTests {
+    /// Goose 1.58.1's real receipt: cask block-goose, `"app":["Goose.app"]`,
+    /// landing in the appdir from config.json.
+    private static let receipt = Data(#"{"uninstall_artifacts":[{"app":["Goose.app"]},{"zap":[{"trash":["~/Library/Application Support/Goose"]}]}]}"#.utf8)
+
+    @Test("Goose.app maps to block-goose, so brew's update is seen")
+    func gooseFound() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "SiftGoose-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let caskroom = root.appending(path: "Caskroom")
+        let appdir = root.appending(path: "Applications")
+        let goose = appdir.appending(path: "Goose.app")
+        let metadata = caskroom.appending(path: "block-goose/.metadata")
+        try FileManager.default.createDirectory(at: metadata, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: goose, withIntermediateDirectories: true)
+        try Self.receipt.write(to: metadata.appending(path: "INSTALL_RECEIPT.json"))
+        try Data(#"{"default":{"appdir":"\#(appdir.path)"},"explicit":{}}"#.utf8)
+            .write(to: metadata.appending(path: "config.json"))
+
+        let index = HomebrewService.caskTokensByAppPath(installedCasks: ["block-goose", "firefox"],
+                                                         caskroomRoots: [caskroom.path])
+        let service = HomebrewService()
+        // The name alone never matches: "goose" is not "blockgoose".
+        #expect(service.caskToken(forAppName: "Goose", path: goose.path, installedCasks: ["block-goose"]) == nil)
+        #expect(service.caskToken(forAppName: "Goose", path: goose.path, installedCasks: ["block-goose"],
+                                  receiptIndex: index) == "block-goose")
+        // A copy brew did not put there is not claimed by the record.
+        #expect(service.caskToken(forAppName: "Goose", path: "/Users/me/Downloads/Goose.app",
+                                  installedCasks: ["block-goose"], receiptIndex: index) == nil)
+    }
+
+    @Test("A cask with no record adds nothing, and the name match still works")
+    func noRecord() {
+        let index = HomebrewService.caskTokensByAppPath(installedCasks: ["firefox"], caskroomRoots: ["/nonexistent-caskroom"])
+        #expect(index.isEmpty)
+        #expect(HomebrewService().caskToken(forAppName: "Firefox", path: "/Applications/Firefox.app",
+                                            installedCasks: ["firefox"], receiptIndex: index) == "firefox")
+    }
+}
